@@ -1,0 +1,136 @@
+# IRIS — Innovation Research & Intelligence System
+
+Repositorio del **flujo de innovación IRIS** (Iris StartUp Lab). Contiene una **macro-skill orquestadora** (`iris-flujo-de-innovacion`) que guía al usuario por el flujo completo de innovación —de la investigación a la validación— invocando **26 sub-skills** especializadas y consolidando sus resultados en **reportes HTML interactivos** con el diseño corporativo IRIS.
+
+## ¿Dónde ejecutar esta skill?
+
+Esta skill tiene como objetivo que sea totalmente agnóstica, entonces está diseñada para
+ejecutarse en cualquier gestor de skills (Kimi Code, Antigravity, Claude Desktop/Claude Code, OpenCode, ChatGPT/Codex).
+
+## Qué contiene
+
+| Elemento | Descripción |
+| --- | --- |
+| `SKILL.md` | Macro-skill orquestadora (nombre `iris-flujo-de-innovacion`). |
+| `pasos.json` | **Fuente única del flujo**: los 11 pasos, sus decisiones, las rutas exactas de las sub-skills y qué se puede omitir. |
+| `scripts/estado_flujo.py` | Máquina de estados del flujo: avance, decisiones, omisiones y el contexto que viaja a cada HTML. |
+| `flujo_estado.json` / `STATE.md` | Estado del proyecto en curso (JSON) y su vista humana generada. |
+| `flujo_agentes.md` / `flujo_mermaid.md` | Vistas del flujo: descripción de cada agente y grafo Mermaid. |
+| `sub-skills/` | Las 26 sub-skills, organizadas por fase. |
+| `_plantilla_html/` | Generador + plantilla + validador HTML compartidos (salida interactiva con diseño IRIS). |
+| `sub-skills_sample_outputs/` | Muestras de salida HTML por skill (para revisar el diseño). |
+| `Documentos_prompts_base_md/` | Los 24 prompts originales (fuente de cada skill). |
+
+## Fases del flujo
+
+1. **Investigación** — benchmark-mercado, foresight, senales-debiles, discussion-forums, search-trend-analysis.
+2. **Descubrimiento** — entrevistas-empatia, day-in-the-life, encuesta-kano, discovery-survey, expo-quest, persona-profile, problem-solution-fit, journey-builder.
+3. **Ideación** — how-might-we, ideacion, caressing-client, referral-builder, dimensionador-estrategico, business-model-navigator.
+4. **Prototipado** — landing-page, landing-ux-analyzer.
+5. **Validación** — email-campaign, explainer-video, feature-stub, online-ads, popup-store.
+
+## Tutorial de uso
+
+### Cómo iniciar un proyecto
+
+Solo hacen falta tres datos: **nombre**, **objetivo** y **audiencia**. Todo lo demás se
+pregunta paso a paso, cuando toca.
+
+```bash
+python scripts/estado_flujo.py init --proyecto "Huertos urbanos MX" \
+    --objetivo "Validar demanda de kits de huerto" \
+    --audiencia "Familias urbanas 28-45, CDMX"
+```
+
+Luego la macro-skill arranca con el nodo de decisión **«¿Cómo quieres iniciar?»**
+(Estado actual → Benchmark · Futuros → Foresight · Señales débiles → Señales débiles ·
+Opiniones → Discussion Forums) y avanza paso por paso con **human-in-the-loop**,
+deteniéndose en cada decisión y registrando todo en el estado del flujo.
+
+### Dos recorridos
+
+| Recorrido | Pasos | Para qué |
+| --- | --- | --- |
+| **Completa** | 11 | El proceso íntegro, de la investigación al experimento. |
+| **Mínima** (`--ruta minima`) | 5 — `html_1 → html_4 → html_7 → html_8 → html_11` | Investigación → persona → reto → ideas → experimento, sin las etapas intermedias. |
+
+### Omitir pasos
+
+En cada paso el usuario elige **Ejecutar**, **Omitir** o **¿Por qué importa?**. Al omitir,
+el hueco queda declarado: el reporte de cada paso posterior muestra qué falta y por qué,
+y los datos que dependían de ese input se marcan como supuestos con `*`.
+
+Los pasos que sostienen el resto del flujo (`html_4` Persona, `html_7` HMW, `html_8`
+Ideación, `html_11` Validación) piden confirmación extra antes de omitirse.
+
+### Contexto en cada reporte
+
+Los 11 HTML llevan **el contexto completo del flujo**: un riel de progreso con los 11
+pasos (completados, omitidos, el actual), las decisiones tomadas hasta ese punto, el
+resumen de cada paso previo con enlace a su reporte, y los pasos omitidos con su impacto.
+Ningún reporte se lee fuera de contexto.
+
+### Retomar un proyecto
+
+El estado es persistente. Para saber dónde quedó:
+
+```bash
+python scripts/estado_flujo.py mostrar
+```
+
+Devuelve el paso actual, el histórico de sus predecesores, las decisiones ya tomadas
+(que no se vuelven a preguntar) y las sub-skills que toca invocar.
+
+### Modelo recomendado por herramienta
+
+| Herramienta | Recomendado | Alternativa |
+| --- | --- | --- |
+| **Claude Desktop** | Claude Sonnet | Claude Opus (más gasto) |
+| **Antigravity** | Gemini 3.1 Pro | — |
+| **OpenCode** | DeepSeek V4 Flash | — |
+| **ChatGPT Desktop** | GPT Terra | — |
+
+## Salidas HTML (diseño IRIS)
+
+Cada skill entrega su resultado como un **reporte HTML interactivo** autocontenido (logo embebido en base64, tipografías Sora/Inter, paleta morado/dorado). Se genera **desde la raíz del repositorio**:
+
+```bash
+# como paso del flujo: el contexto del flujo se inyecta solo
+python _plantilla_html/scripts/generar_html.py --data reporte.json \
+    --estado flujo_estado.json --paso html_4 -o html_4.html
+
+# skill suelta, fuera de un proyecto del flujo
+python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -o reporte.html
+```
+
+El generador **valida el esquema y falla si falta algo**, para que un reporte incompleto no se entregue como HTML en blanco.
+
+- Esquema del JSON (`REPORT_DATA`), bloque `flujo` y guía: `_plantilla_html/README.md`.
+- Diseño oficial: `Designs_files/Design_iris_main_colors.md`.
+- Logo oficial: `imagenes_iconos_etc/Logos_GS_Iris_transparent.png`.
+- Ejemplos visuales: `sub-skills_sample_outputs/`.
+
+## Empaquetado de la skill (ZIP)
+
+Los gestores de agentes suelen tener un límite de **30 MB** por skill. El paquete con los documentos necesarios pesa ~3 MB (muy por debajo del límite). Para generarlo:
+
+**PowerShell (Windows):**
+
+```powershell
+.\empaquetar_skill.ps1                              # ZIP básico (~3 MB)
+.\empaquetar_skill.ps1 -IncludeSamples              # + muestras de diseño
+.\empaquetar_skill.ps1 -IncludeFlujoMap             # + mapa visual (Flujo Agentes mapa 2.html, ~7.3 MB)
+.\empaquetar_skill.ps1 -Output "mi_skill.zip"       # nombre personalizado
+```
+
+**Bash (Linux/macOS):**
+
+```bash
+./empaquetar_skill.sh                               # ZIP básico
+./empaquetar_skill.sh --samples --flujo             # opciones adicionales
+./empaquetar_skill.sh -o mi_skill.zip               # nombre personalizado
+```
+
+Opciones: `-IncludeSamples`/`--samples` (muestras), `-IncludeFlujoMap`/`--flujo` (mapa visual), `-IncludeDocx`/`--docx` (prompts .docx), `-IncludeTemp`/`--temp` (screenshots).
+
+**Qué se incluye por defecto:** `SKILL.md`, `pasos.json`, `scripts/`, `STATE.md`, `AGENTS.md`, `README.md`, `flujo_agentes.md`, `flujo_mermaid.md`, `sub-skills/`, `_plantilla_html/`, `Designs_files/`, `imagenes_iconos_etc/`, `Documentos_prompts_base_md/`. **Se excluyen:** `__pycache__`/`*.pyc`, el mapa visual grande, notebooks y archivos de desarrollo.

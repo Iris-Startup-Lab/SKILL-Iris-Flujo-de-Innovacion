@@ -1,0 +1,314 @@
+{
+  "version": 1,
+  "flujo": "iris-flujo-de-innovacion",
+  "descripcion": "Fuente única de verdad del flujo IRIS. La macro-skill lee este archivo para saber, en cada paso: qué sub-skills invocar (ruta exacta), qué decisiones presentar al usuario, de qué pasos depende y qué pasa si se omite. Ningún otro documento define el flujo: flujo_agentes.md, flujo_mermaid.md y README.md son vistas de este archivo.",
+  "ruta_minima": ["html_1", "html_4", "html_7", "html_8", "html_11"],
+  "estados_validos": ["pendiente", "en_curso", "completado", "omitido", "fallido"],
+  "pasos": [
+    {
+      "id": "html_1",
+      "orden": 1,
+      "etapa": "Investigación",
+      "titulo": "Inicio + Investigación",
+      "objetivo": "Entender el terreno antes de diseñar nada: mercado, futuros, señales o conversaciones reales.",
+      "nodo_mermaid": ["N28", "N1", "N13", "N24", "N6", "N23"],
+      "predecesores": [],
+      "en_ruta_minima": true,
+      "omitible": true,
+      "si_omitido": "No hay investigación propia. La macro pide al usuario el contexto de mercado a mano y toda cifra derivada se marca con * como supuesto.",
+      "decisiones": [
+        {
+          "nodo": "¿Cómo quieres iniciar?",
+          "tipo": "unica",
+          "opciones": [
+            { "opcion": "Estado actual", "skills": ["1.Investigación/benchmark-mercado"] },
+            { "opcion": "Futuros", "skills": ["1.Investigación/foresight"] },
+            { "opcion": "Señales débiles de usuarios actuales", "skills": ["1.Investigación/senales-debiles"] },
+            { "opcion": "Opiniones y comentarios", "skills": ["1.Investigación/discussion-forums", "1.Investigación/search-trend-analysis"] }
+          ]
+        }
+      ],
+      "skills_posibles": [
+        "1.Investigación/benchmark-mercado",
+        "1.Investigación/foresight",
+        "1.Investigación/senales-debiles",
+        "1.Investigación/discussion-forums",
+        "1.Investigación/search-trend-analysis"
+      ],
+      "cadenas": [["1.Investigación/discussion-forums", "1.Investigación/search-trend-analysis"]],
+      "entrega": "html_1.html"
+    },
+    {
+      "id": "html_2",
+      "orden": 2,
+      "etapa": "Descubrimiento",
+      "titulo": "Decisión — Entrevistas",
+      "objetivo": "Diseñar las entrevistas de empatía y decidir si se ejecutan con usuarios reales o se simulan.",
+      "nodo_mermaid": ["N9", "N35", "N34", "N31"],
+      "predecesores": ["html_1"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "No hay guion ni insights de entrevistas. persona-profile (html_4) queda obligado a la rama «sin datos reales» y sus atributos se marcan como supuestos *.",
+      "decisiones": [
+        {
+          "nodo": "¿Ejecución de entrevistas?",
+          "tipo": "unica",
+          "opciones": [
+            { "opcion": "Sí — respuestas e insights reales", "efecto": "Los insights posteriores usan data real del usuario." },
+            { "opcion": "No — simulación de respuestas e insights", "efecto": "Los insights se simulan y quedan etiquetados como SIMULADO en todo reporte posterior." }
+          ]
+        },
+        {
+          "nodo": "Simular o no",
+          "tipo": "unica",
+          "solo_si": "¿Ejecución de entrevistas? = No",
+          "opciones": [
+            { "opcion": "Simular respuestas", "efecto": "Se generan respuestas sintéticas etiquetadas SIMULADO." },
+            { "opcion": "No simular", "efecto": "Se continúa solo con el guion de entrevista, sin respuestas." }
+          ]
+        },
+        {
+          "nodo": "Selección de agentes",
+          "tipo": "multiple",
+          "descripcion": "Elige cuáles de los 4 agentes de descubrimiento (html_3) se ejecutan.",
+          "opciones": [
+            { "opcion": "A Day In The Life", "skills": ["2.Descubrimiento/day-in-the-life"] },
+            { "opcion": "Encuesta Kano", "skills": ["2.Descubrimiento/encuesta-kano"] },
+            { "opcion": "Discovery Survey", "skills": ["2.Descubrimiento/discovery-survey"] },
+            { "opcion": "Expo Quest", "skills": ["2.Descubrimiento/expo-quest"] }
+          ]
+        }
+      ],
+      "skills_posibles": ["2.Descubrimiento/entrevistas-empatia"],
+      "entrega": "html_2.html"
+    },
+    {
+      "id": "html_3",
+      "orden": 3,
+      "etapa": "Descubrimiento",
+      "titulo": "Descubrimiento",
+      "objetivo": "Recoger evidencia de campo con los agentes elegidos en html_2.",
+      "nodo_mermaid": ["N0", "N5", "N8", "N11"],
+      "predecesores": ["html_2"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "Sin evidencia de campo. persona-profile y journey-builder trabajan sobre el contexto de html_1 y supuestos marcados *.",
+      "decisiones": [],
+      "skills_posibles": [
+        "2.Descubrimiento/day-in-the-life",
+        "2.Descubrimiento/encuesta-kano",
+        "2.Descubrimiento/discovery-survey",
+        "2.Descubrimiento/expo-quest"
+      ],
+      "paralelo": true,
+      "entrega": "html_3.html"
+    },
+    {
+      "id": "html_4",
+      "orden": 4,
+      "etapa": "Descubrimiento",
+      "titulo": "Persona Profile",
+      "objetivo": "Convertir la evidencia en protopersonas con JTBD y Momentos Vitales.",
+      "nodo_mermaid": ["N19", "N36"],
+      "predecesores": ["html_3", "html_2", "html_1"],
+      "en_ruta_minima": true,
+      "omitible": false,
+      "razon_no_omitible": "Todo el flujo posterior (problem-solution-fit, journey-builder, HMW, ideación) se aplica sobre una protopersona concreta. Sin ella no hay a quién resolverle nada.",
+      "decisiones": [
+        {
+          "nodo": "¿Hay datos reales de entrevistas / encuestas?",
+          "tipo": "unica",
+          "opciones": [
+            { "opcion": "Sí — generación de profiles con data real", "efecto": "Persona construida con evidencia trazable." },
+            { "opcion": "No — generación de profiles a base de supuestos", "efecto": "Persona etiquetada SUPUESTOS; todos sus atributos llevan *." }
+          ],
+          "auto_si": {
+            "condicion": "html_2 u html_3 con estado omitido",
+            "opcion": "No — generación de profiles a base de supuestos"
+          }
+        }
+      ],
+      "skills_posibles": ["2.Descubrimiento/persona-profile"],
+      "entrega": "html_4.html"
+    },
+    {
+      "id": "html_5",
+      "orden": 5,
+      "etapa": "Descubrimiento",
+      "titulo": "Problem-Solution Fit",
+      "objetivo": "Priorizar los problemas de la persona y evaluar el encaje de la solución.",
+      "nodo_mermaid": ["N21", "N29"],
+      "predecesores": ["html_4"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "No hay problemas priorizados. El HMW (html_7) se formula sobre el problema que el usuario declare a mano, sin ranking de evidencia.",
+      "decisiones": [
+        {
+          "nodo": "Elección de protopersona",
+          "tipo": "unica",
+          "opciones": [
+            { "opcion": "Por problema más grande", "efecto": "Se prioriza la persona con el dolor más intenso." },
+            { "opcion": "Por mayor tamaño en mercado", "efecto": "Se prioriza la persona con mayor volumen potencial." }
+          ]
+        }
+      ],
+      "skills_posibles": ["2.Descubrimiento/problem-solution-fit"],
+      "entrega": "html_5.html"
+    },
+    {
+      "id": "html_6",
+      "orden": 6,
+      "etapa": "Descubrimiento",
+      "titulo": "Journey Builder",
+      "objetivo": "Mapear el recorrido del usuario con costos y obstáculos paso a paso.",
+      "nodo_mermaid": ["N16"],
+      "predecesores": ["html_5", "html_4"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "Sin journey no hay obstáculos mapeados; el HMW pierde el anclaje al momento concreto del recorrido.",
+      "decisiones": [],
+      "skills_posibles": ["2.Descubrimiento/journey-builder"],
+      "entrega": "html_6.html"
+    },
+    {
+      "id": "html_7",
+      "orden": 7,
+      "etapa": "Ideación",
+      "titulo": "HMW + Ambición estratégica",
+      "objetivo": "Formular el reto creativo y fijar la ambición y la palanca de negocio.",
+      "nodo_mermaid": ["N14", "N26", "N27", "N32"],
+      "predecesores": ["html_6", "html_5", "html_4"],
+      "en_ruta_minima": true,
+      "omitible": false,
+      "razon_no_omitible": "El HMW es el input literal de los agentes de ideación. Sin reto formulado, la ideación no tiene consigna.",
+      "decisiones": [
+        {
+          "nodo": "Ambición estratégica",
+          "tipo": "unica",
+          "opciones": [
+            { "opcion": "Optimizar Negocio Actual", "palancas": ["Reducir Costos", "Productividad"] },
+            { "opcion": "Crecer Negocio Actual", "palancas": ["Nuevos clientes", "Mayor frecuencia", "Mayor ticket", "Recuperación", "Participación de mercado"] },
+            { "opcion": "Expandir Negocio", "palancas": ["Ampliar mercado", "Nuevos casos de uso", "Ecosistema"] },
+            { "opcion": "Crear Nuevos Negocios", "palancas": ["Nuevo producto", "Nuevo modelo de negocio"] },
+            { "opcion": "Reinventar el Futuro", "palancas": ["Disrupción", "Nuevas categorías", "IA"] }
+          ]
+        },
+        {
+          "nodo": "Apalancamiento",
+          "tipo": "unica",
+          "descripcion": "Mostrar SOLO las palancas de la ambición elegida (campo `palancas` del nodo anterior).",
+          "opciones_desde": "Ambición estratégica.palancas"
+        },
+        {
+          "nodo": "Selección de agentes de ideación",
+          "tipo": "multiple",
+          "descripcion": "Elige cuáles de los 3 agentes de ideación (html_8) se ejecutan.",
+          "opciones": [
+            { "opcion": "Ideación", "skills": ["3.Ideación/ideacion"] },
+            { "opcion": "Caressing the client", "skills": ["3.Ideación/caressing-client"] },
+            { "opcion": "Referral Builder", "skills": ["3.Ideación/referral-builder"] }
+          ]
+        }
+      ],
+      "skills_posibles": ["3.Ideación/how-might-we"],
+      "referencias": ["sub-skills/3.Ideación/how-might-we/references/matriz-ambicion-palancas.md"],
+      "entrega": "html_7.html"
+    },
+    {
+      "id": "html_8",
+      "orden": 8,
+      "etapa": "Ideación",
+      "titulo": "Ideación",
+      "objetivo": "Generar y seleccionar ideas contra el HMW y la palanca elegida.",
+      "nodo_mermaid": ["N15", "N3", "N22", "N33"],
+      "predecesores": ["html_7"],
+      "en_ruta_minima": true,
+      "omitible": false,
+      "razon_no_omitible": "Es el paso que produce las ideas. Sin ideas no hay nada que dimensionar, modelar ni validar.",
+      "decisiones": [
+        {
+          "nodo": "Selección de ideas",
+          "tipo": "multiple",
+          "descripcion": "El usuario elige qué ideas pasan a dimensionamiento y validación."
+        }
+      ],
+      "skills_posibles": [
+        "3.Ideación/ideacion",
+        "3.Ideación/caressing-client",
+        "3.Ideación/referral-builder"
+      ],
+      "paralelo": true,
+      "entrega": "html_8.html"
+    },
+    {
+      "id": "html_9",
+      "orden": 9,
+      "etapa": "Ideación",
+      "titulo": "Dimensionador estratégico",
+      "objetivo": "Dimensionar el potencial de negocio de cada idea y decidir cuáles pasan a validación.",
+      "nodo_mermaid": ["N4"],
+      "predecesores": ["html_8"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "Las ideas pasan a validación sin TAM/SAM/SOM ni score de atractivo: la priorización queda en criterio del usuario, no en evidencia.",
+      "decisiones": [],
+      "skills_posibles": ["3.Ideación/dimensionador-estrategico"],
+      "entrega": "html_9.html"
+    },
+    {
+      "id": "html_10",
+      "orden": 10,
+      "etapa": "Ideación",
+      "titulo": "Business Model Navigator",
+      "objetivo": "Recomendar patrones de modelo de negocio y los experimentos que los ponen a prueba.",
+      "nodo_mermaid": ["N2"],
+      "predecesores": ["html_9", "html_8"],
+      "en_ruta_minima": false,
+      "omitible": true,
+      "si_omitido": "No hay patrón de negocio ni recomendación de experimento: la elección del agente de validación (html_11) la hace el usuario sin guía.",
+      "decisiones": [],
+      "skills_posibles": ["3.Ideación/business-model-navigator"],
+      "referencias": ["sub-skills/3.Ideación/business-model-navigator/references/catalogo-patrones.md"],
+      "entrega": "html_10.html"
+    },
+    {
+      "id": "html_11",
+      "orden": 11,
+      "etapa": "Prototipado y Validación",
+      "titulo": "Prototipado y Validación",
+      "objetivo": "Diseñar el experimento que pone la idea frente a usuarios reales.",
+      "nodo_mermaid": ["N30", "N25", "N17", "N18", "N7", "N10", "N20", "N12"],
+      "predecesores": ["html_10", "html_9", "html_8"],
+      "en_ruta_minima": true,
+      "omitible": false,
+      "razon_no_omitible": "Es el cierre del flujo: sin experimento diseñado no hay validación y el proyecto queda en hipótesis.",
+      "decisiones": [
+        {
+          "nodo": "Selección de agente para validar",
+          "tipo": "multiple",
+          "opciones": [
+            { "opcion": "Simple Landing Page", "skills": ["4.Prototipado/landing-page"] },
+            { "opcion": "Landing Page UX Analyzer", "skills": ["4.Prototipado/landing-ux-analyzer"] },
+            { "opcion": "Online Ads", "skills": ["5.Validación/online-ads"] },
+            { "opcion": "Email Campaign", "skills": ["5.Validación/email-campaign"] },
+            { "opcion": "Explainer Video", "skills": ["5.Validación/explainer-video"] },
+            { "opcion": "Pop-Up Store", "skills": ["5.Validación/popup-store"] },
+            { "opcion": "Feature Stub", "skills": ["5.Validación/feature-stub"] }
+          ]
+        }
+      ],
+      "skills_posibles": [
+        "4.Prototipado/landing-page",
+        "4.Prototipado/landing-ux-analyzer",
+        "5.Validación/online-ads",
+        "5.Validación/email-campaign",
+        "5.Validación/explainer-video",
+        "5.Validación/popup-store",
+        "5.Validación/feature-stub"
+      ],
+      "paralelo": true,
+      "entrega": "html_11.html"
+    }
+  ],
+  "nota_rutas": "Las rutas de `skills` son relativas a `sub-skills/` y coinciden literalmente con el nombre de la carpeta en disco, acentos incluidos: '3.Ideación/ideacion' → 'sub-skills/3.Ideación/ideacion/SKILL.md'."
+}

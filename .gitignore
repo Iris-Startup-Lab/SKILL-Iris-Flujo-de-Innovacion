@@ -1,0 +1,42 @@
+# Archivos específicos
+Flujo Agentes mapa 2.html
+
+# Archivos no deseados
+*.csv
+*.xlsx
+*.env
+.env
+*.pptx
+*.ppt
+*.xls
+*.xlsx
+*.xlsxm
+*.xlsb
+
+# Archivos de configuración
+*.ini
+*.cfg
+*.conf
+*.config
+*.yaml
+*.yml
+
+## Carpetas excluidas de los gestores de skills
+__pycache__/
+sub-skills_sample_outputs/
+output/
+.claude/
+.agents/
+.gpt/
+.opencode/
+.vscode/
+.idea/
+.vscode-test/
+.angular/
+.next/
+.nuxt/
+.cache/
+.npm/
+.yarn/
+.gemini/
+

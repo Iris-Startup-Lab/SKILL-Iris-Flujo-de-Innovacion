@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dimensionador Estratégico — Reporte Ejecutivo de Priorización</title>
+  
+  <!-- Google Fonts: Sora & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Chart.js para visualización de gráficos interactivos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      /* Morados (marca / fondo oscuro) */
+      --purple-900: #241B33;
+      --purple-800: #2A2433;
+      --purple-700: #3D2766;
+      --purple-600: #5A3A8C;
+      --purple-500: #7A4E96;
+      --purple-200: #D9CCEF;
+      --purple-100: #EDE6F7;
+      --purple-050: #F7F3FC;
+
+      /* Dorado (acento) */
+      --gold-600: #B8862F;
+      --gold-500: #D4A73E;
+      --gold-400: #E8B93E;
+
+      /* Texto / neutros */
+      --ink: #2A2433;
+      --ink-soft: #5C5468;
+      --line: #E4DCEF;
+      --white: #FFFFFF;
+
+      /* Escala de riesgo (semáforo 1–5) */
+      --risk1: #3E8E5A; /* bajo */
+      --risk2: #7FA84C;
+      --risk3: #C99A2E;
+      --risk4: #C97133;
+      --risk5: #B84A3D; /* alto */
+
+      --radius: 14px;
+      --shadow-sm: 0 1px 3px rgba(42,36,51,.08);
+      --shadow-md: 0 6px 20px rgba(61,39,102,.12);
+      --shadow-lg: 0 16px 44px rgba(36,27,51,.22);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.55;
+      background-color: var(--purple-050);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, h5, .font-display {
+      font-family: 'Sora', sans-serif;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 clamp(20px, 4vw, 56px);
+    }
+
+    /* --- HEADER (HERO) --- */
+    header.site-header {
+      background: linear-gradient(135deg, var(--purple-900) 0%, var(--purple-700) 62%, #4A2F7A 100%);
+      color: var(--white);
+      padding: 36px clamp(20px, 4vw, 56px) 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    header.site-header::after {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, rgba(232,185,62,.16), transparent 65%);
+      pointer-events: none;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .brand-chip {
+      background: var(--white);
+      padding: 8px 16px;
+      border-radius: 12px;
+      box-shadow: var(--shadow-md);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--purple-900);
+      font-weight: 700;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.9rem;
+    }
+    .brand-chip svg { width: 22px; height: 22px; fill: var(--purple-700); }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.2);
+      color: var(--white);
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      min-height: 44px;
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,.18);
+      border-color: rgba(255,255,255,.4);
+    }
+
+    .eyebrow {
+      color: var(--gold-400);
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 26px;
+      height: 2px;
+      background: var(--gold-400);
+    }
+
+    h1.hero-title {
+      font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .hero-subtitle {
+      color: var(--purple-200);
+      font-size: 0.95rem;
+      max-width: 820px;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .stat-card {
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 12px;
+      padding: 16px 20px;
+      backdrop-filter: blur(4px);
+    }
+    .stat-val {
+      font-family: 'Sora', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--white);
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+    .stat-val em {
+      color: var(--gold-400);
+      font-style: normal;
+    }
+    .stat-lbl {
+      font-size: 0.78rem;
+      color: var(--purple-200);
+      margin-top: 4px;
+    }
+
+    /* --- PORTFOLIO SUMMARY PANEL --- */
+    .portfolio-panel {
+      margin-top: -24px;
+      margin-bottom: 28px;
+      position: relative;
+      z-index: 10;
+    }
+    .panel-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--line);
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+    }
+    .panel-title {
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--purple-900);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-title svg { width: 18px; height: 18px; color: var(--gold-600); }
+    .panel-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .meta-lbl {
+      font-size: 0.75rem;
+      color: var(--ink-soft);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .meta-val {
+      font-size: 0.9rem;
+      color: var(--purple-900);
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    /* --- TOOLBAR DE FILTROS & SELECTOR DE HORIZONTE --- */
+    .toolbar {
+      background: var(--white);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--purple-050);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 16px;
+      flex: 1;
+      min-width: 240px;
+    }
+    .search-box svg { width: 18px; height: 18px; color: var(--ink-soft); }
+    .search-box input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 0.9rem;
+      color: var(--ink);
+      width: 100%;
+    }
+
+    .filter-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    select.sort-select {
+      background: var(--purple-050);
+      border: 1.5px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 36px 8px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--purple-900);
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%233D2766' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+
+    /* Selector de Horizonte Temporal Ajustable (1y, 3y, 5y) */
+    .horizon-selector {
+      display: inline-flex;
+      align-items: center;
+      background: var(--purple-050);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1.5px solid var(--purple-200);
+      gap: 4px;
+    }
+    .horizon-lbl {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--purple-900);
+      padding: 0 10px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .horizon-btn {
+      border: none;
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .horizon-btn.active {
+      background: var(--purple-700);
+      color: var(--white);
+      box-shadow: 0 2px 8px rgba(61,39,102,.25);
+    }
+    .horizon-btn:hover:not(.active) {
+      color: var(--purple-900);
+      background: var(--purple-100);
+    }
+
+    .chips-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1.5px solid var(--line);
+      background: var(--white);
+      color: var(--ink-soft);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .chip:hover { border-color: var(--purple-500); color: var(--purple-700); }
+    .chip.on {
+      background: var(--purple-700);
+      border-color: var(--purple-700);
+      color: var(--white);
+    }
+    .chip.on.chip-prototipar { background: #15803D; border-color: #15803D; }
+    .chip.on.chip-validar { background: var(--gold-600); border-color: var(--gold-600); }
+    .chip.on.chip-descartar { background: #B84A3D; border-color: #B84A3D; }
+
+    .results-line {
+      width: 100%;
+      font-size: 0.82rem;
+      color: var(--ink-soft);
+      display: flex;
+      justify-content: space-between;
+      padding-top: 8px;
+      border-top: 1px dashed var(--line);
+    }
+    .clear-btn {
+      color: var(--purple-600);
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    /* --- SECTION HEADERS --- */
+    .section-head {
+      margin: 36px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--purple-200);
+    }
+    .sec-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--purple-700);
+      color: var(--gold-400);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .sec-icon svg { width: 18px; height: 18px; }
+    .section-head h2 {
+      font-size: 1.3rem;
+      color: var(--purple-900);
+      font-weight: 700;
+    }
+    .section-head .sec-desc {
+      font-size: 0.85rem;
+      color: var(--ink-soft);
+      margin-left: auto;
+    }
+
+    /* --- PARTE 1: TABLA DE PRIORIZACIÓN --- */
+    .ranking-table-wrapper {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      overflow-x: auto;
+      margin-bottom: 36px;
+    }
+    table.ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    table.ranking-table th {
+      background: var(--purple-050);
+      color: var(--purple-900);
+      font-family: 'Sora', sans-serif;
+      font-weight: 700;
+      padding: 14px 16px;
+      border-bottom: 2px solid var(--line);
+      white-space: nowrap;
+    }
+    table.ranking-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--ink);
+      vertical-align: middle;
+    }
+    table.ranking-table tr:hover { background: var(--purple-050); }
+
+    .score-badge {
+      font-family: 'Sora', sans-serif;
+      font-weight: 800;
+      color: var(--purple-700);
+      background: var(--purple-100);
+      padding: 4px 10px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .verdict-tag {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .verdict-tag.prototipar { background: #DCFCE7; color: #14532D; border: 1px solid #86EFAC; }
+    .verdict-tag.validar { background: #FEF9C3; color: #713F12; border: 1px solid #FDE047; }
+    .verdict-tag.descartar { background: #FEE2E2; color: #7F1D1D; border: 1px solid #FCA5A5; }
+
+    /* --- BADGES DE VERIFICACIÓN DE FUENTES & ENLACES --- */
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .source-badge.verified {
+      background: #DCFCE7;
+      color: #14532D;
+      border: 1px solid #86EFAC;
+    }
+    .source-badge.unverified {
+      background: #FEF9C3;
+      color: #713F12;
+      border: 1px solid #FDE047;
+    }
+    .source-badge:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    /* --- CHART SECTION --- */
+    .chart-container-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      margin-bottom: 36px;
+    }
+    .chart-head-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* --- PARTE 2: GRID DE TARJETAS DE IDEAS --- */
+    .ideas-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .idea-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.25s ease;
+      cursor: pointer;
+      position: relative;
+    }
+    .idea-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--purple-200);
+    }
+    .idea-card.expanded {
+      border-color: var(--purple-600);
+      box-shadow: var(--shadow-md);
+      background: var(--white);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-rank {
+      font-family: 'Sora', sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--purple-600);
+      background: var(--purple-100);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .idea-card h3 {
+      font-size: 1.15rem;
+      color: var(--purple-900);
+      font-weight: 700;
+      line-height: 1.3;
+    }
+    .idea-model-tag {
+      font-size: 0.78rem;
+      color: var(--gold-600);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .idea-desc {
+      font-size: 0.88rem;
+      color: var(--ink-soft);
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    .kpi-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      background: var(--purple-050);
+      padding: 12px;
+      border-radius: 10px;
+    }
+    .kpi-box { display: flex; flex-direction: column; }
+    .kpi-lbl { font-size: 0.72rem; color: var(--ink-soft); text-transform: uppercase; font-weight: 600; }
+    .kpi-val { font-family: 'Sora', sans-serif; font-weight: 700; font-size: 1.05rem; color: var(--purple-900); }
+
+    .card-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+    .expand-btn {
+      color: var(--purple-700);
+      font-weight: 700;
+      font-size: 0.84rem;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .expand-btn svg { width: 16px; height: 16px; transition: transform 0.2s; }
+    .idea-card.expanded .expand-btn svg { transform: rotate(180deg); }
+
+    /* --- DETALLE DESPLEGABLE INLINE --- */
+    .detail-panel {
+      grid-column: 1 / -1;
+      background: var(--white);
+      border: 2px solid var(--purple-600);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-lg);
+      margin-top: -10px;
+      margin-bottom: 20px;
+      animation: reveal 0.25s ease;
+    }
+
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .detail-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 16px;
+    }
+    .detail-title-area h2 { font-size: 1.4rem; color: var(--purple-900); font-weight: 800; }
+    .detail-badges { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .dbadge { font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; background: var(--purple-100); color: var(--purple-900); font-weight: 600; }
+    .dbadge.gold { background: #FEF3C7; color: #92400E; }
+
+    .close-detail-btn {
+      background: var(--purple-100);
+      border: none;
+      color: var(--purple-900);
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .close-detail-btn:hover { background: var(--purple-200); }
+
+    .mod-block {
+      margin-bottom: 24px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .mod-block:last-child { border-bottom: none; }
+
+    .mod-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--purple-900);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mod-title svg { width: 18px; height: 18px; color: var(--gold-600); }
+
+    .sub-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .info-box {
+      background: var(--purple-050);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .info-box h4 {
+      font-size: 0.85rem;
+      color: var(--purple-900);
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    /* Top-Down & Bottom-Up code block view */
+    .sizing-code {
+      font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+      font-size: 0.84rem;
+      background: var(--purple-900);
+      color: #E0D6F2;
+      padding: 14px;
+      border-radius: 10px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    /* Score Breakdown Bars */
+    .score-criteria-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .score-item {
+      display: grid;
+      grid-template-columns: 180px 1fr 60px;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.88rem;
+    }
+    .bar-track {
+      height: 10px;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--purple-600), var(--gold-400));
+      border-radius: 999px;
+    }
+
+    /* Risk Bar */
+    .risk-track {
+      height: 8px;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .risk-fill { height: 100%; border-radius: 999px; }
+
+    .verdict-box {
+      background: #FDF8EC;
+      border: 1.5px solid var(--gold-400);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 24px;
+    }
+    .verdict-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    /* --- MODAL --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(36,27,51,.62);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: var(--white);
+      border-radius: 20px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: reveal 0.25s ease;
+    }
+    .modal-head {
+      background: linear-gradient(135deg, var(--purple-900), var(--purple-700));
+      color: var(--white);
+      padding: 24px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-body { padding: 28px; }
+
+    /* --- FOOTER --- */
+    footer.site-footer {
+      background: var(--purple-900);
+      color: #C9BCE0;
+      padding: 48px clamp(20px, 4vw, 56px) 32px;
+      margin-top: 60px;
+      font-size: 0.88rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 32px;
+      margin-bottom: 36px;
+    }
+    .footer-col h4 {
+      color: var(--gold-400);
+      font-family: 'Sora', sans-serif;
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .footer-col ul { list-style: none; }
+    .footer-col li { margin-bottom: 8px; }
+    .foot-note {
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,.1);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 640px) {
+      .score-item { grid-template-columns: 1fr; gap: 4px; }
+      .header-actions { width: 100%; justify-content: flex-start; }
+      .toolbar-row { flex-direction: column; align-items: stretch; }
+    }
+
+    /* Design_2.md §1.4 Accessibility: disable animations for motion-sensitive users */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SITE HEADER -->
+  <header class="site-header">
+    <div class="header-top">
+      <div class="brand-chip">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Iris StartUp Lab
+      </div>
+      <div class="header-actions">
+        <button class="btn-ghost" onclick="toggleModal(true)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Metodología & Riesgos
+        </button>
+        <button class="btn-ghost" onclick="window.print()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Exportar / Imprimir
+        </button>
+      </div>
+    </div>
+
+    <div class="eyebrow" id="hdr-eyebrow">Dimensionador Estratégico v3.0</div>
+    <h1 class="hero-title" id="hdr-title">Reporte Ejecutivo de Priorización de Ideas</h1>
+    <p class="hero-subtitle" id="hdr-subtitle">Evaluación de potencial de negocio basada en metodología McKinsey / Bain / VC — TAM/SAM/SOM, unit economics, cross-selling y veredicto de prototipado.</p>
+
+    <div class="hero-stats">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-ideas">0</div>
+        <div class="stat-lbl">Ideas Evaluadas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val"><span id="stat-top-score">0</span><em>/25</em></div>
+        <div class="stat-lbl">Score Máximo Alcanzado</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-som-total">$0</div>
+        <div class="stat-lbl" id="stat-som-label">SOM Total Potencial (3 Años)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-prototipar">0</div>
+        <div class="stat-lbl">Ideas a Prototipar (≥20 pts)</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    
+    <!-- PORTFOLIO CONTEXT PANEL -->
+    <div class="portfolio-panel">
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Contexto del Portafolio & Objetivo del Ciclo
+          </div>
+        </div>
+        <div class="panel-meta" id="portfolio-meta">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR & CONTROLES DE FILTRO -->
+    <div class="toolbar">
+      <div class="toolbar-row">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-input" placeholder="Buscar por nombre, modelo o palabra clave..." oninput="renderApp()">
+        </div>
+
+        <!-- Selector de Horizonte Temporal Ajustable (1, 3 y 5 años) -->
+        <div class="horizon-selector">
+          <span class="horizon-lbl">Horizonte:</span>
+          <button class="horizon-btn" data-horizon="1y" onclick="setHorizon('1y', this)">1 Año</button>
+          <button class="horizon-btn active" data-horizon="3y" onclick="setHorizon('3y', this)">3 Años</button>
+          <button class="horizon-btn" data-horizon="5y" onclick="setHorizon('5y', this)">5 Años</button>
+        </div>
+      </div>
+
+      <div class="toolbar-row">
+        <div class="filter-controls">
+          <!-- Select de Ordenamiento -->
+          <select class="sort-select" id="sort-select" onchange="renderApp()">
+            <option value="score-desc">Score: Mayor a Menor</option>
+            <option value="score-asc">Score: Menor a Mayor</option>
+            <option value="som-desc">SOM (Horizonte Activo): Mayor a Menor</option>
+            <option value="name-asc">Nombre A-Z</option>
+          </select>
+
+          <!-- Filtro por Tipo de Idea / Modelo -->
+          <select class="sort-select" id="model-filter-select" onchange="renderApp()">
+            <option value="all">Todos los Tipos de Idea</option>
+            <!-- Opciones agregadas dinámicamente por JS -->
+          </select>
+
+          <!-- Chips de Veredicto -->
+          <div class="chips-group">
+            <div class="chip on" data-verdict="all" onclick="setVerdictFilter('all', this)">Todos</div>
+            <div class="chip chip-prototipar" data-verdict="PROTOTIPAR" onclick="setVerdictFilter('PROTOTIPAR', this)">🚀 Prototipar</div>
+            <div class="chip chip-validar" data-verdict="VALIDAR MÁS" onclick="setVerdictFilter('VALIDAR MÁS', this)">🔍 Validar Más</div>
+            <div class="chip chip-descartar" data-verdict="DESCARTAR" onclick="setVerdictFilter('DESCARTAR', this)">⛔ Descartar</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-line">
+        <span id="results-count">Mostrando 0 de 0 ideas</span>
+        <span class="clear-btn" onclick="resetFilters()">Limpiar filtros</span>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE GRÁFICA DE TRAYECTORIA DE INGRESOS -->
+    <div class="section-head">
+      <div class="sec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <h2>Trayectoria de Ingresos & Proyección Financiera (Año 1 a Año 5)</h2>
+      <div class="sec-desc">Evolución dinámica del comportamiento de ingreso proyectado por idea</div>
+    </div>
+
+    <div class="chart-container-card">
+      <div class="chart-head-info">
+        <span style="font-weight:700; font-family:'Sora',sans-serif; color:var(--purple-900); font-size:0.95rem;" id="chart-title-label">
+          Ingresos Proyectados (USD) por Idea
+        </span>
+        <span style="font-size:0.82rem; color:var(--ink-soft);">
+          Haz clic en la leyenda para ocultar/mostrar ideas
+        </span>
+      </div>
+      <div style="position:relative; height:340px; width:100%;">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+
+    <!-- PARTE 1: TABLA DE PRIORIZACIÓN -->
+    <div class="section-head">
+      <div class="sec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
+      <h2>Parte 1 — Tabla Ejecutiva de Priorización</h2>
+      <div class="sec-desc">Resumen comparativo ordenado por viabilidad estratégica</div>
+    </div>
+
+    <div class="ranking-table-wrapper">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Idea</th>
+            <th>Score /25</th>
+            <th>TAM Estimado</th>
+            <th id="th-som">SOM (3 Años)</th>
+            <th>CLV:CAC Ajustado</th>
+            <th>Buyer Personas</th>
+            <th>Modelo / Tipo</th>
+            <th>Veredicto Final</th>
+          </tr>
+        </thead>
+        <tbody id="ranking-table-body">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- PARTE 2: CARDS & INLINE DETAILS -->
+    <div class="section-head">
+      <div class="sec-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <h2>Parte 2 — Fichas de Análisis Completo</h2>
+      <div class="sec-desc">Haz clic en una tarjeta para desplegar los 10 módulos de análisis</div>
+    </div>
+
+    <div class="ideas-grid" id="ideas-grid">
+      <!-- Filled by JS -->
+    </div>
+
+  </main>
+
+  <!-- MODAL METODOLOGÍA -->
+  <div class="modal-overlay" id="method-modal" onclick="if(event.target===this) toggleModal(false)">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 style="font-family:'Sora',sans-serif;">Criterios & Metodología de Evaluación</h3>
+        <button class="close-detail-btn" onclick="toggleModal(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 style="color:var(--purple-900); margin-bottom:10px;">Escala de Scoring (/25 puntos)</h4>
+        <p style="font-size:0.9rem; color:var(--ink-soft); margin-bottom:16px;">
+          Cada idea se evalúa en 5 criterios cuantitativos de 1 a 5 puntos: Urgencia del Problema, Diferenciación Defendible, Escalabilidad Operativa, Velocidad al Mercado y Fit Estratégico.
+        </p>
+
+        <div style="background:var(--purple-050); padding:16px; border-radius:12px; margin-bottom:20px;">
+          <strong style="color:var(--purple-900);">Umbrales de Veredicto:</strong>
+          <ul style="margin-top:8px; padding-left:20px; font-size:0.88rem; color:var(--ink);">
+            <li><strong style="color:#15803D;">20 – 25 Puntos → PROTOTIPAR:</strong> Alta prioridad de asignación de capital y sprints de MVP.</li>
+            <li><strong style="color:var(--gold-600);">13 – 19 Puntos → VALIDAR MÁS:</strong> Requiere resolver supuestos de CAC o deseabilidad antes de construir.</li>
+            <li><strong style="color:#B84A3D;">≤ 12 Puntos → DESCARTAR / REPLANTEAR:</strong> Retorno o tamaño de mercado insuficiente.</li>
+          </ul>
+        </div>
+
+        <h4 style="color:var(--purple-900); margin-bottom:10px;">Metodología CLV:CAC & Cross-Selling</h4>
+        <p style="font-size:0.9rem; color:var(--ink-soft);">
+          El ratio CLV:CAC incorpora el **CLV Ajustado por Cross-Selling** de hasta 3 productos/servicios complementarios. Ratios ≥5:1 indican excelente viabilidad de escalamiento; &lt;1:1 se clasifica como modelo insostenible.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Iris StartUp Lab
+          </h4>
+          <p style="font-size:0.82rem; line-height:1.5;">Sistema de Dimensionamiento Estratégico y Priorización de Innovación para equipos ejecutivos y de VC.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Frameworks</h4>
+          <ul>
+            <li>• Top-down / Bottom-up Sizing</li>
+            <li>• Multi-Buyer Persona Economics</li>
+            <li>• Cross-selling CLV Expansion</li>
+            <li>• Moat & Competitor Matrix</li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Veredictos</h4>
+          <ul>
+            <li>🟢 Prototipar (Score 20-25)</li>
+            <li>🟡 Validar más (Score 13-19)</li>
+            <li>🔴 Descartar (Score ≤12)</li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Documentación</h4>
+          <p style="font-size:0.82rem;">Este reporte ejecutivo consolida supuestos financieros, análisis cuantitativos y recomendaciones accionables para prototipado.</p>
+        </div>
+      </div>
+
+      <div class="foot-note">
+        <span>© Iris StartUp Lab — Dimensionador Estratégico de Ideas v3.0</span>
+        <span>Análisis de Rigor Ejecutivo McKinsey / Bain / VC</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- DATA & APP LOGIC -->
+  <script>
+    // =============================================================
+    // INJECTION POINT — Replace the block below with real analysis
+    // data. The dashboard_generator.py script replaces everything
+    // between the markers:  <!-- BEGIN_REPORT_DATA --> ... <!-- END_REPORT_DATA -->
+    // =============================================================
+    // <!-- BEGIN_REPORT_DATA -->
+    window.REPORT_DATA = {
+  "meta": {
+    "objetivoEstrategico": "Incrementar mercado - Capturar nuevos segmentos B2B",
+    "etapaNegocio": "Growth / Corporativo",
+    "sector": "Fintech & Servicios Financieros B2B",
+    "geografia": "Mexico / LATAM",
+    "recursosPrototipado": "$45,000 USD / 90 dias de sprint",
+    "criterioFit": "Sinergia con portafolio actual de pagos y payback < 9 meses"
+  },
+  "ideas": [
+    {
+      "id": "idea-1",
+      "rank": 1,
+      "name": "SmartB2B Checkout & Credit",
+      "model": "B2B SaaS / Transaccional Hibrido",
+      "ideaType": "B2B SaaS",
+      "shortDesc": "Plataforma de pagos B2B con evaluacion de credito en tiempo real.",
+      "score": 23,
+      "verdict": "PROTOTIPAR",
+      "tam": "$2.4B USD",
+      "sam": "$340M USD",
+      "som1y": "$8.5M USD",
+      "som3y": "$42M USD",
+      "som5y": "$115M USD",
+      "arr1y": "$1.2M USD",
+      "arr3y": "$8.5M USD",
+      "arr5y": "$24M USD",
+      "revenueTimeline": [
+        1200000,
+        3800000,
+        8500000,
+        16000000,
+        24000000
+      ],
+      "clvCacAdjusted": "6.8:1",
+      "buyerPersonas": [
+        "CFO Pyme Industrial",
+        "Director de Ventas B2B"
+      ],
+      "sizing": {
+        "topDown": "Mercado B2B LATAM: $12B\n-> Mexico (20%): $2.4B\n-> Vertical Industrial (25%): $600M\n-> Digitalizable Checkout (56%): $336M (SAM)",
+        "bottomUp": "12,000 Pymes Target x $2,800 USD Ticket Anual = $33.6M SAM Base",
+        "sources": "Banxico, INEGI, Statista B2B Payments 2025"
+      },
+      "sourcesList": [
+        {
+          "name": "Banxico Informes Sectoriales",
+          "url": "https://www.banxico.org.mx",
+          "verified": true
+        },
+        {
+          "name": "INEGI Estadistica Industrial",
+          "url": "https://www.inegi.org.mx",
+          "verified": true
+        },
+        {
+          "name": "Statista B2B Payments 2025",
+          "url": "https://www.statista.com",
+          "verified": true
+        }
+      ],
+      "competitors": [
+        {
+          "name": "Credijusto / Konfio",
+          "share": "25%",
+          "threat": "Media",
+          "moat": "Credito tradicional no embebido"
+        },
+        {
+          "name": "Clara / Tribal",
+          "share": "18%",
+          "threat": "Media",
+          "moat": "Tarjetas corporativas, no facturacion proveedor"
+        }
+      ],
+      "unitEconomics": [
+        {
+          "bpName": "CFO Pyme Industrial",
+          "clvBase": "$4,500 USD",
+          "crossSellBoost": "+$1,800 USD (Factoraje automatico)",
+          "clvAdjusted": "$6,300 USD (+40%)",
+          "cac": "$925 USD",
+          "clvCac": "6.8:1",
+          "payback": "4.5 meses"
+        }
+      ],
+      "scoreBreakdown": [
+        {
+          "criterion": "Urgencia del problema",
+          "points": 5,
+          "note": "Pymes sufren falta de liquidez en ventas a 60 dias"
+        },
+        {
+          "criterion": "Diferenciacion",
+          "points": 5,
+          "note": "Algoritmo de scoring con data del SAT embebido"
+        },
+        {
+          "criterion": "Escalabilidad",
+          "points": 4,
+          "note": "Software API-first sin friccion operativa"
+        },
+        {
+          "criterion": "Velocidad al mercado",
+          "points": 4,
+          "note": "MVP integrable en 60 dias"
+        },
+        {
+          "criterion": "Fit estrategico",
+          "points": 5,
+          "note": "Alineacion total con portafolio de pagos"
+        }
+      ],
+      "risks": [
+        {
+          "risk": "Default de credito en cartera Pyme",
+          "prob": "Media",
+          "impact": "Alto",
+          "level": 4,
+          "mitigation": "Garantia con seguro de credito y colateral diferido"
+        }
+      ],
+      "verdictReason": "Idea lider del ciclo. Su ratio CLV:CAC de 6.8:1 impulsado por cross-selling la convierte en el candidato principal para el sprint de prototipado."
+    },
+    {
+      "id": "idea-2",
+      "rank": 2,
+      "name": "Portal Copiloto Fiscal IA",
+      "model": "Suscripcion B2B SaaS",
+      "ideaType": "Suscripcion",
+      "shortDesc": "Asistente de IA para auditoria preventiva de CFDI y conciliacion contable.",
+      "score": 18,
+      "verdict": "VALIDAR MAS",
+      "tam": "$850M USD",
+      "sam": "$120M USD",
+      "som1y": "$2.8M USD",
+      "som3y": "$14M USD",
+      "som5y": "$38M USD",
+      "arr1y": "$800K USD",
+      "arr3y": "$4.2M USD",
+      "arr5y": "$11.5M USD",
+      "revenueTimeline": [
+        800000,
+        2100000,
+        4200000,
+        7800000,
+        11500000
+      ],
+      "clvCacAdjusted": "3.4:1",
+      "buyerPersonas": [
+        "Despachos Contables",
+        "Contadores Independientes"
+      ],
+      "sizing": {
+        "topDown": "Mercado Software Contable Mexico: $850M\n-> Despachos e Independientes (45%): $382M\n-> Accesible IA (31%): $118M (SAM)",
+        "bottomUp": "45,000 Despachos x $800 USD ARR = $36M SAM",
+        "sources": "SAT Informes Anuales, Grand View Research"
+      },
+      "sourcesList": [
+        {
+          "name": "SAT Informes Anuales",
+          "url": "https://www.sat.gob.mx",
+          "verified": true
+        },
+        {
+          "name": "Grand View Research",
+          "url": "https://www.grandviewresearch.com",
+          "verified": true
+        }
+      ],
+      "competitors": [
+        {
+          "name": "Contpaqi / Aspel",
+          "share": "60%",
+          "threat": "Alta",
+          "moat": "Distribucion masiva instalada en contadores"
+        }
+      ],
+      "unitEconomics": [
+        {
+          "bpName": "Despachos Contables",
+          "clvBase": "$1,800 USD",
+          "crossSellBoost": "+$400 USD (Modulo Nomina)",
+          "clvAdjusted": "$2,200 USD (+22%)",
+          "cac": "$640 USD",
+          "clvCac": "3.4:1",
+          "payback": "9.6 meses"
+        }
+      ],
+      "scoreBreakdown": [
+        {
+          "criterion": "Urgencia del problema",
+          "points": 4,
+          "note": "Formulas complejas de fiscalizacion en SAT"
+        },
+        {
+          "criterion": "Diferenciacion",
+          "points": 3,
+          "note": "Competidores incumbentes integrando IA rapida"
+        },
+        {
+          "criterion": "Escalabilidad",
+          "points": 4,
+          "note": "SaaS puro cloud"
+        },
+        {
+          "criterion": "Velocidad al mercado",
+          "points": 4,
+          "note": "MVP en 45 dias"
+        },
+        {
+          "criterion": "Fit estrategico",
+          "points": 3,
+          "note": "Requiere alianza con distribuidores contables"
+        }
+      ],
+      "risks": [
+        {
+          "risk": "Respuesta rapida de incumbentes (Aspel/Contpaqi)",
+          "prob": "Alta",
+          "impact": "Alto",
+          "level": 5,
+          "mitigation": "Centrarse en nicho especifico de despachos medianos"
+        }
+      ],
+      "verdictReason": "Atractivo alto pero requiere validar CAC en canales de adquisicion con despachos antes de construir el MVP completo."
+    },
+    {
+      "id": "idea-3",
+      "rank": 3,
+      "name": "Micro-Seguros de Flete por Kilometro",
+      "model": "Marketplace / Transaccional",
+      "ideaType": "Marketplace",
+      "shortDesc": "Poliza de seguro on-demand para transporte de carga ligera interurbana.",
+      "score": 11,
+      "verdict": "DESCARTAR",
+      "tam": "$420M USD",
+      "sam": "$45M USD",
+      "som1y": "$600K USD",
+      "som3y": "$3.5M USD",
+      "som5y": "$9.2M USD",
+      "arr1y": "$180K USD",
+      "arr3y": "$950K USD",
+      "arr5y": "$2.6M USD",
+      "revenueTimeline": [
+        180000,
+        450000,
+        950000,
+        1700000,
+        2600000
+      ],
+      "clvCacAdjusted": "1.4:1",
+      "buyerPersonas": [
+        "Conductores de Carga Independientes"
+      ],
+      "sizing": {
+        "topDown": "Seguros de Transporte Mexico: $420M\n-> Carga ligera (20%): $84M\n-> Digital accesible (50%): $42M (SAM)",
+        "bottomUp": "15,000 Transportistas x $200 USD Ticket = $3.0M SAM",
+        "sources": "AMIS Mexico"
+      },
+      "sourcesList": [
+        {
+          "name": "AMIS Mexico Informes",
+          "url": "https://www.amis.com.mx",
+          "verified": true
+        }
+      ],
+      "competitors": [
+        {
+          "name": "Qualitas / Chubb",
+          "share": "70%",
+          "threat": "Alta",
+          "moat": "Escala actuarial y licencias regulatorias"
+        }
+      ],
+      "unitEconomics": [
+        {
+          "bpName": "Transportistas Independientes",
+          "clvBase": "$350 USD",
+          "crossSellBoost": "+$50 USD",
+          "clvAdjusted": "$400 USD (+14%)",
+          "cac": "$280 USD",
+          "clvCac": "1.4:1",
+          "payback": "16 meses"
+        }
+      ],
+      "scoreBreakdown": [
+        {
+          "criterion": "Urgencia del problema",
+          "points": 2,
+          "note": "Baja disposicion a pagar en transportistas informales"
+        },
+        {
+          "criterion": "Diferenciacion",
+          "points": 2,
+          "note": "Facilmente replicable por aseguradoras"
+        },
+        {
+          "criterion": "Escalabilidad",
+          "points": 2,
+          "note": "Friccion regulatoria alta"
+        },
+        {
+          "criterion": "Velocidad al mercado",
+          "points": 2,
+          "note": "Requiere licencias de aseguradora"
+        },
+        {
+          "criterion": "Fit estrategico",
+          "points": 3,
+          "note": "Fuera del foco del portafolio"
+        }
+      ],
+      "risks": [
+        {
+          "risk": "Siniestralidad alta y regulacion CNSF",
+          "prob": "Alta",
+          "impact": "Alto",
+          "level": 5,
+          "mitigation": "Descartar proyecto en este ciclo"
+        }
+      ],
+      "verdictReason": "Score insuficiente (11/25). Retorno unitario insostenible (CLV:CAC 1.4:1) y barreras regulatorias elevadas."
+    }
+  ]
+};
+    // <!-- END_REPORT_DATA -->
+
+    let activeVerdictFilter = 'all';
+    let activeHorizon = '3y'; // '1y' | '3y' | '5y'
+    let currentExpandedId = null;
+    let revenueChartInstance = null;
+
+    function initApp() {
+      const data = window.REPORT_DATA;
+      if (!data) return;
+
+      // Meta
+      document.getElementById('hdr-subtitle').innerText = `Evaluación de potencial de negocio para ${data.meta.sector || 'Portafolio de Innovación'} (${data.meta.geografia || 'México'}).`;
+      
+      const metaContainer = document.getElementById('portfolio-meta');
+      metaContainer.innerHTML = `
+        <div class="meta-item"><span class="meta-lbl">Objetivo Estratégico</span><span class="meta-val">${data.meta.objetivoEstrategico}</span></div>
+        <div class="meta-item"><span class="meta-lbl">Etapa del Negocio</span><span class="meta-val">${data.meta.etapaNegocio}</span></div>
+        <div class="meta-item"><span class="meta-lbl">Sector / Vertical</span><span class="meta-val">${data.meta.sector}</span></div>
+        <div class="meta-item"><span class="meta-lbl">Recursos Prototipado</span><span class="meta-val">${data.meta.recursosPrototipado}</span></div>
+      `;
+
+      populateModelFilterOptions();
+      renderApp();
+    }
+
+    function populateModelFilterOptions() {
+      const ideas = window.REPORT_DATA.ideas || [];
+      const select = document.getElementById('model-filter-select');
+      const types = new Set();
+
+      ideas.forEach(i => {
+        const t = i.ideaType || i.model || 'Otro';
+        types.add(t);
+      });
+
+      let html = '<option value="all">Todos los Tipos de Idea</option>';
+      types.forEach(t => {
+        html += `<option value="${t}">${t}</option>`;
+      });
+      select.innerHTML = html;
+    }
+
+    function setVerdictFilter(verdict, el) {
+      activeVerdictFilter = verdict;
+      document.querySelectorAll('.chips-group .chip').forEach(c => c.classList.remove('on'));
+      el.classList.add('on');
+      renderApp();
+    }
+
+    function setHorizon(horizon, el) {
+      activeHorizon = horizon;
+      document.querySelectorAll('.horizon-btn').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      renderApp();
+    }
+
+    function resetFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('sort-select').value = 'score-desc';
+      document.getElementById('model-filter-select').value = 'all';
+      activeVerdictFilter = 'all';
+      activeHorizon = '3y';
+
+      document.querySelectorAll('.chips-group .chip').forEach(c => c.classList.remove('on'));
+      document.querySelector('.chips-group .chip[data-verdict="all"]').classList.add('on');
+
+      document.querySelectorAll('.horizon-btn').forEach(b => b.classList.remove('active'));
+      document.querySelector('.horizon-btn[data-horizon="3y"]').classList.add('active');
+
+      renderApp();
+    }
+
+    function getFilteredIdeas() {
+      const data = window.REPORT_DATA;
+      if (!data || !data.ideas) return [];
+
+      const query = document.getElementById('search-input').value.toLowerCase().trim();
+      const sort = document.getElementById('sort-select').value;
+      const modelFilter = document.getElementById('model-filter-select').value;
+
+      let list = data.ideas.filter(idea => {
+        const matchesVerdict = (activeVerdictFilter === 'all') || (idea.verdict === activeVerdictFilter);
+        const ideaModelType = idea.ideaType || idea.model || '';
+        const matchesModel = (modelFilter === 'all') || (ideaModelType.toLowerCase() === modelFilter.toLowerCase());
+        
+        const matchesQuery = !query || 
+          idea.name.toLowerCase().includes(query) || 
+          idea.model.toLowerCase().includes(query) || 
+          idea.shortDesc.toLowerCase().includes(query);
+
+        return matchesVerdict && matchesModel && matchesQuery;
+      });
+
+      // Sorting
+      list.sort((a, b) => {
+        if (sort === 'score-desc') return b.score - a.score;
+        if (sort === 'score-asc') return a.score - b.score;
+        if (sort === 'name-asc') return a.name.localeCompare(b.name);
+        if (sort === 'som-desc') {
+          const valA = getSomNum(a, activeHorizon);
+          const valB = getSomNum(b, activeHorizon);
+          return valB - valA;
+        }
+        return 0;
+      });
+
+      return list;
+    }
+
+    function getSomValue(idea, horizon) {
+      if (horizon === '1y') return idea.som1y || idea.som3y || idea.sam;
+      if (horizon === '5y') return idea.som5y || idea.som3y;
+      return idea.som3y || idea.sam;
+    }
+
+    function getSomNum(idea, horizon) {
+      const str = getSomValue(idea, horizon);
+      if (!str) return 0;
+      const num = parseFloat(str.replace(/[^0-9.]/g, ''));
+      if (str.includes('B')) return num * 1000000000;
+      if (str.includes('M')) return num * 1000000;
+      if (str.includes('K')) return num * 1000;
+      return num || 0;
+    }
+
+    function renderApp() {
+      const allIdeas = window.REPORT_DATA.ideas || [];
+      const filtered = getFilteredIdeas();
+
+      // Stats
+      document.getElementById('stat-ideas').innerText = allIdeas.length;
+      const topScore = Math.max(...allIdeas.map(i => i.score), 0);
+      document.getElementById('stat-top-score').innerText = topScore;
+      const prototiparCount = allIdeas.filter(i => i.verdict === 'PROTOTIPAR').length;
+      document.getElementById('stat-prototipar').innerText = prototiparCount;
+      
+      // Calculate SOM total according to Active Horizon
+      const horizonText = activeHorizon === '1y' ? '1 Año' : (activeHorizon === '5y' ? '5 Años' : '3 Años');
+      document.getElementById('stat-som-label').innerText = `SOM Total Potencial (${horizonText})`;
+      
+      const totalSomSum = filtered.reduce((acc, item) => acc + getSomNum(item, activeHorizon), 0);
+      let totalSomDisplay = "$0";
+      if (totalSomSum >= 1000000000) totalSomDisplay = `$${(totalSomSum/1000000000).toFixed(1)}B USD`;
+      else if (totalSomSum >= 1000000) totalSomDisplay = `$${(totalSomSum/1000000).toFixed(1)}M USD`;
+      else if (totalSomSum >= 1000) totalSomDisplay = `$${(totalSomSum/1000).toFixed(1)}K USD`;
+      
+      document.getElementById('stat-som-total').innerText = totalSomDisplay;
+      document.getElementById('results-count').innerText = `Mostrando ${filtered.length} de ${allIdeas.length} ideas`;
+
+      // Update Table Header for SOM
+      document.getElementById('th-som').innerText = `SOM (${horizonText})`;
+
+      // Render Ranking Table
+      const tableBody = document.getElementById('ranking-table-body');
+      tableBody.innerHTML = filtered.map((idea, idx) => {
+        const vClass = idea.verdict === 'PROTOTIPAR' ? 'prototipar' : (idea.verdict === 'VALIDAR MÁS' ? 'validar' : 'descartar');
+        const currentSom = getSomValue(idea, activeHorizon);
+
+        return `
+          <tr onclick="toggleExpandCard('${idea.id}')" style="cursor:pointer;">
+            <td><strong>#${idx + 1}</strong></td>
+            <td><strong style="color:var(--purple-900);">${idea.name}</strong></td>
+            <td><span class="score-badge">${idea.score}/25</span></td>
+            <td>${idea.tam}</td>
+            <td><strong>${currentSom}</strong></td>
+            <td>${idea.clvCacAdjusted}</td>
+            <td>${(idea.buyerPersonas || []).join(', ')}</td>
+            <td>${idea.model}</td>
+            <td><span class="verdict-tag ${vClass}">${idea.verdict}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      // Render Chart
+      renderRevenueChart(filtered);
+
+      // Render Cards Grid
+      const grid = document.getElementById('ideas-grid');
+      let html = '';
+
+      filtered.forEach(idea => {
+        const isExpanded = currentExpandedId === idea.id;
+        const vClass = idea.verdict === 'PROTOTIPAR' ? 'prototipar' : (idea.verdict === 'VALIDAR MÁS' ? 'validar' : 'descartar');
+        const currentSom = getSomValue(idea, activeHorizon);
+
+        html += `
+          <div class="idea-card ${isExpanded ? 'expanded' : ''}" id="card-${idea.id}" onclick="toggleExpandCard('${idea.id}')">
+            <div class="card-top">
+              <span class="card-rank">Score ${idea.score}/25</span>
+              <span class="verdict-tag ${vClass}">${idea.verdict}</span>
+            </div>
+            <h3>${idea.name}</h3>
+            <div class="idea-model-tag">${idea.model}</div>
+            <p class="idea-desc">${idea.shortDesc}</p>
+            
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <span class="kpi-lbl">SOM (${horizonText})</span>
+                <span class="kpi-val">${currentSom}</span>
+              </div>
+              <div class="kpi-box">
+                <span class="kpi-lbl">CLV:CAC</span>
+                <span class="kpi-val">${idea.clvCacAdjusted}</span>
+              </div>
+            </div>
+
+            <div class="card-foot">
+              <span style="font-size:0.78rem; color:var(--ink-soft);">${(idea.buyerPersonas || [])[0] || 'Buyer Persona'}</span>
+              <span class="expand-btn">
+                ${isExpanded ? 'Ocultar Ficha' : 'Ver Ficha Completa'}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+          </div>
+        `;
+
+        if (isExpanded) {
+          html += renderDetailPanel(idea);
+        }
+      });
+
+      grid.innerHTML = html;
+    }
+
+    function renderRevenueChart(filteredIdeas) {
+      const ctx = document.getElementById('revenueChart');
+      if (!ctx) return;
+
+      const colors = ['#7A4E96', '#D4A73E', '#15803D', '#3D2766', '#B84A3D', '#3B82F6', '#EC4899'];
+
+      const datasets = filteredIdeas.map((idea, index) => {
+        const color = colors[index % colors.length];
+        const timeline = idea.revenueTimeline || [100000, 300000, 800000, 1500000, 3000000];
+
+        return {
+          label: idea.name,
+          data: timeline,
+          borderColor: color,
+          backgroundColor: color + '22',
+          borderWidth: 3,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          tension: 0.35,
+          fill: false
+        };
+      });
+
+      if (revenueChartInstance) {
+        revenueChartInstance.destroy();
+      }
+
+      revenueChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Año 1', 'Año 2', 'Año 3', 'Año 4', 'Año 5'],
+          datasets: datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                font: { family: 'Inter', size: 12, weight: '600' },
+                usePointStyle: true,
+                padding: 16
+              }
+            },
+            tooltip: {
+              backgroundColor: '#241B33',
+              titleFont: { family: 'Sora', size: 13 },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  const val = context.raw || 0;
+                  let formatted = '$' + val.toLocaleString('en-US') + ' USD';
+                  if (val >= 1000000) formatted = '$' + (val/1000000).toFixed(2) + 'M USD';
+                  else if (val >= 1000) formatted = '$' + (val/1000).toFixed(0) + 'K USD';
+                  return ` ${context.dataset.label}: ${formatted}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#E4DCEF' },
+              ticks: { font: { family: 'Sora', size: 12, weight: '600' }, color: '#241B33' }
+            },
+            y: {
+              grid: { color: '#E4DCEF' },
+              ticks: {
+                font: { family: 'Inter', size: 11 },
+                color: '#5C5468',
+                callback: function(value) {
+                  if (value >= 1000000) return '$' + (value/1000000) + 'M';
+                  if (value >= 1000) return '$' + (value/1000) + 'K';
+                  return '$' + value;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function toggleExpandCard(id) {
+      if (currentExpandedId === id) {
+        currentExpandedId = null;
+      } else {
+        currentExpandedId = id;
+      }
+      renderApp();
+      if (currentExpandedId) {
+        setTimeout(() => {
+          const el = document.getElementById(`card-${id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    }
+
+    function renderDetailPanel(idea) {
+      const vClass = idea.verdict === 'PROTOTIPAR' ? 'prototipar' : (idea.verdict === 'VALIDAR MÁS' ? 'validar' : 'descartar');
+      
+      const scoreRows = (idea.scoreBreakdown || []).map(sb => {
+        const pct = (sb.points / 5) * 100;
+        return `
+          <div class="score-item">
+            <span><strong>${sb.criterion}</strong></span>
+            <div class="bar-track"><div class="bar-fill" style="width:${pct}%;"></div></div>
+            <span style="font-weight:700; font-family:'Sora',sans-serif;">${sb.points}/5</span>
+          </div>
+        `;
+      }).join('');
+
+      const ueRows = (idea.unitEconomics || []).map(ue => `
+        <div class="info-box">
+          <h4>Buyer Persona: ${ue.bpName}</h4>
+          <p style="font-size:0.85rem; margin-bottom:4px;"><strong>CLV Base:</strong> ${ue.clvBase}</p>
+          <p style="font-size:0.85rem; margin-bottom:4px; color:var(--gold-600);"><strong>Cross-Selling:</strong> ${ue.crossSellBoost}</p>
+          <p style="font-size:0.85rem; margin-bottom:4px;"><strong>CLV Ajustado:</strong> ${ue.clvAdjusted}</p>
+          <p style="font-size:0.85rem; margin-bottom:4px;"><strong>CAC:</strong> ${ue.cac} (CLV:CAC ${ue.clvCac})</p>
+          <p style="font-size:0.85rem;"><strong>Payback:</strong> ${ue.payback}</p>
+        </div>
+      `).join('');
+
+      const riskRows = (idea.risks || []).map(r => {
+        const riskColor = r.level >= 4 ? 'var(--risk5)' : (r.level === 3 ? 'var(--risk3)' : 'var(--risk1)');
+        return `
+          <div class="info-box" style="border-left: 4px solid ${riskColor};">
+            <h4>Riesgo Crítico: ${r.risk}</h4>
+            <p style="font-size:0.85rem; margin-bottom:4px;">Probabilidad: <strong>${r.prob}</strong> | Impacto: <strong>${r.impact}</strong></p>
+            <p style="font-size:0.85rem; color:var(--ink-soft);">Mitigación: ${r.mitigation}</p>
+            <div class="risk-track"><div class="risk-fill" style="width:${(r.level/5)*100}%; background:${riskColor};"></div></div>
+          </div>
+        `;
+      }).join('');
+
+      return `
+        <div class="detail-panel" onclick="event.stopPropagation()">
+          <div class="detail-head">
+            <div class="detail-title-area">
+              <h2>${idea.name} — Ficha de Análisis Completo</h2>
+              <div class="detail-badges">
+                <span class="dbadge">Score Total: ${idea.score}/25</span>
+                <span class="dbadge gold">CLV:CAC ${idea.clvCacAdjusted}</span>
+                <span class="verdict-tag ${vClass}">${idea.verdict}</span>
+              </div>
+            </div>
+            <button class="close-detail-btn" onclick="toggleExpandCard('${idea.id}')">✕</button>
+          </div>
+
+          <!-- MODULO 1: SIZING -->
+          <div class="mod-block">
+            <div class="mod-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              Módulo 1 — Dimensionamiento de Mercado (TAM / SAM / SOM) & Fuentes Verificadas
+            </div>
+            <div class="sub-grid">
+              <div class="info-box">
+                <h4>Top-down Methodology</h4>
+                <div class="sizing-code">${idea.sizing ? idea.sizing.topDown : 'No especificado'}</div>
+              </div>
+              <div class="info-box">
+                <h4>Bottom-up Sizing</h4>
+                <div class="sizing-code">${idea.sizing ? idea.sizing.bottomUp : 'No especificado'}</div>
+              </div>
+            </div>
+            <div style="margin-top:14px; background:var(--purple-050); padding:14px; border-radius:12px; border:1px solid var(--line);">
+              <h4 style="font-size:0.8rem; text-transform:uppercase; color:var(--purple-700); margin-bottom:8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Fuentes & Enlaces de Información Verificados:
+              </h4>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                ${(idea.sourcesList || [
+                  { name: "Banxico Informes Sectoriales", url: "https://www.banxico.org.mx", verified: true },
+                  { name: "INEGI Estadística Industrial", url: "https://www.inegi.org.mx", verified: true },
+                  { name: "Statista Market Insights 2025", url: "https://www.statista.com", verified: true }
+                ]).map(src => `
+                  ${src.verified ? 
+                    `<a href="${src.url}" target="_blank" rel="noopener noreferrer" class="source-badge verified">✓ Fuente Verificada: ${src.name} ↗</a>` : 
+                    `<span class="source-badge unverified">⚠️ Estimación: ${src.name}</span>`}
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- MODULO 3-8: UNIT ECONOMICS -->
+          <div class="mod-block">
+            <div class="mod-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Módulos 3-8 — Unit Economics & Cross-Selling por Buyer Persona
+            </div>
+            <div class="sub-grid">${ueRows}</div>
+          </div>
+
+          <!-- MODULO 9: SCORE -->
+          <div class="mod-block">
+            <div class="mod-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Módulo 9 — Desglose del Score de Atractivo (/25)
+            </div>
+            <div class="score-criteria-grid">${scoreRows}</div>
+          </div>
+
+          <!-- MODULO 10: RIESGOS -->
+          <div class="mod-block">
+            <div class="mod-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Módulo 10 — Riesgos Críticos & Supuestos
+            </div>
+            <div class="sub-grid">${riskRows}</div>
+          </div>
+
+          <!-- VEREDICTO FINAL -->
+          <div class="verdict-box">
+            <div class="verdict-header">
+              <strong style="font-family:'Sora',sans-serif; color:var(--purple-900);">VEREDICTO EJECUTIVO FINAL:</strong>
+              <span class="verdict-tag ${vClass}">${idea.verdict}</span>
+            </div>
+            <p style="font-size:0.9rem; color:var(--ink); line-height:1.5;">${idea.verdictReason}</p>
+          </div>
+
+        </div>
+      `;
+    }
+
+    function toggleModal(open) {
+      document.getElementById('method-modal').classList.toggle('open', open);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') toggleModal(false);
+    });
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+# Plantilla de Salidas HTML Interactivas — IRIS
+
+Infraestructura compartida para que cualquier skill del flujo de innovación IRIS genere su **salida principal como un reporte HTML interactivo** con el diseño corporativo oficial (logo + paleta morado/dorado, tipografías Sora/Inter), sin que cada skill tenga que escribir HTML a mano.
+
+## Cómo funciona
+
+Cada skill produce un **`reporte.json`** estructurado y luego ejecuta el generador
+**desde la raíz del repositorio** (la carpeta que contiene `pasos.json` y `sub-skills/`):
+
+```bash
+# como paso del flujo: el contexto del flujo se inyecta solo
+python _plantilla_html/scripts/generar_html.py --data reporte.json \
+    --estado flujo_estado.json --paso html_4 -o html_4.html
+
+# skill suelta, fuera de un proyecto del flujo
+python _plantilla_html/scripts/generar_html.py --data reporte.json \
+    --sin-flujo -o reporte.html
+```
+
+El generador hace tres cosas antes de escribir el archivo:
+
+1. **Inyecta el contexto del flujo** (con `--estado` y `--paso`): construye el bloque
+   `flujo` desde `flujo_estado.json` + `pasos.json`. No lo escribas a mano.
+2. **Valida el esquema** con `validar_report_data.py` y **falla si algo falta**, para que
+   un reporte incompleto no se entregue como HTML en blanco.
+3. **Embebe el logo oficial en base64**.
+
+El resultado es un `.html` autocontenido (funciona offline; solo requiere conexión para
+Google Fonts y Chart.js, que tienen fallback del sistema).
+
+### Opciones
+
+| Flag | Para qué |
+| --- | --- |
+| `--paso html_N` | Inyecta el contexto del flujo de ese paso |
+| `--estado <ruta>` | `flujo_estado.json` (default: raíz del repo) |
+| `--pasos <ruta>` | `pasos.json` (default: raíz del repo) |
+| `--sin-flujo` | Skill suelta: no exige contexto del flujo |
+| `--no-strict` | Salta la validación. **No lo uses para esquivar un error**: corrige el JSON |
+
+Códigos de salida: `0` ok · `1` error de archivo/uso · `2` esquema o flujo inválido.
+
+## Estructura
+
+```
+_plantilla_html/
+├── templates/
+│   └── reporte_base.html         # HTML interactivo genérico (riel del flujo, contexto,
+│                                 # header, toolbar, cards expandibles, charts, footer)
+├── scripts/
+│   ├── generar_html.py           # reporte.json + contexto + template + logo -> html
+│   ├── validar_report_data.py    # valida el esquema REPORT_DATA (usable por separado)
+│   └── logo_base64.py            # helper: PNG -> data URI base64
+└── README.md
+```
+
+- **Logo oficial:** `imagenes_iconos_etc/Logos_GS_Iris_transparent.png` (se resuelve automáticamente). Cada skill conserva además una copia en `assets/logo.png`.
+- **Diseño oficial:** `Designs_files/Design_iris_main_colors.md` (paleta `--purple-*` / `--gold-*`, fuentes Sora/Inter).
+
+## Esquema `REPORT_DATA`
+
+```jsonc
+{
+  "meta": {
+    "titulo": "Search Trend Analysis — Evidencia",
+    "skill": "search-trend-analysis",
+    "fase": "Investigación",
+    "subtitulo": "Resumen de una línea del análisis",
+    "resumen": "Resumen ejecutivo (2-3 líneas)",
+    "fecha": "2026-08-12",
+    "metodologia": "Opcional: texto para el modal de metodología"
+  },
+  "kpis": [
+    { "label": "Keywords analizadas", "value": "12", "accent": false }
+  ],
+  "secciones": [
+    {
+      "titulo": "Evidencia por keyword",
+      "items": [
+        {
+          "titulo": "huerto urbano",
+          "subtitulo": "Interés promedio 38/100",
+          "tags": ["primaria", "alta demanda"],
+          "score": 23,                                  // opcional
+          "veredicto": "perseverar",                     // perseverar | pivotear | descartar
+          "body": [
+            { "label": "Dato", "texto": "Interés relativo 0-100 con delta +12 en 12 meses." },
+            { "label": "Interpretación", "texto": "Tendencia creciente sostenida." }
+          ],
+          "chart": {                                     // opcional
+            "tipo": "line",                              // bar | horizontalBar | line | doughnut | pie
+            "titulo": "Evolución del interés",
+            "eje_x": "Mes", "eje_y": "Interés (0-100)",
+            "labels": ["Ene","Feb","Mar"],
+            "datasets": [ { "label": "huerto urbano", "data": [20,28,38] } ]
+          },
+          "fuentes": ["Google Trends (pytrends)"]
+        }
+      ]
+    }
+  ],
+  "decisiones": [
+    { "titulo": "Perseverar en 'huerto urbano'", "texto": "Supera el umbral...", "veredicto": "perseverar" }
+  ],
+  "advertencias": ["Datos estimados marcados con *"],
+  "fuentes": ["Fuente 1", "Fuente 2"]
+}
+```
+
+### El bloque `flujo` (contexto del flujo)
+
+**No lo escribas a mano.** Lo inyecta el generador con `--estado` y `--paso`; se
+documenta aquí solo para saber qué se renderiza:
+
+```jsonc
+{
+  "flujo": {
+    "proyecto": "Huertos urbanos MX",
+    "objetivo_proyecto": "Validar demanda de kits de huerto",
+    "audiencia": "Familias urbanas 28-45, CDMX",
+    "paso_actual": "html_4",
+    "paso_titulo": "Persona Profile",
+    "paso_objetivo": "Convertir la evidencia en protopersonas…",
+    "paso_orden": 4,
+    "total_pasos": 11,
+    "avance": { "completados": 1, "omitidos": 1, "pendientes": 8 },
+    "ruta": [
+      { "id": "html_1", "titulo": "Inicio + Investigación", "estado": "completado",
+        "resumen": "TAM MX 4.2 mil M*…", "archivo": "html_1.html", "veredicto": "perseverar" },
+      { "id": "html_2", "titulo": "Decisión — Entrevistas", "estado": "omitido",
+        "motivo": "Ya tiene 12 entrevistas hechas", "impacto": "persona-profile usa supuestos *" },
+      { "id": "html_4", "titulo": "Persona Profile", "estado": "actual" }
+    ],
+    "decisiones": [{ "paso": "html_1", "nodo": "¿Cómo quieres iniciar?", "opcion": "Estado actual" }],
+    "omitidos": [{ "id": "html_2", "titulo": "…", "motivo": "…", "impacto": "…", "forzada": false }]
+  }
+}
+```
+
+Se renderiza como:
+
+- **Riel de progreso** en el header: los 11 pasos con color por estado (completado en
+  verde, omitido tachado, el actual en dorado). Los pasos con `archivo` son enlaces.
+- **«De dónde viene este reporte»**: el proyecto, las decisiones tomadas, lo que ya se
+  sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
+  quien lea el reporte sepa qué le falta.
+- **Pie**: proyecto y posición en el flujo.
+
+`estado` admite: `pendiente`, `en_curso`, `completado`, `omitido`, `fallido`, `actual`
+(solo uno puede ser `actual`).
+
+### Reglas del esquema
+
+- `meta` y `secciones` son obligatorias; el resto es opcional.
+- `veredicto` usa uno de: `perseverar` / `pivotear` / `descartar` (se renderiza con semáforo verde/ámbar/rojo).
+- `chart.tipo` admite `bar`, `horizontalBar`, `line`, `doughnut`, `pie`.
+- Todo texto del `body` se muestra con salto de línea preservado (`pre-wrap`).
+- Los valores con cifras **estimadas** se marcan `*` o `[REFERENCIA DE INDUSTRIA]` según las reglas de integridad del flujo.
+
+## Componentes interactivos (ya incluidos en la plantilla)
+
+- Header hero con gradiente morado, mancha dorada y **logo oficial**.
+- KPIs en el hero (stat cards translúcidas).
+- Toolbar con **buscador en vivo**, **orden** (original / A–Z / score) y **chips de filtro** por veredicto y por tag.
+- Tarjetas **expandibles inline** (una a la vez) con bloques de detalle y **gráficas Chart.js**.
+- Sección de **Decisiones** con semáforo de veredicto.
+- Secciones de **Advertencias** y **Fuentes**.
+- Modal de **Metodología** (si `meta.metodologia` está definido).
+- Accesibilidad: `aria-*`, foco visible dorado, `prefers-reduced-motion`, responsive.
+
+## Verificación del HTML generado
+
+El generador ya valida el esquema y falla si algo falta. Si además quieres revisar el
+archivo a mano, verifica que contenga:
+
+1. `<!DOCTYPE html>` y las fuentes Sora/Inter.
+2. `window.REPORT_DATA` con los datos y el bloque `flujo`.
+3. El logo embebido como `data:image/png;base64,...`.
+4. El riel del flujo con el paso actual en dorado y los omitidos tachados.
+5. Los controles interactivos y la(s) gráfica(s) si `chart` está definido.
+
+Para validar solo el JSON, sin generar HTML:
+
+```bash
+python _plantilla_html/scripts/validar_report_data.py reporte.json
+```
