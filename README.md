@@ -1,5 +1,9 @@
 # IRIS — Innovation Research & Intelligence System
 
+## Autor
+
+- Fernando Dorantes Nieto
+
 Repositorio del **flujo de innovación IRIS** (Iris StartUp Lab). Contiene una **macro-skill orquestadora** (`iris-flujo-de-innovacion`) que guía al usuario por el flujo completo de innovación —de la investigación a la validación— invocando **26 sub-skills** especializadas y consolidando sus resultados en **reportes HTML interactivos** con el diseño corporativo IRIS.
 
 ## ¿Dónde ejecutar esta skill?
@@ -20,6 +24,7 @@ ejecutarse en cualquier gestor de skills (Kimi Code, Antigravity, Claude Desktop
 | `_plantilla_html/` | Generador + plantilla + validador HTML compartidos (salida interactiva con diseño IRIS). |
 | `sub-skills_sample_outputs/` | Muestras de salida HTML por skill (para revisar el diseño). |
 | `Documentos_prompts_base_md/` | Los 24 prompts originales (fuente de cada skill). |
+| `PLAN_MEDICION_TOKENS.md` | Plan para medir el consumo de tokens por paso y sub-skill, y comparar la ruta completa contra la mínima. |
 
 ## Fases del flujo
 
@@ -132,5 +137,31 @@ Los gestores de agentes suelen tener un límite de **30 MB** por skill. El paque
 ```
 
 Opciones: `-IncludeSamples`/`--samples` (muestras), `-IncludeFlujoMap`/`--flujo` (mapa visual), `-IncludeDocx`/`--docx` (prompts .docx), `-IncludeTemp`/`--temp` (screenshots).
+
+### Empaquetar una sub-skill sola
+
+Cada sub-skill se publica suelta con **su carpeta + `_plantilla_html/`** al lado (ver «Uso
+independiente» en su `README.md`). Ese ZIP se genera con `-SubSkill`/`--sub-skill`:
+
+```powershell
+.\empaquetar_skill.ps1 -SubSkill "2.Descubrimiento/persona-profile"
+.\empaquetar_skill.ps1 -ListSubSkills                       # rutas válidas
+```
+
+```bash
+./empaquetar_skill.sh --sub-skill "2.Descubrimiento/persona-profile"
+./empaquetar_skill.sh --list-sub-skills
+```
+
+El ZIP sale como `<sub-skill>.zip` (~0.13 MB) salvo que pases `-Output`/`-o`, y contiene
+`persona-profile/` + `_plantilla_html/`. Con `-IncludeSamples`/`--samples` añade las muestras
+de diseño de esa sub-skill en `sample_outputs/`; las opciones de la macro (`--flujo`, `--docx`,
+`--temp`) no aplican y avisan. Descomprimido en una carpeta limpia, el generador encuentra el
+logo en `assets/logo.png` de la sub-skill:
+
+```bash
+python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -o reporte.html
+#   logo embebido: 122 KB (base64) · copia local de la sub-skill
+```
 
 **Qué se incluye por defecto:** `SKILL.md`, `pasos.json`, `scripts/`, `STATE.md`, `AGENTS.md`, `README.md`, `flujo_agentes.md`, `flujo_mermaid.md`, `sub-skills/`, `_plantilla_html/`, `Designs_files/`, `imagenes_iconos_etc/`, `Documentos_prompts_base_md/`. **Se excluyen:** `__pycache__`/`*.pyc`, el mapa visual grande, notebooks y archivos de desarrollo.

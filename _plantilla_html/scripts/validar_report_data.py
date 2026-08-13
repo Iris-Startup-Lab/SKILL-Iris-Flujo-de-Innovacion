@@ -21,6 +21,7 @@ from pathlib import Path
 VEREDICTOS = {"perseverar", "pivotear", "descartar"}
 TIPOS_CHART = {"bar", "horizontalBar", "line", "doughnut", "pie", "scatter"}
 ESTADOS_RUTA = {"pendiente", "en_curso", "completado", "omitido", "fallido", "actual"}
+COBERTURA = {"si", "sí", "parcial", "no"}       # psf.problemas[].cubre
 
 
 class Hallazgo:
@@ -110,11 +111,13 @@ def validar(data, exigir_flujo=True):
                         if not isinstance(b, dict) or not _texto(b.get("texto")):
                             h.append(Hallazgo("ERROR", f"{ruta_i}.body[{k}]",
                                               "cada bloque necesita `texto`"))
-            if not body and not _texto(it.get("subtitulo")) and not it.get("persona"):
+            if (not body and not _texto(it.get("subtitulo"))
+                    and not it.get("persona") and not it.get("psf")):
                 h.append(Hallazgo("WARN", ruta_i,
                                   "sin `body` ni `subtitulo`: la tarjeta se expande vacía"))
             h.extend(_validar_chart(it.get("chart"), f"{ruta_i}.chart"))
             h.extend(_validar_persona(it.get("persona"), f"{ruta_i}.persona"))
+            h.extend(_validar_psf(it.get("psf"), f"{ruta_i}.psf"))
 
     if total_items == 0 and secciones:
         h.append(Hallazgo("ERROR", "secciones", "ninguna sección tiene items"))
@@ -225,13 +228,18 @@ def _validar_persona(p, ruta):
                 h.append(Hallazgo("ERROR", f"{ruta}.{campo}.{lado}",
                                   "debe ser una lista de textos"))
 
+    # Pains: la lista de dolores es de la persona. Su evaluación (solución actual,
+    # costo, importancia y satisfacción) la produce problem-solution-fit en el paso
+    # siguiente, así que aquí es opcional: solo se exige coherencia si viene.
     pains = p.get("pains")
     if not isinstance(pains, list) or not pains:
         h.append(Hallazgo("ERROR", f"{ruta}.pains",
                           "debe listar al menos un pain",
-                          "cada pain lleva `texto`, `solucion`, `costo`, "
-                          "`importancia` y `satisfaccion`"))
+                          "cada pain necesita `texto`; la evaluación (`solucion`, "
+                          "`costo`, `importancia`, `satisfaccion`) es opcional: sale "
+                          "de problem-solution-fit"))
         return h
+    con_evaluacion = 0
     for i, d in enumerate(pains):
         r = f"{ruta}.pains[{i}]"
         if not isinstance(d, dict):
@@ -239,20 +247,96 @@ def _validar_persona(p, ruta):
             continue
         if not _texto(d.get("texto")):
             h.append(Hallazgo("ERROR", f"{r}.texto", "vacío u ausente"))
-        for k in ("solucion", "costo"):
-            if not _texto(d.get(k)):
-                h.append(Hallazgo("WARN", f"{r}.{k}",
-                                  "vacío: usa `[no disponible]` si no se sabe"))
+        if any(d.get(k) is not None and d.get(k) != ""
+               for k in ("solucion", "costo", "importancia", "satisfaccion")):
+            con_evaluacion += 1
+        for k in ("importancia", "satisfaccion"):
+            v = d.get(k)
+            if v is None:
+                continue
+            if not isinstance(v, (int, float)) or isinstance(v, bool):
+                h.append(Hallazgo("ERROR", f"{r}.{k}", "debe ser numérico (0 a 5)"))
+            elif not 0 <= v <= 5:
+                h.append(Hallazgo("ERROR", f"{r}.{k}", f"{v} está fuera del rango 0–5"))
+        if (d.get("importancia") is None) != (d.get("satisfaccion") is None):
+            h.append(Hallazgo("WARN", r,
+                              "tiene solo uno de `importancia` / `satisfaccion`",
+                              "van en par: con uno solo el pain no entra en la matriz"))
+    if 0 < con_evaluacion < len(pains):
+        h.append(Hallazgo("WARN", f"{ruta}.pains",
+                          f"{con_evaluacion} de {len(pains)} pains traen evaluación",
+                          "o la traen todos (viene de problem-solution-fit) o ninguno: "
+                          "mezclarlos deja la tabla y la matriz incompletas"))
+    return h
+
+
+def _validar_psf(p, ruta):
+    """Análisis del template Problem-Solution Fit (evaluación de los pains)."""
+    if p is None:
+        return []
+    if not isinstance(p, dict):
+        return [Hallazgo("ERROR", ruta, "debe ser un objeto")]
+    h = []
+
+    if not _texto(p.get("base")):
+        h.append(Hallazgo("WARN", f"{ruta}.base",
+                          "sin «Con base en»: no se sabe de qué evidencia sale la "
+                          "evaluación (`N entrevistas` / `N encuestas` / `SIMULADO`)"))
+    if not _texto(p.get("solucion_propuesta")):
+        h.append(Hallazgo("WARN", f"{ruta}.solucion_propuesta",
+                          "sin solución declarada: `cubre` queda sin referente"))
+
+    problemas = p.get("problemas")
+    if not isinstance(problemas, list) or not problemas:
+        return h + [Hallazgo("ERROR", f"{ruta}.problemas",
+                             "debe listar al menos un problema evaluado",
+                             "cada problema lleva `problema`, `importancia`, "
+                             "`satisfaccion`, `costo_tiempo`, `costo_dinero` y `cubre`")]
+
+    for i, d in enumerate(problemas):
+        r = f"{ruta}.problemas[{i}]"
+        if not isinstance(d, dict):
+            h.append(Hallazgo("ERROR", r, "no es un objeto"))
+            continue
+        if not _texto(d.get("problema")) and not _texto(d.get("texto")):
+            h.append(Hallazgo("ERROR", f"{r}.problema", "vacío u ausente"))
         for k in ("importancia", "satisfaccion"):
             v = d.get(k)
             if v is None:
                 h.append(Hallazgo("WARN", f"{r}.{k}",
-                                  "sin valor: el pain no aparecerá en la matriz "
+                                  "sin valor: el problema no aparecerá en la matriz "
                                   "Importancia × Satisfacción"))
-            elif not isinstance(v, (int, float)):
+            elif not isinstance(v, (int, float)) or isinstance(v, bool):
                 h.append(Hallazgo("ERROR", f"{r}.{k}", "debe ser numérico (0 a 5)"))
             elif not 0 <= v <= 5:
                 h.append(Hallazgo("ERROR", f"{r}.{k}", f"{v} está fuera del rango 0–5"))
+        for k in ("costo_tiempo", "costo_dinero", "solucion_actual"):
+            if not _texto(d.get(k)):
+                h.append(Hallazgo("WARN", f"{r}.{k}",
+                                  "vacío: usa `N/D` si no hubo cita explícita, o "
+                                  "`[ESTIMACIÓN]` si se infiere"))
+        cubre = d.get("cubre")
+        if cubre is None:
+            h.append(Hallazgo("WARN", f"{r}.cubre",
+                              "sin veredicto de encaje: usa `si` / `parcial` / `no`"))
+        elif str(cubre).strip().lower() not in COBERTURA:
+            h.append(Hallazgo("ERROR", f"{r}.cubre", f"«{cubre}» no es válido",
+                              f"usa uno de: {', '.join(sorted(COBERTURA))}"))
+
+    for campo in ("patrones", "blue_ocean"):
+        val = p.get(campo)
+        if val is None:
+            h.append(Hallazgo("WARN", f"{ruta}.{campo}",
+                              "falta; es una sección del análisis"))
+        elif not isinstance(val, list):
+            h.append(Hallazgo("ERROR", f"{ruta}.{campo}", "debe ser una lista de textos"))
+        elif not val:
+            h.append(Hallazgo("WARN", f"{ruta}.{campo}", "lista vacía"))
+
+    if not _texto(p.get("jtbd")):
+        h.append(Hallazgo("WARN", f"{ruta}.jtbd",
+                          "sin JTBD: el análisis pierde el «trabajo» que el usuario "
+                          "intenta resolver"))
     return h
 
 

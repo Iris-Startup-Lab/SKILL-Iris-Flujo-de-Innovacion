@@ -21,10 +21,20 @@ Uso típico de la macro-skill:
     python scripts/estado_flujo.py completar --paso html_1 \
         --skills 1.Investigación/benchmark-mercado \
         --resumen "TAM MX 4.2 mil M* y 3 huecos de oferta" \
-        --veredicto perseverar --outputs html_1.html
+        --veredicto perseverar --outputs html_1.html --datos reporte.json
+
+Cerrar un paso registra dos cosas distintas y las dos viajan al siguiente:
+`--resumen` (una línea: el índice de lo que pasó) y `--datos` (el `reporte.json`
+del paso: la estructura que el paso siguiente lee para heredar sus bloques en
+lugar de reteclearlos desde el resumen).
 
     python scripts/estado_flujo.py omitir --paso html_2 \
         --motivo "El usuario ya tiene 12 entrevistas hechas"
+
+`iniciar` y `completar` comprueban los `predecesores` del paso: avisan si alguno
+sigue abierto (pendiente / en curso) y **bloquean** si ese predecesor no es
+omitible, con `--forzar` como escape. Cerrar un paso omitiéndolo o marcándolo
+fallido no depende de sus predecesores: no consume su input.
 
     python scripts/estado_flujo.py contexto --paso html_4 -o contexto.json
     python scripts/estado_flujo.py render          # reescribe STATE.md
@@ -58,6 +68,9 @@ ICONO = {
 
 class ReglaDelFlujo(Exception):
     """Se intentó una transición que el flujo no permite."""
+
+
+ABIERTOS = ("pendiente", "en_curso")
 
 
 # --------------------------------------------------------------------------- #
@@ -176,6 +189,72 @@ def cmd_init(args):
 # Transiciones
 # --------------------------------------------------------------------------- #
 
+def predecesores_abiertos(estado, pasos, definicion):
+    """Predecesores del paso que siguen sin resolverse.
+
+    `predecesores` en `pasos.json` son los pasos de los que este hereda, y son
+    alternativos entre sí (html_7 puede venir de html_6, de html_5 o de html_4).
+    Por eso la regla no es «todos cerrados»: un paso está resuelto si se completó,
+    se omitió o falló. Lo que rompe el hilo es dejarlo *abierto*, porque entonces
+    nadie declaró su impacto y el paso siguiente hereda un hueco en silencio.
+
+    Devuelve [(id, entrada_de_estado, definicion)] de los que siguen abiertos.
+    """
+    abiertos = []
+    for pid in definicion.get("predecesores", []):
+        entrada = next((p for p in estado["pasos"] if p["id"] == pid), None)
+        if entrada is None:
+            continue
+        if entrada["estado"] in ABIERTOS:
+            abiertos.append((pid, entrada, def_paso(pasos, pid)))
+    return abiertos
+
+
+def _revisar_predecesores(args, estado, pasos, definicion, entrada):
+    """Avisa —o bloquea— si el paso avanza con predecesores abiertos.
+
+    Avisa por defecto; bloquea solo si el predecesor abierto no es omitible, con
+    `--forzar` como escape, igual que la regla de los pasos `omitible: false`.
+    """
+    abiertos = predecesores_abiertos(estado, pasos, definicion)
+    if not abiertos:
+        return
+
+    duros = [x for x in abiertos if not x[2].get("omitible", True)]
+    blandos = [x for x in abiertos if x not in duros]
+
+    if duros and not args.forzar:
+        detalle = "\n".join(
+            f"  - {pid} ({d['titulo']}): {e['estado']} · no es omitible — "
+            f"{d.get('razon_no_omitible', 'dependencia dura del flujo')}"
+            for pid, e, d in duros
+        )
+        raise ReglaDelFlujo(
+            f"{args.paso} ({definicion['titulo']}) hereda de pasos que no se pueden "
+            f"saltar y siguen abiertos:\n{detalle}\n"
+            f"  Ciérralos antes ({', '.join(pid for pid, _, _ in duros)}), o usa "
+            f"--forzar: el salto queda registrado en el histórico."
+        )
+
+    if duros:
+        entrada["predecesores_saltados"] = [pid for pid, _, _ in duros]
+        print(
+            "Aviso: --forzar salta predecesores no omitibles: "
+            + ", ".join(f"{pid} ({e['estado']})" for pid, e, _ in duros)
+            + ". Este paso trabaja sin su input: márcalo en `advertencias` del reporte.",
+            file=sys.stderr,
+        )
+
+    if blandos:
+        print(
+            f"Aviso: {args.paso} avanza con predecesores todavía abiertos: "
+            + ", ".join(f"{pid} ({e['estado']})" for pid, e, _ in blandos)
+            + ". Si el usuario no los va a ejecutar, ciérralos con "
+            "`omitir --motivo \"…\"` para que su impacto quede declarado.",
+            file=sys.stderr,
+        )
+
+
 def _transicion(args, nuevo_estado):
     pasos = cargar_pasos(args.pasos)
     estado = cargar_estado(args.estado)
@@ -192,6 +271,11 @@ def _transicion(args, nuevo_estado):
             )
         entrada["omision_forzada"] = True
 
+    # Avanzar (iniciar/completar) exige que lo que este paso hereda esté resuelto.
+    # Omitir o fallar un paso no depende de sus predecesores: no consume su input.
+    if nuevo_estado in ("en_curso", "completado"):
+        _revisar_predecesores(args, estado, pasos, definicion, entrada)
+
     entrada["estado"] = nuevo_estado
     entrada["cerrado"] = datetime.now().isoformat(timespec="seconds")
 
@@ -199,18 +283,37 @@ def _transicion(args, nuevo_estado):
         entrada["skills"] = args.skills or []
         entrada["outputs"] = args.outputs or []
         entrada["resumen"] = args.resumen or ""
+        # `datos` es el reporte.json del paso: lo que los pasos siguientes leen para
+        # heredar la estructura (persona, psf, items…) y no reteclearla del resumen.
+        entrada["datos"] = getattr(args, "datos", None) or ""
         if args.veredicto:
             entrada["veredicto"] = args.veredicto
         # Los outputs viven junto al estado del proyecto, no en la raíz del repo.
         base = Path(args.estado).resolve().parent if args.estado else REPO_ROOT
+        declarados = list(args.outputs or [])
+        if entrada["datos"]:
+            declarados.append(entrada["datos"])
         faltantes = [
-            f for f in args.outputs or []
+            f for f in declarados
             if not (base / f).is_file() and not Path(f).is_file()
         ]
         if faltantes:
             print(
-                "Aviso: estos outputs no existen en disco todavía: "
+                "Aviso: estos archivos no existen en disco todavía: "
                 + ", ".join(faltantes),
+                file=sys.stderr,
+            )
+        if not entrada["resumen"]:
+            print(
+                "Aviso: paso cerrado sin --resumen. Es lo único que los pasos "
+                "siguientes ven de este en su contexto: sin él, la cadena pierde "
+                "el hilo en silencio.",
+                file=sys.stderr,
+            )
+        if not entrada["datos"]:
+            print(
+                "Aviso: paso cerrado sin --datos <reporte.json>. Los pasos "
+                "siguientes solo heredarán el resumen, no los datos estructurados.",
                 file=sys.stderr,
             )
     elif nuevo_estado in ("omitido", "fallido"):
@@ -304,7 +407,10 @@ def construir_bloque_flujo(estado, pasos, paso_id):
         if p.get("resumen"):
             item["resumen"] = p["resumen"]
         if p.get("outputs"):
-            item["archivo"] = p["outputs"][0]
+            item["archivo"] = p["outputs"][0]     # el que enlaza el riel del flujo
+            item["archivos"] = p["outputs"]       # todos: el resto también es herencia
+        if p.get("datos"):
+            item["datos"] = p["datos"]            # reporte.json: los datos estructurados
         if p.get("veredicto"):
             item["veredicto"] = p["veredicto"]
         if p.get("skills"):
@@ -353,13 +459,18 @@ def construir_bloque_flujo(estado, pasos, paso_id):
 
 
 def cmd_contexto(args):
+    """Imprime el *contenido* del bloque `flujo` (sin la clave que lo envuelve).
+
+    Es para inspeccionar qué hereda un paso; quien lo inyecta en el reporte es
+    `generar_html.py --estado --paso`, no este comando.
+    """
     pasos = cargar_pasos(args.pasos)
     estado = cargar_estado(args.estado)
     bloque = construir_bloque_flujo(estado, pasos, args.paso)
     texto = json.dumps(bloque, ensure_ascii=False, indent=2)
     if args.output:
         Path(args.output).write_text(texto + "\n", encoding="utf-8")
-        print(f"Bloque `flujo` escrito en {args.output}")
+        print(f"Contenido del bloque `flujo` escrito en {args.output}")
     else:
         print(texto)
     return 0
@@ -401,6 +512,31 @@ def cmd_mostrar(args):
         if pe["estado"] == "omitido":
             linea += f" — IMPACTO: {pe.get('impacto','')}"
         print(linea)
+        # De dónde leer sus datos: el resumen es el índice, no el contenido.
+        outs = pe.get("outputs") or []
+        if pe.get("datos"):
+            print(f"    datos estructurados: {pe['datos']}")
+        elif outs:
+            print(f"    datos embebidos en {outs[0]} (window.REPORT_DATA)")
+        if len(outs) > 1:
+            print(f"    otros archivos: {', '.join(outs[1:])}")
+    abiertos = predecesores_abiertos(estado, pasos, d)
+    if abiertos:
+        duros = [pid for pid, _, pd in abiertos if not pd.get("omitible", True)]
+        print(
+            "- ATENCIÓN: estos predecesores siguen abiertos: "
+            + ", ".join(f"{pid} ({pe['estado']})" for pid, pe, _ in abiertos)
+        )
+        if duros:
+            print(
+                f"    {', '.join(duros)} no es omitible: hay que cerrarlo antes de "
+                f"avanzar con {paso_id} (o forzarlo y declararlo)."
+            )
+        else:
+            print(
+                "    ninguno es obligatorio; si el usuario no los va a ejecutar, "
+                "omítelos con su motivo para que el impacto quede declarado."
+            )
     print()
 
     if estado.get("decisiones"):
@@ -497,7 +633,7 @@ def render_state_md(estado, pasos, estado_path=None):
     L.append("## Ruta")
     L.append("")
     L.append("| | Paso | Etapa | Estado | Resumen / motivo |")
-    L.append("|---|---|---|---|---|")
+    L.append("| --- | --- | --- | --- | --- |")
     for p in estado["pasos"]:
         nota = p.get("resumen") or ""
         if p["estado"] == "omitido":
@@ -534,6 +670,12 @@ def render_state_md(estado, pasos, estado_path=None):
             L.append(f"  - resumen: {p.get('resumen') or '—'}")
             L.append(f"  - veredicto: {p.get('veredicto') or '—'}")
             L.append(f"  - outputs: {outs}")
+            L.append(f"  - datos (reporte.json): {p.get('datos') or '—'}")
+            if p.get("predecesores_saltados"):
+                L.append(
+                    "  - **predecesores saltados con `--forzar`:** "
+                    + ", ".join(p["predecesores_saltados"])
+                )
     else:
         L.append("_(sin pasos ejecutados todavía)_")
     L.append("")
@@ -614,18 +756,25 @@ def main(argv=None):
 
     p = sub.add_parser("iniciar", help="Marca un paso como en_curso")
     p.add_argument("--paso", required=True)
+    p.add_argument("--forzar", action="store_true",
+                   help="Avanzar con predecesores no omitibles todavía abiertos")
     _comunes(p)
     p.set_defaults(func=cmd_iniciar, skills=None, outputs=None, resumen=None,
-                   veredicto=None, motivo=None, forzar=False)
+                   veredicto=None, motivo=None)
 
     p = sub.add_parser("completar", help="Marca un paso como completado")
     p.add_argument("--paso", required=True)
     p.add_argument("--skills", nargs="*", default=[], help="Rutas de sub-skills usadas")
     p.add_argument("--outputs", nargs="*", default=[], help="Archivos generados")
+    p.add_argument("--datos", default=None,
+                   help="reporte.json del paso: los datos estructurados que heredan "
+                        "los pasos siguientes")
     p.add_argument("--resumen", default="", help="Una línea: qué se aprendió")
     p.add_argument("--veredicto", choices=VEREDICTOS, default=None)
+    p.add_argument("--forzar", action="store_true",
+                   help="Cerrar con predecesores no omitibles todavía abiertos")
     _comunes(p)
-    p.set_defaults(func=cmd_completar, motivo=None, forzar=False)
+    p.set_defaults(func=cmd_completar, motivo=None)
 
     p = sub.add_parser("omitir", help="Marca un paso como omitido por decisión del usuario")
     p.add_argument("--paso", required=True)
@@ -650,7 +799,8 @@ def main(argv=None):
     _comunes(p)
     p.set_defaults(func=cmd_decision)
 
-    p = sub.add_parser("contexto", help="Imprime el bloque `flujo` para un reporte.json")
+    p = sub.add_parser("contexto",
+                       help="Inspecciona qué hereda un paso (contenido del bloque `flujo`)")
     p.add_argument("--paso", required=True)
     p.add_argument("-o", "--output", default=None)
     _comunes(p)

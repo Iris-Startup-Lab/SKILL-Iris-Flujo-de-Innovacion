@@ -95,10 +95,16 @@ Cuando ese contexto existe:
 1. **No vuelvas a preguntar lo ya decidido.** Las decisiones registradas y los datos del
    proyecto (objetivo, audiencia) ya están ahí.
 2. **Parte de los resúmenes previos** en lugar de reconstruir el contexto desde cero.
-3. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
+3. **Lee los datos del predecesor, no solo su resumen.** Cada paso cerrado deja en
+   `flujo.ruta[]` un campo `datos` (la ruta de su `reporte.json`) y la lista `archivos`.
+   Abre ese `reporte.json` y toma de ahí los bloques que necesites —`secciones[].items[]`
+   y los especializados como `persona` o `psf`— en vez de reescribirlos a partir del
+   resumen: **el resumen es el índice, los datos están en el archivo.** Si un paso no
+   registró `datos`, su HTML (`archivo`) lleva lo mismo embebido en `window.REPORT_DATA`.
+4. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
    sustitúyelo por un supuesto marcado `*` y decláralo en `advertencias`.
-4. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
-5. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
+5. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
+6. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
    `--estado` y `--paso`.
 
 ## Salida HTML (interactiva)

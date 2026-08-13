@@ -141,7 +141,7 @@
       "predecesores": ["html_4"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay problemas priorizados. El HMW (html_7) se formula sobre el problema que el usuario declare a mano, sin ranking de evidencia.",
+      "si_omitido": "No hay problemas priorizados. La ficha de persona (html_4) se queda sin las secciones «¿Cómo lo soluciona?», «Costo de la solución actual» ni la matriz Importancia × Satisfacción: esa evaluación nace aquí. El HMW (html_7) se formula sobre el problema que el usuario declare a mano, sin ranking de evidencia.",
       "decisiones": [
         {
           "nodo": "Elección de protopersona",

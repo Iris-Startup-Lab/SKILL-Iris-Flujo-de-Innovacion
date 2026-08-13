@@ -14,7 +14,9 @@ Hace tres cosas antes de escribir el archivo:
    que nadie se acuerde de escribirlo a mano.
 2. **Valida el esquema** (`validar_report_data.py`). Un reporte incompleto falla
    con un error explícito en lugar de abrir en blanco.
-3. **Embebe el logo** oficial en base64.
+3. **Embebe el logo** en base64: el oficial del repositorio si está, y si no la
+   copia `assets/logo.png` de la sub-skill, para que una skill extraída del repo
+   siga generando su HTML por su cuenta (ver `resolver_logo`).
 
 Uso desde la raíz del repositorio:
 
@@ -64,6 +66,29 @@ def _cargar_estado_flujo():
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
+
+
+def resolver_logo(logo_path=None, data_path=None):
+    """Localiza el logo. Con el repo completo es el oficial; con una sub-skill
+    extraída (solo la skill + `_plantilla_html/`) cae en su copia `assets/logo.png`,
+    para que la skill siga siendo ejecutable por su cuenta."""
+    if logo_path:
+        return Path(logo_path), "--logo"
+    if LOGO_DEFAULT.is_file():
+        return LOGO_DEFAULT, "logo oficial del repositorio"
+
+    candidatos = [Path("assets/logo.png")]
+    if data_path:
+        candidatos.append(Path(data_path).resolve().parent / "assets" / "logo.png")
+    candidatos += sorted(Path().glob("*/assets/logo.png"))
+    for c in candidatos:
+        if c.is_file():
+            return c, "copia local de la sub-skill"
+
+    raise FileNotFoundError(
+        f"Logo no encontrado. Busqué el oficial en {LOGO_DEFAULT} y una copia de "
+        f"sub-skill en assets/logo.png y */assets/logo.png. Pasa --logo <ruta.png>."
+    )
 
 
 def logo_data_uri(logo_path):
@@ -119,7 +144,7 @@ def generar(
             return 2
 
     template_path = Path(template_path) if template_path else TEMPLATE_DEFAULT
-    logo_path = Path(logo_path) if logo_path else LOGO_DEFAULT
+    logo_path, logo_origen = resolver_logo(logo_path, data_path)
 
     with open(template_path, encoding="utf-8") as f:
         html = f.read()
@@ -141,7 +166,7 @@ def generar(
     size_kb = len(uri) // 1024
     print(f"Reporte generado: {output_path}")
     print(f"  datos: {data_path}")
-    print(f"  logo embebido: {size_kb} KB (base64)")
+    print(f"  logo embebido: {size_kb} KB (base64) · {logo_origen}")
     flujo = data.get("flujo")
     if flujo:
         av = flujo.get("avance", {})
@@ -160,7 +185,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Genera reporte HTML interactivo IRIS.")
     parser.add_argument("--data", required=True, help="JSON del análisis (window.REPORT_DATA)")
     parser.add_argument("--template", default=None, help="Plantilla HTML (default: reporte_base.html)")
-    parser.add_argument("--logo", default=None, help="Ruta del logo PNG (default: logo oficial IRIS)")
+    parser.add_argument("--logo", default=None,
+                        help="Ruta del logo PNG (default: el oficial del repo; si no está, "
+                             "assets/logo.png de la sub-skill)")
     parser.add_argument("-o", "--output", default="reporte.html", help="Ruta de salida HTML")
     parser.add_argument("--paso", default=None,
                         help="Paso del flujo (html_1 … html_11): inyecta el contexto")

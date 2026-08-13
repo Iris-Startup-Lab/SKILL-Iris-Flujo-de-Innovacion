@@ -18,15 +18,26 @@ Actúa como un **experto en análisis de Problem-Solution Fit**, con conocimient
 
 **NO hace:** inventar cifras. Los costos deben derivarse de citas explícitas del input. Sin datos reales, no ejecuta análisis como si fuera real.
 
+**Este paso es el dueño de la evaluación de los pains.** La protopersona (`html_4`,
+`persona-profile`) entrega quién es el usuario y qué le duele; aquí se responde cuánto le
+duele, cómo lo resuelve hoy, cuánto le cuesta y si la solución encaja. Las secciones 11–13
+del template *Persona Profile* —«¿Cómo lo soluciona?», «Costo de la solución actual» y la
+matriz «Importancia × Satisfacción»— **nacen en esta skill**, no en la ficha de persona.
+
 ## Parámetros de Entrada
 
 - **Respuestas de entrevistas/encuestas** (texto o tabla estructurada).
 - **Número de entrevistas / tamaño de muestra** `{{n_muestra}}` para ponderar la columna de Frecuencia (Alta/Media/Baja o conteo). Si no se conoce, sugiere un tamaño según contexto, marcado `*`.
+- **Protopersona y sus pains** (de `html_4`, si el flujo la produjo) y la **solución propuesta** que se pone a prueba.
 
 ## Instrucciones
 
 1. Confirma `{{n_muestra}}` y la disponibilidad de datos reales.
-2. Analiza las respuestas para:
+2. **Lee `references/analisis-psf.md`.** Define la estructura obligatoria de salida y el
+   esquema del bloque `psf` en `reporte.json`. Es vinculante: no reordenes ni renombres
+   secciones.
+3. Toma los pains de la protopersona de `html_4` como punto de partida (si existe) y
+   analiza las respuestas para:
    - **Identificar problemas clave** (más mencionados, contexto e impacto).
    - **Evaluar importancia** (1–5 según impacto en la actividad del usuario).
    - **Analizar satisfacción con la solución actual** (1–5).
@@ -35,18 +46,38 @@ Actúa como un **experto en análisis de Problem-Solution Fit**, con conocimient
    - **Extraer patrones y tendencias** (similitudes/divergencias).
    - **JTBD:** ¿qué "trabajo" intenta resolver el usuario y cómo mejorarlo?
    - **Blue Ocean:** oportunidades de diferenciación y propuesta de valor única.
-3. Estructura el resultado y **exporta a CSV:**
+4. **Numera los problemas.** El problema 2 de la tabla es el punto 2 de la matriz: van como
+   un solo array de objetos (`psf.problemas`), no como listas paralelas.
+5. **Puntúa solo lo que la evidencia sostiene.** Si `importancia` o `satisfaccion` no se
+   pudieron derivar, déjalas fuera: el problema sale en la tabla pero no en la matriz, y se
+   declara en `advertencias`. No escribas un bloque `chart`: la matriz la dibuja la
+   plantilla desde los problemas.
+6. Estructura el resultado y **exporta a CSV desde el mismo `reporte.json`** —los datos se
+   escriben una sola vez, el script aplica el mapeo:
+
    ```bash
-   python scripts/exportar_csv.py analisis.json -o problem_solution_fit.csv
+   python sub-skills/2.Descubrimiento/problem-solution-fit/scripts/exportar_csv.py \
+       reporte.json -o problem_solution_fit.csv
    ```
-   (Escribe primero el `analisis.json` con la lista de problemas y sus campos; ver `scripts/exportar_csv.py` para el esquema de columnas.)
+
+   (Una fila por problema, con la `persona` de cada bloque `psf`; el mapeo bloque `psf` →
+   columnas está en `references/analisis-psf.md`. El script sigue aceptando un
+   `analisis.json` con filas ya nombradas, por compatibilidad.)
 
 ## Formato de Salida
 
-- **Análisis en markdown** (problemas priorizados, evaluación de solución, JTBD, Blue Ocean, recomendaciones).
+- **Reporte HTML** con el bloque `psf`: problemas priorizados, matriz Importancia ×
+  Satisfacción, JTBD, patrones y Blue Ocean (ver «Salida HTML» abajo).
 - **CSV** (`problem_solution_fit.csv`) con columnas: problema, contexto, impacto (1-5), satisfacción solución actual (1-5), costo tiempo (hrs/sem), costo dinero (USD/mes), solución cubre (Sí/No/Parcial), ajustes, patrones, JTBD, oportunidad Blue Ocean.
 
-Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»), declarando el CSV en `archivos_generados`.
+Lectura de la matriz de cuadrantes:
+
+- **Eje X — Satisfacción de soluciones actuales** (0–5): qué tan resuelto está hoy.
+- **Eje Y — Importancia del problema** (0–5): cuánto le pesa al usuario.
+- **Arriba-izquierda = OPORTUNIDAD** (le importa y no está resuelto) · **arriba-derecha =
+  COMPETENCIA** (le importa y ya hay quien lo resuelve).
+
+Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»), declarando el HTML y el CSV en `archivos_generados`.
 
 ## Reglas y Restricciones
 
@@ -66,10 +97,16 @@ Cuando ese contexto existe:
 1. **No vuelvas a preguntar lo ya decidido.** Las decisiones registradas y los datos del
    proyecto (objetivo, audiencia) ya están ahí.
 2. **Parte de los resúmenes previos** en lugar de reconstruir el contexto desde cero.
-3. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
+3. **Lee los datos del predecesor, no solo su resumen.** Cada paso cerrado deja en
+   `flujo.ruta[]` un campo `datos` (la ruta de su `reporte.json`) y la lista `archivos`.
+   Abre ese `reporte.json` y toma de ahí los bloques que necesites —`secciones[].items[]`
+   y los especializados como `persona` o `psf`— en vez de reescribirlos a partir del
+   resumen: **el resumen es el índice, los datos están en el archivo.** Si un paso no
+   registró `datos`, su HTML (`archivo`) lleva lo mismo embebido en `window.REPORT_DATA`.
+4. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
    sustitúyelo por un supuesto marcado `*` y decláralo en `advertencias`.
-4. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
-5. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
+5. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
+6. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
    `--estado` y `--paso`.
 
 ## Salida HTML (interactiva)
@@ -78,7 +115,10 @@ La salida principal es un **reporte HTML interactivo** con el diseño corporativ
 (logo + paleta morado/dorado). Para generarlo:
 
 1. Estructura el resultado en `reporte.json` según el esquema `REPORT_DATA`
-   (ver `_plantilla_html/README.md`).
+   (ver `_plantilla_html/README.md`), con **un item por análisis** que lleve el bloque
+   `psf` descrito en `references/analisis-psf.md`. El frente de la tarjeta (`titulo`,
+   `subtitulo`, `tags`, `veredicto`) sigue el estándar de todos los reportes IRIS, para
+   que buscador, filtros y orden funcionen igual que en el resto del flujo.
 2. Ejecuta **desde la raíz del repositorio** — la carpeta que contiene `pasos.json` y
    `sub-skills/`:
 
@@ -133,5 +173,10 @@ Toda skill cierra con un JSON de salida con esta estructura (autocontenida; no r
 
 ## Referencias
 
+- `references/analisis-psf.md` — **estructura vinculante** del análisis, esquema del bloque
+  `psf`, lectura de la matriz de cuadrantes y mapeo hacia la ficha de persona y hacia el CSV.
 - `scripts/exportar_csv.py` — exporta el análisis a CSV estructurado.
+- `../persona-profile/references/ficha-persona.md` — la ficha que este análisis completa
+  (secciones 11–13). **Opcional:** el mapeo hacia esa ficha está resumido en
+  `references/analisis-psf.md`, así que esta skill funciona sin ese archivo.
 - Contrato JSON: ver «Contrato JSON (salida)» arriba (autocontenido; `../../CONTRATO_JSON.md` es la versión canónica si existe).

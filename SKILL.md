@@ -13,12 +13,13 @@ en cada decisión para que la dirija el usuario.
 
 ## Las tres reglas que no se rompen
 
-1. **`pasos.json` manda.** Nunca deduzcas qué sub-skill toca ni cómo se llama su
-   carpeta: está escrito ahí. Ningún otro documento define el flujo.
-2. **El estado se cambia con el script, no a mano.** `scripts/estado_flujo.py` es el
-   único que edita `flujo_estado.json` y regenera `STATE.md`.
-3. **Todo HTML lleva el contexto del flujo.** Se genera con `--estado` y `--paso`, que
-   inyectan el contexto solos. Si falta, el generador falla a propósito.
+1. **`pasos.json` manda.** Nunca deduzcas qué sub-skill toca ni cómo se llama su carpeta: está escrito ahí. Ningún otro documento define el flujo.
+2. **El estado se cambia con el script, no a mano.** `scripts/estado_flujo.py` es el único que edita `flujo_estado.json` y regenera `STATE.md`.
+3. **Todo HTML lleva el contexto del flujo.** Se genera con `--estado` y `--paso`, que inyectan el contexto solos. Si falta, el generador falla a propósito.
+
+## Regla dependiendo de la herramienta
+
+1. Si estás en Claude, Antigravity o Codex, realiza las preguntas al usuario como un agente de IA, no como un humano. Es decir, no utilices fórmulas coloquiales, refranes, muletillas, ni expresiones que denoten una conciencia de sí mismo o una capacidad de "sentir" o "creer", además siempre que sea en opciones, para que el usuario de click.  
 
 ## Los cuatro archivos del flujo
 
@@ -103,6 +104,10 @@ sus instrucciones al pie de la letra.
 
 - Antes de invocarla, traslada al usuario sus **Parámetros de Entrada** y confirma los valores.
 - Pásale el contexto del flujo (paso 1) para que no repita preguntas ni reinvente supuestos.
+- **Pásale también los datos de sus predecesores, no solo el resumen.** `mostrar` imprime,
+  por cada predecesor, la ruta de su `reporte.json` (`datos estructurados: …`) o el HTML que
+  los lleva embebidos. Ahí están los bloques que la sub-skill hereda —`persona`, `psf`,
+  `secciones[].items[]`— y reteclearlos desde el resumen es perder evidencia.
 - Respeta `cadenas` (ejecución secuencial obligatoria) y `paralelo` (se ejecutan a la
   vez y se consolidan en un solo HTML).
 
@@ -126,8 +131,12 @@ No escribas el bloque `flujo` a mano: `--paso` lo inyecta.
 python scripts/estado_flujo.py completar --paso html_5 \
     --skills "2.Descubrimiento/problem-solution-fit" \
     --resumen "<una línea: qué se aprendió>" \
-    --veredicto perseverar --outputs html_5.html
+    --veredicto perseverar --outputs html_5.html --datos reporte.json
 ```
+
+`--resumen` y `--datos` son las dos mitades de lo que hereda el paso siguiente: el resumen
+es el índice y `--datos` (el `reporte.json` del paso) son los datos estructurados que se
+podrán leer en vez de reteclearlos. Si omites cualquiera de los dos, el script avisa.
 
 Entrega el HTML al usuario, di cuál es el siguiente paso y vuelve al punto 1.
 
@@ -138,8 +147,7 @@ Entrega el HTML al usuario, di cuál es el siguiente paso y vuelve al punto 1.
 
 ## Omitir un paso
 
-El usuario decide cuánto recorrido quiere. Omitir es normal, no un error — pero el
-hueco queda declarado en todos los reportes posteriores.
+El usuario decide cuánto recorrido quiere. Omitir es normal, no un error — pero el hueco queda declarado en todos los reportes posteriores.
 
 ```bash
 python scripts/estado_flujo.py omitir --paso html_2 \
@@ -194,3 +202,10 @@ la interpretación, no las cifras.
 - **Idioma:** responde siempre en español, tono claro, conciso y positivo
   (reglas en `AGENTS.md` §7).
 - **Modelo recomendado por herramienta:** ver `README.md`.
+
+## ¿Que hacer al final de todo el flujo?
+
+Si estás en la herramienta Claude o usando el modelo del mismo nombre
+ejecuta la skill nativa /explain-usage para que el usuario entienda
+cuanto ha usado, eso solo si se está usando Claude Cowork, si es un chat simple, no es necesario un resumen de la sesión porque no existe esta funcionalidad.
+Finalmente, agradece al usuario por el trabajo realizado.

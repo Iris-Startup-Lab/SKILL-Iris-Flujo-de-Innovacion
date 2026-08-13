@@ -37,8 +37,9 @@ Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no r
 
 1. Recolecta y confirma los parámetros e insumos. Si faltan insumos reales, declara protopersona hipotética.
 2. **Lee `references/ficha-persona.md`.** Define la estructura obligatoria de salida (las 15
-   secciones del template oficial) y el esquema del bloque `persona` en `reporte.json`.
-   Es vinculante: no reordenes ni renombres secciones.
+   secciones del template oficial), qué secciones son tuyas y cuáles pertenecen al paso
+   siguiente, y el esquema del bloque `persona` en `reporte.json`. Es vinculante: no
+   reordenes ni renombres secciones.
 3. Genera **una ficha por perfil** con estas secciones, en este orden:
    1. **Nombre del perfil** — el segmento en mayúsculas (ej. `PRODUCTORES CASADOS`), no el
       nombre de la persona.
@@ -52,27 +53,37 @@ Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no r
    7. **¿Cuándo lo quiere? (Momentos vitales)** — cuándo necesita el producto o el de la competencia.
    8. **¿Dónde está?** — par **Canal físico** / **Canal digital**.
    9. **¿En quién confía? / Le recomienda** — par **físico** / **digital**.
-   10. **Pains de productos/servicios actuales** — numerados.
-   11. **¿Cómo lo soluciona?** — alineado 1:1 con cada pain.
-   12. **Costo de la solución actual** — tiempo y dinero por pain.
-   13. **Importancia del problema × Satisfacción de soluciones actuales** — un punto por pain.
+   10. **Pains de productos/servicios actuales** — numerados; los dolores que la persona
+       relató.
+   11. **¿Cómo lo soluciona?** — *solo si hay análisis de Problem-Solution Fit*.
+   12. **Costo de la solución actual** — *solo si hay análisis de Problem-Solution Fit*.
+   13. **Importancia del problema × Satisfacción de soluciones actuales** — *solo si hay
+       análisis de Problem-Solution Fit*.
    14. **Accionables** — hipótesis surgidas, siguientes pasos, experimentos posibles.
    15. **Anexo** — contexto que no cabe arriba.
-4. **Pain, solución, costo y punto de la matriz comparten número.** El pain 2 se resuelve
-   con la solución 2, cuesta lo que dice el costo 2 y es el punto 2 de la matriz. En
-   `reporte.json` van como un solo array de objetos, no como cuatro listas paralelas.
-5. **Puntúa cada pain** con `importancia` y `satisfaccion` (0 a 5). Son juicios derivados
-   de la evidencia: si la ficha es hipotética o el pain no se sondeó, márcalos como
-   supuesto `*` en `advertencias` u omítelos (el pain sale en la tabla, no en la matriz).
+4. **Las secciones 11, 12 y 13 son del paso siguiente.** La evaluación de cada pain
+   —cómo lo resuelve hoy, cuánto le cuesta, qué tan importante es y qué tan satisfecho
+   está— la produce `problem-solution-fit` (`html_5`). Rellénalas **solo** si ese análisis
+   ya existe (porque el paso corrió antes y estás regenerando la ficha, o porque el
+   usuario lo aportó como insumo). Si no existe, **omítelas**: no escribas
+   `[no disponible]` ni valores estimados, y no las menciones como pendientes en el
+   cuerpo de la ficha (el HTML ya imprime la nota que remite a Problem-Solution Fit).
+5. **Nunca inventes `importancia`, `satisfaccion` ni `costo`.** Puntuar un pain sin el
+   análisis detrás es fabricar evidencia, y esas cifras alimentan la priorización de todo
+   el flujo posterior. Cuando sí las tengas, van en escala 0 a 5 y **pain, solución, costo
+   y punto de la matriz comparten número**: el pain 2 se resuelve con la solución 2,
+   cuesta lo que dice el costo 2 y es el punto 2 de la matriz. En `reporte.json` van como
+   un solo array de objetos, no como cuatro listas paralelas.
 6. Redacta conciso: viñetas cortas, 2–4 por sección. Formato homogéneo entre perfiles para
    que se puedan comparar lado a lado.
 
 ## Formato de Salida
 
-**Una ficha por perfil** con las 15 secciones de arriba, en ese orden, con la naturaleza
-del perfil declarada. Cuando haya varios perfiles, formato idéntico entre ellos.
+**Una ficha por perfil** con las secciones de arriba que apliquen, en ese orden, con la
+naturaleza del perfil declarada. Cuando haya varios perfiles, formato idéntico entre ellos.
 
-Lectura de la matriz de cuadrantes:
+Lectura de la matriz de cuadrantes (solo si la ficha llega enriquecida con el análisis de
+Problem-Solution Fit):
 
 - **Eje X — Satisfacción de soluciones actuales** (0–5): qué tan resuelto está hoy.
 - **Eje Y — Importancia del problema** (0–5): cuánto le pesa al usuario.
@@ -87,7 +98,9 @@ qué campos son supuestos (`*`).
 1. Declaración obligatoria de protopersona vs. persona validada.
 2. Sin insumos reales, todo dato no respaldado lleva `*`.
 3. No inventar datos demográficos/cuantitativos como si fueran verificados.
-4. No omitir secciones del template: si no hay dato, escribe `[no disponible]`.
+4. No omitir secciones propias del template (1–10, 14–15): si no hay dato, escribe
+   `[no disponible]`. Las secciones 11–13 son la excepción: pertenecen a
+   `problem-solution-fit` y se omiten mientras ese análisis no exista.
 5. No escribir un bloque `chart` a mano: la matriz la dibuja la plantilla desde los pains.
 
 ## Contexto del flujo (entrada)
@@ -102,10 +115,16 @@ Cuando ese contexto existe:
 1. **No vuelvas a preguntar lo ya decidido.** Las decisiones registradas y los datos del
    proyecto (objetivo, audiencia) ya están ahí.
 2. **Parte de los resúmenes previos** en lugar de reconstruir el contexto desde cero.
-3. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
+3. **Lee los datos del predecesor, no solo su resumen.** Cada paso cerrado deja en
+   `flujo.ruta[]` un campo `datos` (la ruta de su `reporte.json`) y la lista `archivos`.
+   Abre ese `reporte.json` y toma de ahí los bloques que necesites —`secciones[].items[]`
+   y los especializados como `persona` o `psf`— en vez de reescribirlos a partir del
+   resumen: **el resumen es el índice, los datos están en el archivo.** Si un paso no
+   registró `datos`, su HTML (`archivo`) lleva lo mismo embebido en `window.REPORT_DATA`.
+4. **Los pasos con estado `omitido` no aportan datos.** Su campo `impacto` dice qué falta:
    sustitúyelo por un supuesto marcado `*` y decláralo en `advertencias`.
-4. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
-5. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
+5. **Declara qué usaste** en `decision.contexto_usado` del contrato JSON.
+6. **No escribas el bloque `flujo` a mano** en `reporte.json`: lo inyecta el generador con
    `--estado` y `--paso`.
 
 ## Salida HTML (interactiva)
@@ -173,5 +192,9 @@ Toda skill cierra con un JSON de salida con esta estructura (autocontenida; no r
 ## Referencias
 
 - `references/ficha-persona.md` — **estructura vinculante** de la ficha (15 secciones del
-  template oficial), esquema del bloque `persona` y lectura de la matriz de cuadrantes.
+  template oficial), qué secciones son de esta skill y cuáles de `problem-solution-fit`,
+  esquema del bloque `persona` y lectura de la matriz de cuadrantes.
+- `../problem-solution-fit/references/analisis-psf.md` — dónde nace la evaluación de los
+  pains (secciones 11–13) y cómo se devuelve a esta ficha. **Opcional:** si esa skill no
+  está disponible, la regla se cumple igual omitiendo las secciones 11–13.
 - Contrato JSON: ver «Contrato JSON (salida)» arriba (autocontenido; `../../CONTRATO_JSON.md` es la versión canónica si existe).

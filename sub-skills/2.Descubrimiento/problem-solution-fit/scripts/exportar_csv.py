@@ -1,22 +1,30 @@
 """
 exportar_csv.py
 
-Convierte el análisis de Problem-Solution Fit (JSON estructurado) a un CSV
-listo para descargar o integrar en Google Sheets/Excel.
+Convierte el análisis de Problem-Solution Fit a un CSV listo para descargar o
+integrar en Google Sheets/Excel.
 
-Entrada: JSON con una lista de registros. Dos formatos aceptados:
-  1) Lista directa de objetos:  [ {"problema": "...", ...}, ... ]
-  2) Objeto con "filas" y, opcionalmente, "columnas" (orden de columnas).
+Entrada: JSON. Tres formatos aceptados:
+  1) `reporte.json` del reporte HTML: se leen los bloques
+     `secciones[].items[].psf` y las filas se derivan de ahí aplicando el mapeo
+     de `references/analisis-psf.md`. Una fila por problema; los campos del
+     análisis (patrones, JTBD, Blue Ocean) se repiten en cada fila del mismo
+     análisis. Es el modo recomendado: los datos se escriben una sola vez.
+  2) Lista directa de objetos ya con nombres de columna:
+     [ {"problema": "...", ...}, ... ]
+  3) Objeto con "filas" y, opcionalmente, "columnas" (orden de columnas).
 
-Columnas estándar (Problem-Solution Fit):
-  problema, contexto, impacto (1-5), satisfaccion_solucion_actual (1-5),
-  costo_tiempo_horas_semana, costo_dinero_usd_mes, solucion_cubre,
-  ajustes_sugeridos, patrones_tendencias, jtbd, oportunidad_blue_ocean
+Columnas en modo `psf`:
+  persona, n, problema, contexto, frecuencia, impacto,
+  satisfaccion_solucion_actual, costo_tiempo_horas_semana,
+  costo_dinero_usd_mes, solucion_actual, solucion_cubre, ajustes_sugeridos,
+  patrones_tendencias, jtbd, oportunidad_blue_ocean
 
 Regla de integridad: los costos deben venir del input como citas explícitas,
 [ESTIMACIÓN] o N/D. Este script NO calcula ni inventa valores; solo exporta.
 
 Uso:
+    python exportar_csv.py reporte.json -o problem_solution_fit.csv
     python exportar_csv.py analisis.json -o problem_solution_fit.csv
 """
 import argparse
@@ -38,6 +46,101 @@ _COLUMNAS_ESTANDAR = [
     "oportunidad_blue_ocean",
 ]
 
+_COLUMNAS_PSF = [
+    "persona",
+    "n",
+    "problema",
+    "contexto",
+    "frecuencia",
+    "impacto",
+    "satisfaccion_solucion_actual",
+    "costo_tiempo_horas_semana",
+    "costo_dinero_usd_mes",
+    "solucion_actual",
+    "solucion_cubre",
+    "ajustes_sugeridos",
+    "patrones_tendencias",
+    "jtbd",
+    "oportunidad_blue_ocean",
+]
+
+# Campo de `psf.problemas[]` -> columna del CSV (references/analisis-psf.md).
+_MAPEO_PROBLEMA = {
+    "n": "n",
+    "problema": "problema",
+    "contexto": "contexto",
+    "frecuencia": "frecuencia",
+    "importancia": "impacto",
+    "satisfaccion": "satisfaccion_solucion_actual",
+    "costo_tiempo": "costo_tiempo_horas_semana",
+    "costo_dinero": "costo_dinero_usd_mes",
+    "solucion_actual": "solucion_actual",
+    "cubre": "solucion_cubre",
+    "ajustes": "ajustes_sugeridos",
+}
+
+# Campo del análisis -> columna del CSV. Se repite en cada fila del análisis.
+_MAPEO_ANALISIS = {
+    "patrones": "patrones_tendencias",
+    "jtbd": "jtbd",
+    "blue_ocean": "oportunidad_blue_ocean",
+}
+
+_SEPARADOR_LISTA = " · "
+
+
+def _valor(dato):
+    """Aplana el dato a algo que quepa en una celda, sin inventar nada."""
+    if dato is None:
+        return ""
+    if isinstance(dato, (list, tuple)):
+        return _SEPARADOR_LISTA.join(str(x).strip() for x in dato if str(x).strip())
+    return dato
+
+
+def _bloques_psf(data):
+    """Devuelve [(titulo_item, bloque_psf)] de un reporte.json o de {'psf': ...}."""
+    bloques = []
+    if isinstance(data.get("psf"), dict):
+        bloques.append((data.get("titulo", ""), data["psf"]))
+    for seccion in data.get("secciones") or []:
+        if not isinstance(seccion, dict):
+            continue
+        for item in seccion.get("items") or []:
+            if isinstance(item, dict) and isinstance(item.get("psf"), dict):
+                bloques.append((item.get("titulo", ""), item["psf"]))
+    return bloques
+
+
+def _filas_desde_psf(bloques):
+    filas = []
+    for titulo, psf in bloques:
+        persona = psf.get("persona") or titulo or ""
+        analisis = {
+            columna: _valor(psf.get(campo))
+            for campo, columna in _MAPEO_ANALISIS.items()
+        }
+        problemas = psf.get("problemas") or []
+        if not problemas:
+            print(
+                f"Aviso: el bloque psf de «{persona or 'sin título'}» no trae "
+                f"problemas; no genera filas.",
+                file=sys.stderr,
+            )
+        for posicion, problema in enumerate(problemas, 1):
+            if not isinstance(problema, dict):
+                continue
+            fila = {"persona": persona}
+            for campo, columna in _MAPEO_PROBLEMA.items():
+                fila[columna] = _valor(problema.get(campo))
+            # `n` es opcional en el bloque: si falta, se numera por posición
+            # (el problema 2 de la tabla es el punto 2 de la matriz).
+            if fila["n"] == "":
+                fila["n"] = posicion
+            fila.update(analisis)
+            filas.append(fila)
+    return filas
+
 
 def _cargar_filas(input_path):
     with open(input_path, encoding="utf-8") as f:
@@ -45,9 +148,27 @@ def _cargar_filas(input_path):
 
     if isinstance(data, list):
         return data, None
-    if isinstance(data, dict) and isinstance(data.get("filas"), list):
-        return data["filas"], data.get("columnas")
-    raise ValueError("JSON no reconocido: debe ser una lista de objetos o {'filas': [...]}")
+
+    if isinstance(data, dict):
+        # Entrada histórica: filas ya con nombres de columna.
+        if isinstance(data.get("filas"), list):
+            return data["filas"], data.get("columnas")
+
+        bloques = _bloques_psf(data)
+        if bloques:
+            return _filas_desde_psf(bloques), _COLUMNAS_PSF
+
+        if "secciones" in data:
+            raise ValueError(
+                "el reporte.json no trae ningún item con bloque 'psf'. "
+                "Revisa references/analisis-psf.md: el bloque va dentro de "
+                "secciones[].items[]."
+            )
+
+    raise ValueError(
+        "JSON no reconocido: se espera un reporte.json con bloques 'psf', "
+        "una lista de objetos o {'filas': [...]}"
+    )
 
 
 def exportar(input_path, output_path):
@@ -77,7 +198,7 @@ def exportar(input_path, output_path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Exporta análisis Problem-Solution Fit a CSV.")
-    parser.add_argument("json", help="JSON del análisis")
+    parser.add_argument("json", help="reporte.json (bloques psf) o JSON de filas")
     parser.add_argument("-o", "--output", default="problem_solution_fit.csv", help="CSV de salida")
     args = parser.parse_args(argv)
 

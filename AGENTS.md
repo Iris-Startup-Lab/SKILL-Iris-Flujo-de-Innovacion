@@ -23,7 +23,7 @@ Python del entorno: **3.12**. Paquetes disponibles: `pandas`, `numpy`, `scipy`, 
 
 ## 3. Estructura del repositorio
 
-```
+```text
 SKILL.md                        # Macro-skill orquestadora (iris-flujo-de-innovacion)
 pasos.json                      # FUENTE ÚNICA del flujo: 11 pasos, decisiones, rutas de
                                 # sub-skills, predecesores y qué se puede omitir
@@ -52,6 +52,8 @@ imagenes_iconos_etc/            # Logos_GS_Iris_transparent.png (logo oficial)
 sub-skills_sample_outputs/      # Muestras de salida HTML por skill (para revisar diseño)
 Documentos_prompts_base_md/     # Los 24 prompts originales (fuente de cada skill)
 PLAN_CONVERSION_SKILLS.md       # Plan de conversión prompts → skills
+PLAN_MEDICION_TOKENS.md         # Plan de medición de tokens del flujo (alcance, niveles,
+                                # línea base y comparación ruta completa vs mínima)
 _template_generador_skill.py    # Genera esqueleto de SKILL.md desde un prompt .md
 ```
 
@@ -59,7 +61,7 @@ _template_generador_skill.py    # Genera esqueleto de SKILL.md desde un prompt .
 
 Cada sub-skill vive en `sub-skills/<fase>/<skill>/` con:
 
-```
+```text
 <skill>/
 ├── SKILL.md        # frontmatter (name + description) + instrucciones del agente
 ├── README.md       # qué hace y cómo generar su HTML
@@ -72,6 +74,21 @@ Reglas:
 
 - **Nombres en kebab-case.** El frontmatter DEBE llevar `name` y `description` (es lo que activa la skill).
 - **Autonomía:** los scripts no importan módulos de otras skills; solo stdlib + paquetes PyPI declarados.
+- **Extraíble:** cada sub-skill debe poder publicarse suelta con **su carpeta +
+  `_plantilla_html/`** al lado, sin el resto del repositorio. En la práctica:
+  - Su `SKILL.md` es autocontenido: el contrato JSON va escrito completo y `pasos.json`,
+    `flujo_estado.json` y `CONTRATO_JSON.md` se citan como opcionales («si tienes acceso a…»).
+    Las referencias a otras sub-skills también van atenuadas: apuntan a contexto, nunca a un
+    archivo sin el cual la skill no funcione.
+  - Su `README.md` cierra con **«Uso independiente»**: qué hace falta para correrla sola y
+    qué se pierde al sacarla del flujo (contexto en el HTML e histórico).
+  - El generador cae en `assets/logo.png` cuando no encuentra el logo oficial, así que el
+    comando con `--sin-flujo` funciona igual dentro y fuera del repositorio.
+  - El foco sigue siendo el flujo: el comando del paso (`--estado` + `--paso`) va primero y
+    el suelto después.
+  - El ZIP de una sub-skill suelta lo produce
+    `.\empaquetar_skill.ps1 -SubSkill "<fase>/<skill>"` (o `--sub-skill` en el `.sh`):
+    su carpeta + `_plantilla_html/`, nada más.
 - **Integridad de datos:** nunca inventar cifras. Los datos estimados se marcan `*` o `[REFERENCIA DE INDUSTRIA]`; si no hay dato, `[no disponible]`. Si un script puede calcularlo, el script lo calcula (el LLM redacta interpretación, no cifras).
 - **Contrato JSON:** toda skill cierra con el contrato de `sub-skills/CONTRATO_JSON.md` (campos `skill`, `timestamp`, `parametros`, `output`, `decision` con `veredicto` + `siguiente_paso`, `advertencias`).
 
@@ -113,6 +130,12 @@ Tres invariantes, detallados en `SKILL.md`:
 3. **Todo HTML lleva el contexto del flujo,** inyectado por el generador con `--estado` y
    `--paso`. Si falta, el generador falla a propósito.
 
+**Herencia entre pasos:** al cerrar un paso se registran su `--resumen` (una línea) y sus
+`--datos` (el `reporte.json`). Los dos viajan en `flujo.ruta[]` al paso siguiente: el
+resumen es el índice y `datos` son los bloques estructurados (`persona`, `psf`, `items`)
+que la skill siguiente hereda en lugar de reconstruirlos. Detalle en
+`sub-skills/CONTRATO_JSON.md` § «Encadenamiento».
+
 Además:
 
 - La macro invoca sub-skills **leyendo** `sub-skills/<fase>/<skill>/SKILL.md` por ruta (no depende de registro global).
@@ -129,31 +152,31 @@ Además:
 
 ### 7.1. Propósito y Audiencia
 
-* **Propósito:** Guiar, educar e inspirar a los usuarios del sistema.
-* **Audiencia:** Equipos de innovación, gestores de producto y usuarios finales de soluciones tecnológicas.
+- **Propósito:** Guiar, educar e inspirar a los usuarios del sistema.
+- **Audiencia:** Equipos de innovación, gestores de producto y usuarios finales de soluciones tecnológicas.
 
 ### 7.2. Tono y Personalidad
 
 El tono de los textos debe ser:
 
-* **Claro:** Lenguaje directo, evitando jerga innecesaria.
-* **Conciso:** Máxima información con mínimo texto.
-* **Positivo:** Enfocado en soluciones y posibilidades.
-* **Profesional pero Cercano:** Técnico cuando sea necesario, pero siempre accesible.
+- **Claro:** Lenguaje directo, evitando jerga innecesaria.
+- **Conciso:** Máxima información con mínimo texto.
+- **Positivo:** Enfocado en soluciones y posibilidades.
+- **Profesional pero Cercano:** Técnico cuando sea necesario, pero siempre accesible.
 
 ### 7.3. Directrices de Redacción
 
-* **Evitar el "AI Speak":** No usar frases como "Como modelo de IA...", "Estoy aquí para ayudarte...", "Es importante señalar que...".
-* **Verbos de Acción:** Usar verbos fuertes para inspirar e instruir.
-* **Estructura:**
-  * **Inicio:** Captar la atención con el beneficio clave.
-  * **Cuerpo:** Instrucciones claras y paso a paso.
-  * **Cierre:** Resumen del impacto o siguiente paso.
+- **Evitar el "AI Speak":** No usar frases como "Como modelo de IA...", "Estoy aquí para ayudarte...", "Es importante señalar que...".
+- **Verbos de Acción:** Usar verbos fuertes para inspirar e instruir.
+- **Estructura:**
+  - **Inicio:** Captar la atención con el beneficio clave.
+  - **Cuerpo:** Instrucciones claras y paso a paso.
+  - **Cierre:** Resumen del impacto o siguiente paso.
 
 ## 8. Referencias rápidas para agentes
 
 | Pregunta | Dónde mirar |
-|---|---|
+| --- | --- |
 | ¿Qué sub-skill invoca el paso N y qué decisiones tiene? | `pasos.json` (fuente única) |
 | ¿En qué paso va el proyecto y qué se decidió? | `python scripts/estado_flujo.py mostrar` |
 | ¿Qué comandos hay para mover el estado? | `python scripts/estado_flujo.py --help` |

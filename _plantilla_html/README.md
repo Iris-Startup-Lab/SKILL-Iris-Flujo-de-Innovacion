@@ -94,7 +94,9 @@ _plantilla_html/
             "labels": ["Ene","Feb","Mar"],
             "datasets": [ { "label": "huerto urbano", "data": [20,28,38] } ]
           },
-          "fuentes": ["Google Trends (pytrends)"]
+          "fuentes": ["Google Trends (pytrends)"],
+          "persona": { },                                // opcional: ficha de protopersona
+          "psf": { }                                     // opcional: análisis Problem-Solution Fit
         }
       ]
     }
@@ -106,6 +108,29 @@ _plantilla_html/
   "fuentes": ["Fuente 1", "Fuente 2"]
 }
 ```
+
+### Bloques especializados de item: `persona` y `psf`
+
+Además de `body` y `chart`, un item puede llevar un bloque con estructura propia. La
+plantilla lo renderiza con su layout (fichas, tablas adaptativas, matriz de cuadrantes) y
+el validador comprueba su esquema:
+
+| Bloque | Lo produce | Estructura vinculante |
+| --- | --- | --- |
+| `persona` | `persona-profile` (`html_4`) | `sub-skills/2.Descubrimiento/persona-profile/references/ficha-persona.md` |
+| `psf` | `problem-solution-fit` (`html_5`) | `sub-skills/2.Descubrimiento/problem-solution-fit/references/analisis-psf.md` |
+
+Dos reglas de render que valen para los dos:
+
+- **Las tablas son adaptativas:** una columna solo aparece si al menos una fila trae ese
+  dato. La ficha de persona sin evaluar (sin `solucion` / `costo` / `importancia` /
+  `satisfaccion` en sus pains) imprime la tabla de dos columnas más una nota que remite a
+  Problem-Solution Fit — ese análisis es el paso siguiente, así que la ficha **no** debe
+  rellenar esas columnas con `[no disponible]` ni con cifras estimadas.
+- **La matriz Importancia × Satisfacción se deriva**, nunca se escribe. La plantilla la
+  arma con los pares `importancia` + `satisfaccion` de `persona.pains` o de
+  `psf.problemas`; si no hay ningún par completo, no hay gráfica. Escribir un `chart` a
+  mano duplicaría la fuente de verdad (y gana el `chart` explícito).
 
 ### El bloque `flujo` (contexto del flujo)
 
@@ -126,7 +151,9 @@ documenta aquí solo para saber qué se renderiza:
     "avance": { "completados": 1, "omitidos": 1, "pendientes": 8 },
     "ruta": [
       { "id": "html_1", "titulo": "Inicio + Investigación", "estado": "completado",
-        "resumen": "TAM MX 4.2 mil M*…", "archivo": "html_1.html", "veredicto": "perseverar" },
+        "resumen": "TAM MX 4.2 mil M*…", "archivo": "html_1.html",
+        "archivos": ["html_1.html", "benchmark.csv"], "datos": "reporte_h1.json",
+        "veredicto": "perseverar" },
       { "id": "html_2", "titulo": "Decisión — Entrevistas", "estado": "omitido",
         "motivo": "Ya tiene 12 entrevistas hechas", "impacto": "persona-profile usa supuestos *" },
       { "id": "html_4", "titulo": "Persona Profile", "estado": "actual" }
@@ -149,11 +176,23 @@ Se renderiza como:
 `estado` admite: `pendiente`, `en_curso`, `completado`, `omitido`, `fallido`, `actual`
 (solo uno puede ser `actual`).
 
+Tres campos de `ruta[]` son la **herencia entre pasos** —lo que la skill del paso siguiente
+lee para no reconstruir el contexto desde cero:
+
+| Campo | Qué es | Para qué |
+| --- | --- | --- |
+| `resumen` | Una línea: qué se aprendió | El índice. Se pinta en el riel y en «De dónde viene este reporte» |
+| `datos` | Ruta del `reporte.json` de ese paso | **Los datos estructurados**: de aquí se heredan `persona`, `psf`, `secciones[].items[]` |
+| `archivos` | Todos los outputs declarados | El resto de entregables (CSV, PPTX, HTML propios). `archivo` es el primero, el que enlaza el riel |
+
+Los rellena `estado_flujo.py completar` con `--resumen`, `--datos` y `--outputs`.
+
 ### Reglas del esquema
 
 - `meta` y `secciones` son obligatorias; el resto es opcional.
 - `veredicto` usa uno de: `perseverar` / `pivotear` / `descartar` (se renderiza con semáforo verde/ámbar/rojo).
-- `chart.tipo` admite `bar`, `horizontalBar`, `line`, `doughnut`, `pie`.
+- `chart.tipo` admite `bar`, `horizontalBar`, `line`, `doughnut`, `pie`, `scatter`.
+- `persona` y `psf` son opcionales y se validan con su esquema propio (ver arriba).
 - Todo texto del `body` se muestra con salto de línea preservado (`pre-wrap`).
 - Los valores con cifras **estimadas** se marcan `*` o `[REFERENCIA DE INDUSTRIA]` según las reglas de integridad del flujo.
 

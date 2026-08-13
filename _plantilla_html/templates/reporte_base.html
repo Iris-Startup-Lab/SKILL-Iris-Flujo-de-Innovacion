@@ -169,15 +169,22 @@
   .pf-canal .ct2{font-family:'Sora',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-700);margin-bottom:7px;display:flex;align-items:center;gap:6px}
   .pf-canal .ct2 svg{flex:0 0 auto}
 
-  /* Tabla de pains */
+  /* Tabla de pains / problemas */
   .pf-tabla-wrap{overflow-x:auto}
   table.pf-tabla{width:100%;border-collapse:collapse;font-size:.83rem;min-width:640px}
+  table.pf-tabla.slim{min-width:0}                      /* pains sin evaluación: 2 columnas */
   table.pf-tabla th{text-align:left;font-family:'Sora',sans-serif;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-600);border-bottom:2px solid var(--purple-200);padding:0 10px 8px}
   table.pf-tabla td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top;line-height:1.42}
   table.pf-tabla tr:last-child td{border-bottom:none}
   table.pf-tabla .num{width:26px}
   table.pf-tabla .num span{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--purple-700);color:#fff;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700}
   table.pf-tabla .metrica{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:.78rem}
+  table.pf-tabla .ctx{display:block;margin-top:4px;font-size:.76rem;color:var(--ink-soft)}
+  .pf-nota{margin-top:10px;font-size:.78rem;color:var(--ink-soft);border-left:3px solid var(--purple-200);padding-left:10px}
+  .pf-badge{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .pf-badge.si{color:#15803D;background:#DCFCE7}
+  .pf-badge.parcial{color:#B8862F;background:#FEF9C3}
+  .pf-badge.no{color:#B84A3D;background:#FEE2E2}
 
   @media (max-width:860px){
     .pf-box, .pf-box.w6, .pf-box.w8{grid-column:1/-1}
@@ -522,6 +529,18 @@ window.REPORT_DATA = __REPORT_DATA__;
     return out.filter(Boolean).join(' ');
   }
 
+  // Ídem para el análisis Problem-Solution Fit.
+  function textoPSF(p){
+    if(!p) return '';
+    const out = [p.solucion_propuesta, p.jtbd, p.base, p.persona];
+    (p.patrones||[]).forEach(v => out.push(v));
+    (p.blue_ocean||[]).forEach(v => out.push(v));
+    (p.anexo||[]).forEach(v => out.push(v));
+    (p.problemas||[]).forEach(d => out.push(d.problema, d.texto, d.contexto,
+                                           d.solucion_actual, d.ajustes));
+    return out.filter(Boolean).join(' ');
+  }
+
   // Filtering + sort
   function visibleItems(){
     const q = document.getElementById('search').value.trim().toLowerCase();
@@ -529,7 +548,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       if(activeVerdict && it.veredicto!==activeVerdict) return false;
       if(activeTags.size && !(it.tags||[]).some(t=>activeTags.has(t))) return false;
       if(q){
-        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),(it.tags||[]).join(' '),textoPersona(it.persona)].join(' ').toLowerCase();
+        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),(it.tags||[]).join(' '),textoPersona(it.persona),textoPSF(it.psf)].join(' ').toLowerCase();
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -599,6 +618,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     let head = '<div class="detail-head"><div class="dh-main"><h3>'+esc(it.titulo)+'</h3>'+(it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+'</div><button class="close-detail" aria-label="Cerrar">✕</button></div>';
     let body = '<div class="detail-body">';
     if(it.persona) body += buildPersona(it.persona);
+    if(it.psf) body += buildPSF(it.psf);
     (it.body||[]).forEach(b => {
       body += '<div class="dblock"><div class="db-label">'+esc(b.label||'')+'</div><div class="db-text">'+esc(b.texto||'')+'</div></div>';
     });
@@ -633,6 +653,12 @@ window.REPORT_DATA = __REPORT_DATA__;
       + '</div></div>';
   }
 
+  // «Importancia / Satisfacción» de una fila; '—' en el lado que falte.
+  function metrica(d){
+    if(d.importancia==null && d.satisfaccion==null) return '—';
+    return (d.importancia!=null?d.importancia:'—')+' / '+(d.satisfaccion!=null?d.satisfaccion:'—');
+  }
+
   function buildPersona(p){
     let h = '<div class="pf">';
 
@@ -661,24 +687,33 @@ window.REPORT_DATA = __REPORT_DATA__;
     h += canales(p.donde_esta, '¿Dónde está?');
     h += canales(p.confianza, '¿En quién confía? / Le recomienda');
 
-    // Pains + solución + costo, alineados por número
+    // Pains. Las columnas de evaluación (solución, costo, importancia/satisfacción) las
+    // produce Problem-Solution Fit en el paso siguiente: si no hay dato, no hay columna.
     const pains = p.pains || [];
     if(pains.length){
+      const hayCol = k => pains.some(d => d[k]!=null && String(d[k]).trim()!=='');
+      const cSol = hayCol('solucion'), cCosto = hayCol('costo');
+      const cMet = pains.some(d => typeof d.importancia==='number' || typeof d.satisfaccion==='number');
+      const sinEval = !cSol && !cCosto && !cMet;
+      let head = '<th class="num"></th><th>Pain</th>';
+      if(cSol)   head += '<th>¿Cómo lo soluciona?</th>';
+      if(cCosto) head += '<th>Costo de la solución actual</th>';
+      if(cMet)   head += '<th>Importancia / Satisfacción</th>';
       h += '<div class="pf-box full"><h5>Pains de productos/servicios actuales</h5><div class="pf-tabla-wrap">'
-         + '<table class="pf-tabla"><thead><tr><th class="num"></th><th>Pain</th>'
-         + '<th>¿Cómo lo soluciona?</th><th>Costo de la solución actual</th>'
-         + '<th>Importancia / Satisfacción</th></tr></thead><tbody>';
+         + '<table class="pf-tabla'+(sinEval?' slim':'')+'"><thead><tr>'+head+'</tr></thead><tbody>';
       pains.forEach((d,i) => {
-        const met = (d.importancia!=null||d.satisfaccion!=null)
-          ? (d.importancia!=null?d.importancia:'—')+' / '+(d.satisfaccion!=null?d.satisfaccion:'—')
-          : '—';
         h += '<tr><td class="num"><span>'+(d.n||i+1)+'</span></td>'
-           + '<td>'+esc(d.texto||'[no disponible]')+'</td>'
-           + '<td>'+esc(d.solucion||'[no disponible]')+'</td>'
-           + '<td>'+esc(d.costo||'[no disponible]')+'</td>'
-           + '<td class="metrica">'+esc(met)+'</td></tr>';
+           + '<td>'+esc(d.texto||'[no disponible]')+'</td>';
+        if(cSol)   h += '<td>'+esc(d.solucion||'—')+'</td>';
+        if(cCosto) h += '<td>'+esc(d.costo||'—')+'</td>';
+        if(cMet)   h += '<td class="metrica">'+esc(metrica(d))+'</td>';
+        h += '</tr>';
       });
-      h += '</tbody></table></div></div>';
+      h += '</tbody></table></div>'
+         + (sinEval ? '<p class="pf-nota">Cómo lo soluciona hoy, el costo de esa solución y '
+                    + 'la matriz Importancia × Satisfacción se evalúan en '
+                    + '<strong>Problem-Solution Fit</strong>, el paso siguiente del flujo.</p>' : '')
+         + '</div>';
     }
 
     if(p.accionables && p.accionables.length)
@@ -690,11 +725,86 @@ window.REPORT_DATA = __REPORT_DATA__;
     return h;
   }
 
-  // La matriz Importancia × Satisfacción se deriva de los pains: la skill no la escribe.
+  // ---------- Análisis Problem-Solution Fit (item.psf) ----------
+  const COBERTURA_LBL = {si:'Cubre', 'sí':'Cubre', parcial:'Cubre parcial', no:'No cubre'};
+
+  function badgeCubre(v){
+    const k = String(v||'').trim().toLowerCase();
+    if(!COBERTURA_LBL[k]) return '—';
+    return '<span class="pf-badge '+(k==='sí'?'si':k)+'">'+esc(COBERTURA_LBL[k])+'</span>';
+  }
+
+  function buildPSF(p){
+    let h = '<div class="pf">';
+
+    // Solución evaluada + procedencia de la evidencia
+    const meta = [];
+    if(p.persona)   meta.push('Protopersona: '+esc(p.persona));
+    if(p.base)      meta.push('Con base en: '+esc(p.base));
+    if(p.n_muestra!=null) meta.push('Muestra: '+esc(p.n_muestra));
+    if(p.solucion_propuesta || meta.length){
+      h += '<div class="pf-jtbd"><div class="lbl">SOLUCIÓN EVALUADA</div>'
+         + '<blockquote>'+esc(p.solucion_propuesta||'[no disponible]')+'</blockquote>'
+         + (meta.length?'<div class="meta-linea"><span>'+meta.join('</span><span>')+'</span></div>':'')
+         + '</div>';
+    }
+
+    // Problemas priorizados: una fila por problema, columnas según el dato que exista.
+    const probs = p.problemas || [];
+    if(probs.length){
+      const hayCol = k => probs.some(d => d[k]!=null && String(d[k]).trim()!=='');
+      const cFrec = hayCol('frecuencia'), cSol = hayCol('solucion_actual');
+      const cCosto = hayCol('costo_tiempo') || hayCol('costo_dinero');
+      const cMet = probs.some(d => typeof d.importancia==='number' || typeof d.satisfaccion==='number');
+      const cCubre = hayCol('cubre') || hayCol('ajustes');
+      let head = '<th class="num"></th><th>Problema</th>';
+      if(cFrec)  head += '<th>Frecuencia</th>';
+      if(cSol)   head += '<th>Solución actual</th>';
+      if(cCosto) head += '<th>Costo (tiempo / dinero)</th>';
+      if(cMet)   head += '<th>Importancia / Satisfacción</th>';
+      if(cCubre) head += '<th>¿La solución lo cubre?</th>';
+      h += '<div class="pf-box full"><h5>Problemas priorizados</h5><div class="pf-tabla-wrap">'
+         + '<table class="pf-tabla"><thead><tr>'+head+'</tr></thead><tbody>';
+      probs.forEach((d,i) => {
+        h += '<tr><td class="num"><span>'+(d.n||i+1)+'</span></td>'
+           + '<td>'+esc(d.problema||d.texto||'[no disponible]')
+           + (d.contexto?'<span class="ctx">'+esc(d.contexto)+'</span>':'')+'</td>';
+        if(cFrec)  h += '<td>'+esc(d.frecuencia||'—')+'</td>';
+        if(cSol)   h += '<td>'+esc(d.solucion_actual||'—')+'</td>';
+        if(cCosto) h += '<td>'+esc([d.costo_tiempo, d.costo_dinero].filter(Boolean).join(' · ')||'N/D')+'</td>';
+        if(cMet)   h += '<td class="metrica">'+esc(metrica(d))+'</td>';
+        if(cCubre) h += '<td>'+badgeCubre(d.cubre)
+                      + (d.ajustes?'<span class="ctx">'+esc(d.ajustes)+'</span>':'')+'</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div></div>';
+    }
+
+    if(p.jtbd)
+      h += '<div class="pf-box full"><h5>Job To Be Done</h5><p class="db-text">'+esc(p.jtbd)+'</p></div>';
+    if(p.patrones && p.patrones.length)
+      h += '<div class="pf-box w6"><h5>Patrones y tendencias</h5>'+lista(p.patrones)+'</div>';
+    if(p.blue_ocean && p.blue_ocean.length)
+      h += '<div class="pf-box gold w6"><h5>Oportunidad Blue Ocean</h5>'+lista(p.blue_ocean)+'</div>';
+    if(p.anexo && p.anexo.length)
+      h += '<div class="pf-box"><h5>Anexo</h5>'+lista(p.anexo)+'</div>';
+
+    h += '</div>';
+    return h;
+  }
+
+  // La matriz Importancia × Satisfacción se deriva de las filas evaluadas (pains de la
+  // persona o problemas del PSF): la skill no escribe el bloque `chart`.
   function chartDeItem(it){
     if(it.chart) return it.chart;
-    const pains = (it.persona && it.persona.pains) || [];
-    const puntos = pains.filter(d => typeof d.importancia==='number' && typeof d.satisfaccion==='number');
+    const psf = it.psf && it.psf.problemas;
+    const filas = psf && psf.length ? psf : ((it.persona && it.persona.pains) || []);
+    const etiqueta = d => d.texto || d.problema || '';
+    // El número del punto es el de la fila en la tabla, no su posición en la matriz.
+    const puntos = filas
+      .map((d,i) => ({d: d, n: d.n || i+1}))
+      .filter(x => typeof x.d.importancia==='number' && typeof x.d.satisfaccion==='number')
+      .map(x => Object.assign({}, x.d, {n: x.n}));
     if(puntos.length < 1) return null;
     return {
       tipo: 'scatter',
@@ -703,9 +813,9 @@ window.REPORT_DATA = __REPORT_DATA__;
       eje_y: 'Importancia del problema',
       min: 0, max: 5,
       cuadrantes: { superior_izq: 'OPORTUNIDAD', superior_der: 'COMPETENCIA' },
-      puntos: puntos.map((d,i) => ({
+      puntos: puntos.map(d => ({
         x: d.satisfaccion, y: d.importancia,
-        etiqueta: String(d.n||i+1), titulo: d.texto||''
+        etiqueta: String(d.n), titulo: etiqueta(d)
       }))
     };
   }
