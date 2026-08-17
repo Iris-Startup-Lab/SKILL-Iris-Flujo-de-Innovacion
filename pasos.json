@@ -15,27 +15,27 @@
       "predecesores": [],
       "en_ruta_minima": true,
       "omitible": true,
-      "si_omitido": "No hay investigación propia. La macro pide al usuario el contexto de mercado a mano y toda cifra derivada se marca con * como supuesto.",
+      "si_omitido": "No hay investigación propia: el contexto de mercado lo aporta el usuario a mano, y toda cifra derivada queda señalada en el reporte como estimación sin fuente citable.",
       "decisiones": [
         {
           "nodo": "¿Cómo quieres iniciar?",
           "tipo": "unica",
           "opciones": [
-            { "opcion": "Estado actual", "skills": ["1.Investigación/benchmark-mercado"] },
-            { "opcion": "Futuros", "skills": ["1.Investigación/foresight"] },
-            { "opcion": "Señales débiles de usuarios actuales", "skills": ["1.Investigación/senales-debiles"] },
-            { "opcion": "Opiniones y comentarios", "skills": ["1.Investigación/discussion-forums", "1.Investigación/search-trend-analysis"] }
+            { "opcion": "Estado actual", "skills": ["1.Investigacion/benchmark-mercado"] },
+            { "opcion": "Futuros", "skills": ["1.Investigacion/foresight"] },
+            { "opcion": "Señales débiles de usuarios actuales", "skills": ["1.Investigacion/senales-debiles"] },
+            { "opcion": "Opiniones y comentarios", "skills": ["1.Investigacion/discussion-forums", "1.Investigacion/search-trend-analysis"] }
           ]
         }
       ],
       "skills_posibles": [
-        "1.Investigación/benchmark-mercado",
-        "1.Investigación/foresight",
-        "1.Investigación/senales-debiles",
-        "1.Investigación/discussion-forums",
-        "1.Investigación/search-trend-analysis"
+        "1.Investigacion/benchmark-mercado",
+        "1.Investigacion/foresight",
+        "1.Investigacion/senales-debiles",
+        "1.Investigacion/discussion-forums",
+        "1.Investigacion/search-trend-analysis"
       ],
-      "cadenas": [["1.Investigación/discussion-forums", "1.Investigación/search-trend-analysis"]],
+      "cadenas": [["1.Investigacion/discussion-forums", "1.Investigacion/search-trend-analysis"]],
       "entrega": "html_1.html"
     },
     {
@@ -48,7 +48,7 @@
       "predecesores": ["html_1"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay guion ni insights de entrevistas. persona-profile (html_4) queda obligado a la rama «sin datos reales» y sus atributos se marcan como supuestos *.",
+      "si_omitido": "No hay guion ni respuestas de entrevistas. La ficha de persona se construye sin datos reales, así que sus atributos quedan señalados en el reporte como supuestos y no como evidencia.",
       "decisiones": [
         {
           "nodo": "¿Ejecución de entrevistas?",
@@ -87,12 +87,12 @@
       "orden": 3,
       "etapa": "Descubrimiento",
       "titulo": "Descubrimiento",
-      "objetivo": "Recoger evidencia de campo con los agentes elegidos en html_2.",
+      "objetivo": "Recoger evidencia de campo con los agentes elegidos al diseñar las entrevistas.",
       "nodo_mermaid": ["N0", "N5", "N8", "N11"],
       "predecesores": ["html_2"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "Sin evidencia de campo. persona-profile y journey-builder trabajan sobre el contexto de html_1 y supuestos marcados *.",
+      "si_omitido": "No hay evidencia de campo. La ficha de persona y el mapa del recorrido se construyen sobre la investigación inicial y sobre supuestos, que quedan señalados como tales en el reporte.",
       "decisiones": [],
       "skills_posibles": [
         "2.Descubrimiento/day-in-the-life",
@@ -113,7 +113,7 @@
       "predecesores": ["html_3", "html_2", "html_1"],
       "en_ruta_minima": true,
       "omitible": false,
-      "razon_no_omitible": "Todo el flujo posterior (problem-solution-fit, journey-builder, HMW, ideación) se aplica sobre una protopersona concreta. Sin ella no hay a quién resolverle nada.",
+      "razon_no_omitible": "Todo el flujo posterior —priorización de problemas, mapa del recorrido, reto creativo e ideación— se aplica sobre una protopersona concreta. Sin ella no hay a quién resolverle nada.",
       "decisiones": [
         {
           "nodo": "¿Hay datos reales de entrevistas / encuestas?",
@@ -141,7 +141,7 @@
       "predecesores": ["html_4"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay problemas priorizados. La ficha de persona (html_4) se queda sin las secciones «¿Cómo lo soluciona?», «Costo de la solución actual» ni la matriz Importancia × Satisfacción: esa evaluación nace aquí. El HMW (html_7) se formula sobre el problema que el usuario declare a mano, sin ranking de evidencia.",
+      "si_omitido": "No hay problemas priorizados. La ficha de persona se queda sin las secciones «¿Cómo lo soluciona?», «Costo de la solución actual» ni la matriz Importancia × Satisfacción, porque esa evaluación nace en este paso. El reto creativo (HMW) se formula sobre el problema que declare el usuario, sin un ranking respaldado por evidencia.",
       "decisiones": [
         {
           "nodo": "Elección de protopersona",
@@ -165,7 +165,7 @@
       "predecesores": ["html_5", "html_4"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "Sin journey no hay obstáculos mapeados; el HMW pierde el anclaje al momento concreto del recorrido.",
+      "si_omitido": "No hay mapa del recorrido, así que tampoco obstáculos localizados: el reto creativo (HMW) pierde el anclaje a un momento concreto de la experiencia del usuario.",
       "decisiones": [],
       "skills_posibles": ["2.Descubrimiento/journey-builder"],
       "entrega": "html_6.html"
@@ -180,7 +180,7 @@
       "predecesores": ["html_6", "html_5", "html_4"],
       "en_ruta_minima": true,
       "omitible": false,
-      "razon_no_omitible": "El HMW es el input literal de los agentes de ideación. Sin reto formulado, la ideación no tiene consigna.",
+      "razon_no_omitible": "El reto creativo (HMW) es la consigna literal de los agentes de ideación. Sin reto formulado, la ideación no tiene sobre qué trabajar.",
       "decisiones": [
         {
           "nodo": "Ambición estratégica",
@@ -204,14 +204,14 @@
           "tipo": "multiple",
           "descripcion": "Elige cuáles de los 3 agentes de ideación (html_8) se ejecutan.",
           "opciones": [
-            { "opcion": "Ideación", "skills": ["3.Ideación/ideacion"] },
-            { "opcion": "Caressing the client", "skills": ["3.Ideación/caressing-client"] },
-            { "opcion": "Referral Builder", "skills": ["3.Ideación/referral-builder"] }
+            { "opcion": "Ideación", "skills": ["3.Ideacion/ideacion"] },
+            { "opcion": "Caressing the client", "skills": ["3.Ideacion/caressing-client"] },
+            { "opcion": "Referral Builder", "skills": ["3.Ideacion/referral-builder"] }
           ]
         }
       ],
-      "skills_posibles": ["3.Ideación/how-might-we"],
-      "referencias": ["sub-skills/3.Ideación/how-might-we/references/matriz-ambicion-palancas.md"],
+      "skills_posibles": ["3.Ideacion/how-might-we"],
+      "referencias": ["sub-skills/3.Ideacion/how-might-we/references/matriz-ambicion-palancas.md"],
       "entrega": "html_7.html"
     },
     {
@@ -233,9 +233,9 @@
         }
       ],
       "skills_posibles": [
-        "3.Ideación/ideacion",
-        "3.Ideación/caressing-client",
-        "3.Ideación/referral-builder"
+        "3.Ideacion/ideacion",
+        "3.Ideacion/caressing-client",
+        "3.Ideacion/referral-builder"
       ],
       "paralelo": true,
       "entrega": "html_8.html"
@@ -250,9 +250,9 @@
       "predecesores": ["html_8"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "Las ideas pasan a validación sin TAM/SAM/SOM ni score de atractivo: la priorización queda en criterio del usuario, no en evidencia.",
+      "si_omitido": "Las ideas pasan a validación sin tamaño de mercado (TAM/SAM/SOM) ni score de atractivo: cuál se prueba primero queda a criterio del usuario, sin dimensionamiento que lo respalde.",
       "decisiones": [],
-      "skills_posibles": ["3.Ideación/dimensionador-estrategico"],
+      "skills_posibles": ["3.Ideacion/dimensionador-estrategico"],
       "entrega": "html_9.html"
     },
     {
@@ -265,10 +265,10 @@
       "predecesores": ["html_9", "html_8"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay patrón de negocio ni recomendación de experimento: la elección del agente de validación (html_11) la hace el usuario sin guía.",
+      "si_omitido": "No hay patrón de modelo de negocio ni recomendación de experimento: el usuario elige el tipo de validación sin guía.",
       "decisiones": [],
-      "skills_posibles": ["3.Ideación/business-model-navigator"],
-      "referencias": ["sub-skills/3.Ideación/business-model-navigator/references/catalogo-patrones.md"],
+      "skills_posibles": ["3.Ideacion/business-model-navigator"],
+      "referencias": ["sub-skills/3.Ideacion/business-model-navigator/references/catalogo-patrones.md"],
       "entrega": "html_10.html"
     },
     {
@@ -289,26 +289,26 @@
           "opciones": [
             { "opcion": "Simple Landing Page", "skills": ["4.Prototipado/landing-page"] },
             { "opcion": "Landing Page UX Analyzer", "skills": ["4.Prototipado/landing-ux-analyzer"] },
-            { "opcion": "Online Ads", "skills": ["5.Validación/online-ads"] },
-            { "opcion": "Email Campaign", "skills": ["5.Validación/email-campaign"] },
-            { "opcion": "Explainer Video", "skills": ["5.Validación/explainer-video"] },
-            { "opcion": "Pop-Up Store", "skills": ["5.Validación/popup-store"] },
-            { "opcion": "Feature Stub", "skills": ["5.Validación/feature-stub"] }
+            { "opcion": "Online Ads", "skills": ["5.Validacion/online-ads"] },
+            { "opcion": "Email Campaign", "skills": ["5.Validacion/email-campaign"] },
+            { "opcion": "Explainer Video", "skills": ["5.Validacion/explainer-video"] },
+            { "opcion": "Pop-Up Store", "skills": ["5.Validacion/popup-store"] },
+            { "opcion": "Feature Stub", "skills": ["5.Validacion/feature-stub"] }
           ]
         }
       ],
       "skills_posibles": [
         "4.Prototipado/landing-page",
         "4.Prototipado/landing-ux-analyzer",
-        "5.Validación/online-ads",
-        "5.Validación/email-campaign",
-        "5.Validación/explainer-video",
-        "5.Validación/popup-store",
-        "5.Validación/feature-stub"
+        "5.Validacion/online-ads",
+        "5.Validacion/email-campaign",
+        "5.Validacion/explainer-video",
+        "5.Validacion/popup-store",
+        "5.Validacion/feature-stub"
       ],
       "paralelo": true,
       "entrega": "html_11.html"
     }
   ],
-  "nota_rutas": "Las rutas de `skills` son relativas a `sub-skills/` y coinciden literalmente con el nombre de la carpeta en disco, acentos incluidos: '3.Ideación/ideacion' → 'sub-skills/3.Ideación/ideacion/SKILL.md'."
+  "nota_rutas": "Las rutas de `skills` son relativas a `sub-skills/` y coinciden literalmente con el nombre de la carpeta en disco: '3.Ideacion/ideacion' → 'sub-skills/3.Ideacion/ideacion/AGENTE.md'. Dos convenciones impuestas por los gestores de skills: (1) las carpetas de fase van SIN acento ('1.Investigacion', '3.Ideacion', '5.Validacion') porque rechazan los ZIP con rutas no-ASCII —el acento se conserva en la prosa y en los nombres de agente, nunca en una ruta—; (2) el archivo de instrucciones de cada sub-skill se llama AGENTE.md, no SKILL.md, porque solo admiten un SKILL.md por paquete y ese es el de la macro."
 }

@@ -15,14 +15,14 @@ autoritativo está en `pasos.json`; estos son los casos que más confunden:
 | Agente en este documento | Carpeta real |
 | --- | --- |
 | Agente Simple Landing Page | `4.Prototipado/landing-page` |
-| Agente Señales débiles | `1.Investigación/senales-debiles` |
-| Agente Dimensionador Estratégico de Ideas de Negocio | `3.Ideación/dimensionador-estrategico` |
+| Agente Señales débiles | `1.Investigacion/senales-debiles` |
+| Agente Dimensionador Estratégico de Ideas de Negocio | `3.Ideacion/dimensionador-estrategico` |
 | Agente Entrevista de empatía | `2.Descubrimiento/entrevistas-empatia` |
-| Agente HMW | `3.Ideación/how-might-we` |
-| Agente Caressing the client | `3.Ideación/caressing-client` |
+| Agente HMW | `3.Ideacion/how-might-we` |
+| Agente Caressing the client | `3.Ideacion/caressing-client` |
 | Agente A Day In The Life | `2.Descubrimiento/day-in-the-life` |
 | Agente Encuesta Kano | `2.Descubrimiento/encuesta-kano` |
-| Agente Pop-Up Store | `5.Validación/popup-store` |
+| Agente Pop-Up Store | `5.Validacion/popup-store` |
 
 Para ver el paso actual con sus rutas ya resueltas:
 

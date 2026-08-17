@@ -58,7 +58,7 @@ El alcance no estaba escrito en ninguna parte. Queda fijado así.
   Instalar `tiktoken` es el primer paso de la medición fina.
 - **Advertencia de comparabilidad:** el tokenizador varía por familia de modelo. Las cifras
   sirven para **comparar rutas entre sí**, no para presupuestar una factura. El español y los
-  acentos de las rutas (`3.Ideación/ideacion`) tokenizan peor que el inglés.
+  acentos de las rutas (`3.Ideacion/ideacion`) tokenizan peor que el inglés.
 
 Regla de integridad del repo (AGENTS.md §4): toda cifra estimada va con `*`. Este documento la
 respeta.
@@ -107,6 +107,26 @@ Recorre un proyecto de punta a punta anotando, paso a paso, el uso que reporta e
 ---
 
 ## 5. Línea base del nivel 1 (13/08/2026)
+
+> **La línea base de abajo está caducada para tres archivos.** Los arreglos del 14/08 (subida
+> al gestor, comando `rutas`, sección «Cómo nombrar las cosas ante el usuario», introducción de
+> la skill) engordaron el arranque fijo un **22%**:
+>
+> | Archivo | 13/08 | 14/08 | Delta | Tokens\* |
+> | --- | --- | --- | --- | --- |
+> | `SKILL.md` | 9,304 | 15,211 | **+63%** | ~3,803 |
+> | `AGENTS.md` | 11,537 | 15,687 | +36% | ~3,922 |
+> | `pasos.json` | 14,351 | 15,057 | +5% | ~3,764 |
+> | **Total fijo** | **49,816** | **60,579** | **+22%** | **~15,145** |
+>
+> **`SKILL.md` es el que hay que vigilar:** creció un 63% y es el que se carga en **cada
+> activación** de la skill. Con ~3,800 tokens\* sigue por debajo de los 5k que Anthropic
+> recomienda para el cuerpo de un `SKILL.md`, así que no urge — pero si vuelve a crecer, el
+> siguiente movimiento es mover a `references/` lo que no se lee en cada paso (las secciones de
+> notación y primer contacto son candidatas).
+>
+> Es exactamente el caso que justifica que el nivel 1 sea **un script y no una tabla escrita a
+> mano** (§9): esta caducó en un día.
 
 Medida sobre el recorrido real de `output/huertos-urbanos-mx/`: 6 pasos ejecutados
 (`html_1 → html_4 → html_5 → html_7 → html_8 → html_11`) y 5 omitidos. Todas las cifras con `*`
@@ -186,8 +206,8 @@ Releer la cadena completa cuesta **2.7× más** y es lo que hoy no está acotado
 | Entrada: sub-skills (E3) | ~19,575* |
 | Entrada: briefings (E2) | ~4,415* |
 | Entrada: herencia (E4) | ~11,642*a ~31,899* |
-| **Entrada total** | **~48,086 a ~68,343**\* |
-| **Salida total (S1)** | **~14,194**\* |
+| **Entrada total** | **~48,086* a ~68,343*** |
+| **Salida total (S1)** | **~14,194*** |
 
 Referencia de lo que **no** se cuenta: los 6 HTML entregados pesan 1,182,993 car (~295,748
 tokens*) que el modelo nunca emite.
@@ -225,8 +245,12 @@ La medición no es un ejercicio contable: cada resultado tiene una acción asoci
 - **Si una sub-skill se sale de la mediana** → partir su `SKILL.md`, moviendo el detalle a
   `references/` que solo se lean cuando toca. `senales-debiles` (3.4× la mediana) es la
   candidata evidente.
-- **Si el arranque fijo pesa demasiado** → `AGENTS.md` y `_plantilla_html/README.md` (~5,500
-  tokens* juntos) no hacen falta en cada paso: se pueden citar bajo demanda.
+- **Si el arranque fijo pesa demasiado** → `AGENTS.md` y `_plantilla_html/README.md` (~6,500
+  tokens* juntos tras el crecimiento del 14/08) no hacen falta en cada paso: se pueden citar
+  bajo demanda.
+- **Si `SKILL.md` pasa de 5k tokens\*** → partirlo: mover a `references/` lo que no se lee en
+  cada paso. Va por ~3,800* y creció un 63% en un día, así que es el archivo con más riesgo de
+  cruzar el umbral. Es el único que se carga en **cada activación**.
 - **Si la diferencia entre rutas es pequeña** → la ruta mínima deja de venderse como «más
   barata» y se justifica solo por tiempo del usuario, que es un argumento distinto.
 - **Si el `reporte.json` de un paso se dispara** → revisar si está duplicando datos que ya

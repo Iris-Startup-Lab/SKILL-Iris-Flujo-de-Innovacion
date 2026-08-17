@@ -1,9 +1,9 @@
 """
 _template_generador_skill.py
 
-Genera el esqueleto inicial de SKILL.md a partir de un prompt base (.md) del
+Genera el esqueleto inicial de AGENTE.md a partir de un prompt base (.md) del
 flujo de innovación IRIS. Extrae Nombre, Descripción y Área/Categoría del
-encabezado del prompt y produce un SKILL.md con las secciones estándar del
+encabezado del prompt y produce un AGENTE.md con las secciones estándar del
 template (Rol y Contexto, Alcance, Parámetros, Instrucciones, Formato de
 Salida, Reglas y Restricciones, Referencias).
 
@@ -105,13 +105,13 @@ def construir_cuerpo(skill, con_scripts, con_references, prompt_titulo):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Genera esqueleto de SKILL.md desde un prompt .md")
+    parser = argparse.ArgumentParser(description="Genera esqueleto de AGENTE.md desde un prompt .md")
     parser.add_argument("prompt", help="Ruta del prompt base (.md)")
     parser.add_argument("--skill", required=True, help="Nombre de la skill (kebab-case)")
     parser.add_argument("--categoria", default="", help="Fase del flujo (Investigación, Descubrimiento, etc.)")
     parser.add_argument("--scripts", action="store_true", help="La skill llevará scripts/")
     parser.add_argument("--references", action="store_true", help="La skill llevará references/")
-    parser.add_argument("-o", "--output", help="Ruta de salida (por defecto: sub-skills/<skill>/SKILL.md)")
+    parser.add_argument("-o", "--output", help="Ruta de salida (por defecto: sub-skills/<skill>/AGENTE.md)")
     args = parser.parse_args(argv)
 
     if not os.path.isfile(args.prompt):
@@ -131,12 +131,12 @@ def main(argv=None):
     frontmatter = construir_frontmatter(skill, categoria, descripcion)
     cuerpo = construir_cuerpo(skill, args.scripts, args.references, nombre)
 
-    salida = args.output or os.path.join("sub-skills", skill, "SKILL.md")
+    salida = args.output or os.path.join("sub-skills", skill, "AGENTE.md")
     os.makedirs(os.path.dirname(salida) or ".", exist_ok=True)
     with open(salida, "w", encoding="utf-8") as f:
         f.write(frontmatter + "\n" + cuerpo)
 
-    print(f"SKILL.md generado en: {salida}")
+    print(f"AGENTE.md generado en: {salida}")
     print(f"  nombre:      {skill}")
     print(f"  categoria:   {categoria or '(no detectada)'}")
     print(f"  descripcion: {'SÍ' if descripcion else 'NO (usar genérica)'}")

@@ -57,7 +57,19 @@ deteniéndose en cada decisión y registrando todo en el estado del flujo.
 | Recorrido | Pasos | Para qué |
 | --- | --- | --- |
 | **Completa** | 11 | El proceso íntegro, de la investigación al experimento. |
-| **Mínima** (`--ruta minima`) | 5 — `html_1 → html_4 → html_7 → html_8 → html_11` | Investigación → persona → reto → ideas → experimento, sin las etapas intermedias. |
+| **Mínima** (`--ruta minima`) | 5 | Investigación → Persona → Reto (HMW) → Ideación → Validación, sin las etapas intermedias. |
+
+Los 5 pasos de la ruta mínima son **Inicio + Investigación**, **Persona Profile**,
+**HMW + Ambición estratégica**, **Ideación** y **Prototipado y Validación**. Se salta los 6
+restantes: entrevistas, descubrimiento de campo, Problem-Solution Fit, Journey Builder,
+Dimensionador estratégico y Business Model Navigator — cada uno con su impacto declarado en los
+reportes posteriores.
+
+Para ver los dos recorridos con el nombre de cada paso y qué pierde el corto:
+
+```bash
+python scripts/estado_flujo.py rutas
+```
 
 ### Omitir pasos
 
@@ -119,12 +131,36 @@ El generador **valida el esquema y falla si falta algo**, para que un reporte in
 
 Los gestores de agentes suelen tener un límite de **30 MB** por skill. El paquete con los documentos necesarios pesa ~3 MB (muy por debajo del límite). Para generarlo:
 
+Cuatro requisitos del gestor que el script ya cumple por ti:
+
+> **Separador `/` en las entradas del ZIP.** Con la barra invertida de Windows, un validador en
+> Linux lee `iris-flujo-de-innovacion\SKILL.md` como un nombre con un carácter inválido dentro.
+> Por eso el script **no usa `Compress-Archive`**: construye el ZIP con `ZipArchive` escribiendo
+> cada nombre con `/`, y relee el resultado para confirmarlo.
+>
+> **Una sola carpeta raíz.** El ZIP lleva `iris-flujo-de-innovacion/` como única carpeta de
+> primer nivel, con el mismo nombre que el `name` del frontmatter. Archivos sueltos en la raíz
+> del ZIP se rechazan.
+>
+> **Un solo `SKILL.md`.** El gestor responde `Zip must contain exactly one SKILL.md file` en
+> cuanto hay más de uno. Por eso las 26 sub-skills guardan sus instrucciones en **`AGENTE.md`** y
+> el único `SKILL.md` es el de la macro. Al empaquetar una sub-skill suelta, el script le devuelve
+> el nombre `SKILL.md`, porque ahí sí es ella la skill del paquete.
+>
+> **Rutas solo `[A-Za-z0-9._-]`.** Sin acentos, espacios ni `&`, o el gestor responde
+> `Zip file contains path with invalid characters`. De ahí que las fases sean `1.Investigacion`,
+> `3.Ideacion` y `5.Validacion`, y que los prompts base estén en kebab-case. El acento sí se
+> conserva en la prosa y en los nombres de agente.
+
+Los dos scripts avisan si detectan un nombre fuera del juego seguro, más de un `SKILL.md` o una
+entrada con barra invertida.
+
 **PowerShell (Windows):**
 
 ```powershell
 .\empaquetar_skill.ps1                              # ZIP básico (~3 MB)
 .\empaquetar_skill.ps1 -IncludeSamples              # + muestras de diseño
-.\empaquetar_skill.ps1 -IncludeFlujoMap             # + mapa visual (Flujo Agentes mapa 2.html, ~7.3 MB)
+.\empaquetar_skill.ps1 -IncludeFlujoMap             # + mapa visual (flujo-agentes-mapa-2.html, ~7.3 MB)
 .\empaquetar_skill.ps1 -Output "mi_skill.zip"       # nombre personalizado
 ```
 

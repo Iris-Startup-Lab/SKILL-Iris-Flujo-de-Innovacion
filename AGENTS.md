@@ -36,15 +36,15 @@ flujo_agentes.md                # Descripción de cada agente del flujo (vista d
 flujo_mermaid.md                # Grafo Mermaid de conexiones (vista de pasos.json)
 sub-skills/
   CONTRATO_JSON.md              # Contrato JSON estándar entre skills (decision.siguiente_paso)
-  1.Investigación/ ...          # benchmark-mercado, foresight, senales-debiles,
+  1.Investigacion/ ...          # benchmark-mercado, foresight, senales-debiles,
                                 # discussion-forums, search-trend-analysis
   2.Descubrimiento/ ...         # entrevistas-empatia, day-in-the-life, encuesta-kano,
                                 # discovery-survey, expo-quest, persona-profile,
                                 # problem-solution-fit, journey-builder
-  3.Ideación/ ...               # how-might-we, ideacion, caressing-client, referral-builder,
+  3.Ideacion/ ...               # how-might-we, ideacion, caressing-client, referral-builder,
                                 # dimensionador-estrategico, business-model-navigator
   4.Prototipado/ ...            # landing-page, landing-ux-analyzer
-  5.Validación/ ...             # email-campaign, explainer-video, feature-stub,
+  5.Validacion/ ...             # email-campaign, explainer-video, feature-stub,
                                 # online-ads, popup-store
 _plantilla_html/                # Generador + plantilla HTML compartidos (ver §5)
 Designs_files/                  # Design_iris_main_colors.md (sistema de diseño oficial)
@@ -54,7 +54,7 @@ Documentos_prompts_base_md/     # Los 24 prompts originales (fuente de cada skil
 PLAN_CONVERSION_SKILLS.md       # Plan de conversión prompts → skills
 PLAN_MEDICION_TOKENS.md         # Plan de medición de tokens del flujo (alcance, niveles,
                                 # línea base y comparación ruta completa vs mínima)
-_template_generador_skill.py    # Genera esqueleto de SKILL.md desde un prompt .md
+_template_generador_skill.py    # Genera esqueleto de AGENTE.md desde un prompt .md
 ```
 
 ## 4. Convención de sub-skills
@@ -63,7 +63,7 @@ Cada sub-skill vive en `sub-skills/<fase>/<skill>/` con:
 
 ```text
 <skill>/
-├── SKILL.md        # frontmatter (name + description) + instrucciones del agente
+├── AGENTE.md       # frontmatter (name + description) + instrucciones del agente
 ├── README.md       # qué hace y cómo generar su HTML
 ├── assets/logo.png # copia del logo oficial
 ├── references/     # (opcional) taxonomías/catálogos/rúbricas vinculantes
@@ -72,11 +72,15 @@ Cada sub-skill vive en `sub-skills/<fase>/<skill>/` con:
 
 Reglas:
 
+- **El archivo de instrucciones se llama `AGENTE.md`, no `SKILL.md`.** El gestor rechaza el ZIP
+  con `Zip must contain exactly one SKILL.md file` si hay más de uno, y ese nombre lo ocupa la
+  macro en la raíz. Al empaquetar una sub-skill suelta (`-SubSkill`), el script la renombra a
+  `SKILL.md` —archivo y referencias de texto— porque ahí sí es la skill del paquete.
 - **Nombres en kebab-case.** El frontmatter DEBE llevar `name` y `description` (es lo que activa la skill).
 - **Autonomía:** los scripts no importan módulos de otras skills; solo stdlib + paquetes PyPI declarados.
 - **Extraíble:** cada sub-skill debe poder publicarse suelta con **su carpeta +
   `_plantilla_html/`** al lado, sin el resto del repositorio. En la práctica:
-  - Su `SKILL.md` es autocontenido: el contrato JSON va escrito completo y `pasos.json`,
+  - Su `AGENTE.md` es autocontenido: el contrato JSON va escrito completo y `pasos.json`,
     `flujo_estado.json` y `CONTRATO_JSON.md` se citan como opcionales («si tienes acceso a…»).
     Las referencias a otras sub-skills también van atenuadas: apuntan a contexto, nunca a un
     archivo sin el cual la skill no funcione.
@@ -115,6 +119,55 @@ python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -
 **Convención de rutas (obligatoria):** todos los comandos de este repo se ejecutan desde la
 raíz. No uses rutas relativas tipo `../../../` dentro de las sub-skills.
 
+**Rutas seguras (obligatorio).** Todo nombre de archivo y de carpeta usa **solo
+`[A-Za-z0-9._-]`**: sin acentos, sin espacios, sin `&`. Los gestores de habilidades rechazan el
+ZIP con `Zip file contains path with invalid characters` y no documentan qué aceptan, así que se
+usa el juego conservador que sí funciona. Por eso las fases son `1.Investigacion`, `3.Ideacion`
+y `5.Validacion` sin tilde, y los prompts base van en kebab-case (`how-might-we.md`, no
+`How Might We.md`). **El acento se conserva en la prosa y en los nombres de agente**
+(«Entrevistas de Empatía», «Dimensionador Estratégico de Ideas de Negocio»): la regla es solo
+para rutas. Comprobación:
+
+```powershell
+Get-ChildItem -Recurse -File | Where-Object {
+  $_.FullName -notmatch 'output|\.git' -and $_.Name -notmatch '^[A-Za-z0-9._-]+$'
+}
+```
+
+**Estructura del ZIP (obligatorio).** El gestor exige **una sola carpeta de primer nivel,
+llamada igual que el `name` del frontmatter** — para la macro, `iris-flujo-de-innovacion/`. Los
+archivos sueltos en la raíz del ZIP se rechazan. Lo arma `empaquetar_skill.ps1`/`.sh`, que lee el
+`name` del `SKILL.md` y avisa si no es `[a-z0-9-]`. Dentro de esa carpeta la estructura del repo
+se conserva intacta, así que la regla «ejecuta desde la raíz» sigue valiendo: la raíz pasa a ser
+la carpeta de la skill.
+
+**Exactamente un `SKILL.md` por ZIP (obligatorio).** El gestor responde
+`Zip must contain exactly one SKILL.md file. Currently there are N` en cuanto hay más de uno. Por
+eso las 26 sub-skills guardan sus instrucciones en **`AGENTE.md`** y el único `SKILL.md` del
+repositorio es el de la macro, en la raíz. Al empaquetar una sub-skill suelta, el script renombra
+su `AGENTE.md` a `SKILL.md` (y reescribe las referencias de texto), porque en ese paquete la
+sub-skill sí es la skill.
+
+**Separador `/` dentro del ZIP (obligatorio).** El formato ZIP exige la barra normal. Si las
+entradas llevan la barra invertida de Windows (`iris-flujo-de-innovacion\SKILL.md`), un validador
+en Linux lee el `\` como **parte del nombre** y responde
+`Zip file contains path with invalid characters`. Es lo que rechazó el paquete durante tres
+rondas de diagnóstico.
+
+- **No uses `Compress-Archive`** para el paquete final: en este repo produjo las 171 entradas con
+  `\`. `empaquetar_skill.ps1` construye el ZIP con `System.IO.Compression.ZipArchive` y escribe
+  el nombre de cada entrada a mano, con `/`.
+- **Cuidado al verificarlo:** `zipfile` de Python **normaliza** `\` a `/` en Windows dentro de
+  `ZipInfo.__init__`, así que `namelist()` da un **falso negativo**. Hay que mirar
+  `orig_filename` o los bytes del directorio central:
+
+```powershell
+python -c "import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); print(sum(1 for i in z.infolist() if chr(92) in i.orig_filename), 'entradas con barra invertida')" iris-flujo-de-innovacion.zip
+```
+
+Los dos scripts avisan antes de comprimir si detectan un nombre fuera del juego seguro o más de
+un `SKILL.md`, y releen el ZIP escrito para comprobar que ninguna entrada lleva `\`.
+
 **Diseño oficial:** `Designs_files/Design_iris_main_colors.md` (tipografías Sora/Inter, paleta morado `--purple-*` + dorado `--gold-*`). **Logo oficial:** `imagenes_iconos_etc/Logos_GS_Iris_transparent.png`.
 
 ## 6. Flujo de la macro-skill (orquestación)
@@ -138,7 +191,7 @@ que la skill siguiente hereda en lugar de reconstruirlos. Detalle en
 
 Además:
 
-- La macro invoca sub-skills **leyendo** `sub-skills/<fase>/<skill>/SKILL.md` por ruta (no depende de registro global).
+- La macro invoca sub-skills **leyendo** `sub-skills/<fase>/<skill>/AGENTE.md` por ruta (no depende de registro global).
 - **Human-in-the-loop:** se detiene en cada nodo de decisión y espera confirmación.
 - **Omisión:** el usuario puede omitir pasos. Los marcados `omitible: false` en `pasos.json`
   requieren `--forzar` y quedan registrados como omisión forzada. El `si_omitido` del paso
@@ -167,6 +220,12 @@ El tono de los textos debe ser:
 ### 7.3. Directrices de Redacción
 
 - **Evitar el "AI Speak":** No usar frases como "Como modelo de IA...", "Estoy aquí para ayudarte...", "Es importante señalar que...".
+- **Traducir la notación interna.** El usuario no conoce los identificadores del flujo:
+  di «Paso 4 de 11 — Persona Profile», no «html_4» (que es el nombre del archivo de entrega);
+  di «la ficha de persona», no «persona-profile». Y explica con palabras qué significan `*`,
+  `[REFERENCIA DE INDUSTRIA]` y `[no disponible]` la primera vez que aparezcan: un símbolo
+  suelto entre paréntesis solo confunde. Detalle en `SKILL.md` § «Cómo nombrar las cosas ante
+  el usuario».
 - **Verbos de Acción:** Usar verbos fuertes para inspirar e instruir.
 - **Estructura:**
   - **Inicio:** Captar la atención con el beneficio clave.
@@ -178,6 +237,7 @@ El tono de los textos debe ser:
 | Pregunta | Dónde mirar |
 | --- | --- |
 | ¿Qué sub-skill invoca el paso N y qué decisiones tiene? | `pasos.json` (fuente única) |
+| ¿Cuáles son los dos recorridos y qué pasos lleva cada uno? | `python scripts/estado_flujo.py rutas` |
 | ¿En qué paso va el proyecto y qué se decidió? | `python scripts/estado_flujo.py mostrar` |
 | ¿Qué comandos hay para mover el estado? | `python scripts/estado_flujo.py --help` |
 | ¿Qué hace cada agente del flujo? | `flujo_agentes.md` |

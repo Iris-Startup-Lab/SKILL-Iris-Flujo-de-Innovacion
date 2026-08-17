@@ -1,7 +1,14 @@
-# To-do — 13/08/2026 (cierre)
+# To-do — 14/08/2026
 
-Los 5 pendientes que quedaban abiertos están **cerrados**. Abajo está qué se hizo, cómo se
-comprobó y lo que queda abierto de aquí en adelante.
+Los 5 pendientes del 13/08 están cerrados. El rechazo del ZIP por el gestor de habilidades
+también: **subida confirmada el 14/08/2026** tras encontrar la causa raíz (barra invertida en las
+entradas del ZIP) y tres problemas reales más por el camino.
+
+Pendiente de aprender del uso real: si la skill se comporta bien ya instalada en el gestor.
+
+Los otros dos sospechosos que quedaron **sin confirmar como problema** —el punto en las carpetas
+de fase (`1.Investigacion`) y el guion bajo inicial (`_plantilla_html`)— se dejaron como están a
+propósito: renombrarlos costaba decenas de referencias y resultó innecesario.
 
 > **Antes de dar algo por hecho, compruébalo en el código.** La fuente de verdad es el repo,
 > no este tracker.
@@ -32,6 +39,13 @@ comparación y una línea base tomada sobre el recorrido real. Lo que falta es *
 
 La checklist completa está en `PLAN_MEDICION_TOKENS.md` §8.
 
+**Aviso a tener en cuenta al medir:** los arreglos del 14/08 engordaron el arranque fijo un
+**22%**, y `SKILL.md` un **63%** (9,304 → 15,211 car, ~3,800 tokens\*). Es el archivo que se
+carga en **cada activación** de la skill. Sigue por debajo de los 5k tokens\* que Anthropic
+recomienda para el cuerpo de un `SKILL.md`, así que no urge; si los cruza, el movimiento es
+mover a `references/` lo que no se lee en cada paso (las secciones «Cómo nombrar las cosas ante
+el usuario» y «Primer contacto» son las candidatas). Detalle en `PLAN_MEDICION_TOKENS.md` §5.
+
 ### 2. Decidir la estrategia de herencia
 
 El hallazgo con más impacto de la línea base: releer **toda** la cadena de `reporte.json` en
@@ -53,6 +67,147 @@ convención de todo el repo, no un defecto de un archivo: si se quiere cerrar, s
 `.markdownlint.json` que suba el límite, no reescribiendo 30 documentos.
 
 ---
+
+## Hecho el 14/08/2026
+
+### Cuarta ronda: la CAUSA RAÍZ — barra invertida en las entradas del ZIP — **hecho**
+
+`Compress-Archive` escribía las 171 entradas con la barra invertida de Windows
+(`iris-flujo-de-innovacion\SKILL.md`). El formato ZIP exige `/`, y el validador del gestor —que
+corre en Linux— lee el `\` como **parte del nombre del archivo**: de ahí
+`Zip file contains path with invalid characters`. Las tres rondas anteriores arreglaron problemas
+reales, pero ninguno era este.
+
+**Aviso lo dio Gemini**, y mi verificación previa lo había ocultado: `zipfile` de Python
+**normaliza** `\` a `/` en Windows dentro de `ZipInfo.__init__`, así que `namelist()` devolvía 0
+backslashes. Falso negativo. La comprobación válida es `orig_filename` o los bytes del directorio
+central:
+
+```text
+namelist()      -> 0 entradas con backslash   (MIENTE en Windows)
+orig_filename   -> 171 de 171
+bytes del ZIP   -> 171 con 0x5C, 0 con 0x2F
+```
+
+**Arreglo:** `empaquetar_skill.ps1` ya no usa `Compress-Archive`. Construye el ZIP con
+`System.IO.Compression.ZipArchive` y escribe el nombre de cada entrada a mano, normalizando a `/`.
+De paso desaparecen las 6 entradas de directorio (171 → 165 entradas, solo archivos).
+
+**Guardia nuevo:** los dos scripts **releen el directorio central del ZIP escrito** y avisan si
+alguna entrada lleva `0x5C`. Es la única comprobación que no se puede falsear con herramientas que
+normalizan rutas.
+
+**Verificado:** el ZIP final tiene 165 entradas, **0 con `0x5C` y 165 con `0x2F`**; el guardia se
+validó en los dos sentidos (avisa en un ZIP con backslashes hecho a propósito, calla en el bueno);
+extraído en limpio el flujo corre y las 26 rutas resuelven. La sub-skill suelta también sale con
+barras normales.
+
+**No reproducible a demanda:** en pruebas posteriores con estructuras equivalentes,
+`Compress-Archive` (módulo 1.2.5, PowerShell 7.6.3) sí escribió `/`. No documento un mecanismo que
+no pude aislar; lo que consta es que el paquete real salió con `\` 171 de 171 veces, que ya no
+dependemos de ese cmdlet y que el guardia detectaría cualquier regresión.
+
+### Tercera ronda: `Zip must contain exactly one SKILL.md file` — **hecho**
+
+Con los caracteres y la estructura ya arreglados, el gestor pasó al siguiente validador:
+**exactamente un `SKILL.md` por ZIP**, y el paquete llevaba 27 (el de la macro más los 26 de las
+sub-skills).
+
+**Solución:** el archivo de instrucciones de cada sub-skill se llama ahora **`AGENTE.md`** —el
+repo ya llamaba «agente» a cada sub-skill (`flujo_agentes.md`, «Agente HMW»…)—. Los 26 se
+renombraron con `git mv`; el único `SKILL.md` del repositorio es el de la macro, en la raíz.
+
+**El truco que evita dos verdades:** al empaquetar una sub-skill suelta (`-SubSkill`), el script
+le devuelve el nombre `SKILL.md` —el archivo **y** las referencias de texto dentro del paquete—,
+porque en ese ZIP la sub-skill sí es la skill. Así cada paquete es coherente consigo mismo y el
+repo tiene una sola convención.
+
+Referencias actualizadas: `pasos.json` (`nota_rutas`), `SKILL.md` de la macro (paso 5 del ciclo),
+`AGENTS.md` (§3, §4 y §5), `scripts/estado_flujo.py` (lo que imprime `mostrar`),
+`_template_generador_skill.py`, `README.md` y las 13 auto-referencias dentro de `sub-skills/`
+(casi todas de `senales-debiles`).
+
+**Guardia nuevo:** los dos scripts cuentan los `SKILL.md` del stage y avisan si no hay exactamente
+uno, nombrando los culpables.
+
+**Verificado:** el ZIP tiene 1 `SKILL.md` y 26 `AGENTE.md`; extraído en limpio, `init` y `mostrar`
+funcionan y las 26 rutas de `pasos.json` resuelven a un `AGENTE.md` real; el ZIP de
+`senales-debiles` suelta trae 1 `SKILL.md`, 0 `AGENTE.md` y su texto ya dice `SKILL.md`; el
+guardia se probó duplicando un `SKILL.md` y avisa con la lista.
+
+### Segunda ronda: eran DOS problemas — **hecho**
+
+Quitar los acentos no bastó: el gestor seguía respondiendo `Zip file contains path with invalid
+characters`. La auditoría carácter por carácter del ZIP encontró **dos causas más**, una de
+caracteres y otra de estructura.
+
+**a) Caracteres.** Además de los acentos sobraban:
+
+- **40 espacios** en 22 rutas (`How Might We.md`, `Landing Page.md`…), incluida
+  `Referral builder .md` con un espacio antes de la extensión.
+- **un `&`** en `Journey Builder & Structure.md`.
+
+Las 22 estaban todas en `Documentos_prompts_base_md/` y `_docx/`. Los 48 archivos de las dos
+carpetas se renombraron a kebab-case con `git mv` (`journey-builder-structure.md`,
+`referral-builder.md`, `how-might-we.md`…). Referencias actualizadas en la tabla de
+`PLAN_CONVERSION_SKILLS.md`. **Regla nueva, más estricta que «solo ASCII»:** los nombres usan
+solo `[A-Za-z0-9._-]`.
+
+**b) Estructura.** La documentación oficial exige **una sola carpeta de primer nivel llamada
+igual que el `name` del frontmatter**; el ZIP ponía los archivos sueltos en la raíz. Los dos
+scripts ahora leen el `name` del `SKILL.md`, envuelven todo en `iris-flujo-de-innovacion/` y
+avisan si ese `name` no es `[a-z0-9-]`. En el modo `-SubSkill`, `_plantilla_html/` pasó a ir
+**dentro** de la carpeta de la sub-skill, porque todo el ZIP tiene que colgar de una sola raíz.
+
+**Verificado:** el ZIP tiene una única carpeta raíz que coincide con el frontmatter, 0
+caracteres fuera de `[A-Za-z0-9._-]`, 0 espacios, 0 `&`, 27 `SKILL.md` (1 de la skill + 26 de
+sub-skills como recurso). Extraído en limpio, el flujo corre entero desde dentro: `init`,
+`mostrar` con rutas ASCII y generación de HTML con el logo oficial.
+
+**Pendiente de confirmar contigo:** si 27 `SKILL.md` en un mismo ZIP molestan al gestor. La
+documentación no lo prohíbe —los recursos empaquetados son explícitamente compatibles— y el error
+que da es de caracteres, no de estructura, pero no está documentado. En
+`output/diagnostico-zip/` quedaron 3 ZIP para aislarlo subiéndolos en orden: `1-minimo.zip`
+(1 `SKILL.md`), `2-con-subskills.zip` (27) y `3-completo.zip`.
+
+### Rutas solo ASCII: primer intento — **hecho, pero insuficiente por sí solo**
+
+El gestor rechazaba el ZIP con `Zip file contains path with invalid characters`. **Causa:** las
+rutas con acento. El ZIP estaba bien formado (separador `/`, bandera UTF-8 correcta, sin
+backslashes); lo que sobraba eran 103 rutas no-ASCII —88 en `sub-skills/` y 15 en
+`Documentos_prompts_base_md/`— por tres caracteres: `ó`, `í` y `é`. Los espacios en los nombres
+no eran el problema.
+
+Renombrado en el repo con `git mv` (historial preservado, git lo registra como *rename*):
+
+| Antes | Ahora |
+| --- | --- |
+| `1.Investigación/` | `1.Investigacion/` |
+| `3.Ideación/` | `3.Ideacion/` |
+| `5.Validación/` | `5.Validacion/` |
+| `Entrevistas de Empatía.md` / `.docx` | `Entrevistas de Empatia.…` |
+| `Dimensionador Estratégico de Ideas.md` / `.docx` | `Dimensionador Estrategico de Ideas.…` |
+| `Ideación.md` / `.docx` | `Ideacion.…` |
+
+Las 9 carpetas se renombraron en `sub-skills/`, `Documentos_prompts_base_md/` y
+`Documentos_prompts_base_docx/`, más `sub-skills_sample_outputs/Investigación`.
+
+Referencias de ruta actualizadas: `pasos.json` (32), `flujo_agentes.md` (5), `AGENTS.md` (3),
+`scripts/estado_flujo.py` (1), `PLAN_MEDICION_TOKENS.md` (1) y los 3 nombres de prompt en
+`PLAN_CONVERSION_SKILLS.md`. **La prosa conserva el acento** a propósito: «Entrevistas de
+Empatía», «Dimensionador Estratégico de Ideas de Negocio» y los `> Fase: 1.Investigación` de los
+README no son rutas. La `nota_rutas` de `pasos.json` ya no dice «acentos incluidos»: dice por qué
+van sin tilde.
+
+**Prevención:** los dos scripts de empaquetado escanean el stage antes de comprimir y avisan con
+la lista de rutas culpables y el mensaje exacto del gestor. La regla quedó escrita en `AGENTS.md`
+§5 («Rutas solo ASCII») con el comando para comprobarlo, y en `README.md`.
+
+**Verificado:** las 26 rutas de `pasos.json` resuelven en disco y son ASCII; el ZIP tiene 170
+entradas, **0 no-ASCII**, 0 backslashes, `SKILL.md` en la raíz y las 26 sub-skills; un `init`
+nuevo y el `mostrar` de un paso devuelven rutas ASCII; la cadena `--datos` del proyecto real
+sigue pasando entera; el guardia se probó plantando un archivo acentuado y avisa en `.ps1` y
+en `.sh`.
 
 ## Hecho el 13/08/2026 (tarde)
 

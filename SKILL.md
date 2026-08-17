@@ -32,16 +32,71 @@ en cada decisión para que la dirija el usuario.
 
 ---
 
+## Primer contacto (saludo, presentación o invocación sin tarea)
+
+Cuando el usuario solo saluda, se presenta o invoca la skill sin pedir nada concreto,
+**preséntate y dibuja el recorrido antes de pedir datos.** No arranques preguntando el
+nombre del proyecto a secas: quien llega no sabe todavía en qué se está metiendo.
+
+Primero comprueba si hay un proyecto a medias:
+
+```bash
+python scripts/estado_flujo.py mostrar
+```
+
+- **Devuelve un paso** → hay un proyecto en curso. Di cuál es, resume en dos líneas dónde
+  quedó y pregunta si quiere continuarlo o empezar otro. No lo sobreescribas.
+- **Falla porque no existe `flujo_estado.json`** → es un proyecto nuevo: da la bienvenida.
+
+La bienvenida lleva cuatro cosas, en este orden y sin alargarse:
+
+1. **Qué es esto**, en dos líneas: IRIS lleva una intuición hasta un experimento listo para
+   ponerse frente a usuarios reales, en 11 pasos, y cada paso entrega un reporte HTML
+   interactivo.
+2. **Cómo se trabaja:** paso a paso, y en cada uno decide el usuario — ejecutar, omitir o
+   preguntar por qué importa. Nada avanza sin su confirmación, y lo que se omite queda
+   declarado en los reportes siguientes.
+3. **El recorrido por etapas**, para que vea el mapa completo:
+
+   | Etapa | Pasos | Qué sale |
+   | --- | --- | --- |
+   | Investigación | 1 | El terreno: mercado, futuros, señales débiles o conversaciones reales |
+   | Descubrimiento | 2–6 | A quién le hablas, qué le duele y cómo lo vive hoy |
+   | Ideación | 7–10 | El reto creativo, las ideas y su potencial de negocio |
+   | Prototipado y Validación | 11 | El experimento que pone la idea frente a usuarios |
+
+   Si pide el detalle de los 11 pasos, dáselo con `python scripts/estado_flujo.py rutas`
+   (nómbralos, no los llames `html_N`).
+4. **Qué hace falta para empezar:** nombre del proyecto, objetivo y audiencia. Nada más;
+   el resto se pregunta cuando toca.
+
+Cierra con **una sola** pregunta, no con cuatro seguidas. Y sigue en «Arranque de un
+proyecto».
+
+---
+
 ## Arranque de un proyecto
 
 Pide al usuario: **nombre**, **objetivo** y **audiencia**. Todo lo demás se pregunta
 paso a paso, cuando toca.
 
-Luego ofrece el recorrido:
+Luego ofrece el recorrido. **Nombra los pasos, no los `html_N`:** al usuario «5 pasos»
+o «html_7» no le dicen nada. Pide la lista al script y preséntala:
+
+```bash
+python scripts/estado_flujo.py rutas
+```
+
+Devuelve los dos recorridos con el título y la etapa de cada paso, y **qué se salta la
+ruta mínima con su impacto**. Muestra al usuario:
 
 - **Ruta completa** (11 pasos) — el proceso íntegro.
-- **Ruta mínima** (5 pasos: `html_1 → html_4 → html_7 → html_8 → html_11`) — de la
-  investigación al experimento sin las etapas intermedias.
+- **Ruta mínima** (5 pasos) — Investigación → Persona → Reto (HMW) → Ideación →
+  Validación. Enumera los 5 por su nombre y di qué se pierde: sin entrevistas ni
+  descubrimiento de campo, sin priorización de problemas, sin journey, sin
+  dimensionamiento ni modelo de negocio.
+
+No resumas la lista de memoria: sale de `pasos.json` y ahí está al día.
 
 ```bash
 python scripts/estado_flujo.py init --proyecto "<nombre>" \
@@ -73,6 +128,9 @@ paso se puede omitir.
 En 2–3 líneas: dónde está, qué se decidió antes y qué va a pasar ahora.
 **No preguntes nada que ya aparezca en «Decisiones ya tomadas».**
 
+Abre nombrando el paso, nunca con su `html_N`: «**Paso 4 de 11 — Persona Profile**». Ver
+«Cómo nombrar las cosas ante el usuario».
+
 ### 3. Ofrecer ejecutar u omitir
 
 Presenta siempre tres opciones:
@@ -80,6 +138,9 @@ Presenta siempre tres opciones:
 - **Ejecutar** — sigue al paso 4.
 - **Omitir** — ve a «Omitir un paso».
 - **¿Por qué importa?** — lee el `objetivo` del paso y su `si_omitido`, y vuelve a preguntar.
+
+Al describir qué pasa si se omite, traduce el `si_omitido`: sin nombres de carpeta y con el
+efecto explicado en una frase, no con un `*` suelto entre paréntesis.
 
 ### 4. Resolver las decisiones del paso
 
@@ -99,8 +160,9 @@ python scripts/estado_flujo.py decision --paso html_5 \
 
 ### 5. Invocar las sub-skills
 
-Para cada ruta que devolvió `mostrar`, **lee** `sub-skills/<ruta>/SKILL.md` y ejecuta
-sus instrucciones al pie de la letra.
+Para cada ruta que devolvió `mostrar`, **lee** `sub-skills/<ruta>/AGENTE.md` y ejecuta
+sus instrucciones al pie de la letra. (El archivo se llama `AGENTE.md`, no `SKILL.md`: los
+gestores admiten un solo `SKILL.md` por paquete y ese es el de esta macro.)
 
 - Antes de invocarla, traslada al usuario sus **Parámetros de Entrada** y confirma los valores.
 - Pásale el contexto del flujo (paso 1) para que no repita preguntas ni reinvente supuestos.
@@ -138,7 +200,12 @@ python scripts/estado_flujo.py completar --paso html_5 \
 es el índice y `--datos` (el `reporte.json` del paso) son los datos estructurados que se
 podrán leer en vez de reteclearlos. Si omites cualquiera de los dos, el script avisa.
 
-Entrega el HTML al usuario, di cuál es el siguiente paso y vuelve al punto 1.
+Entrega el HTML al usuario, di cuál es el siguiente paso y vuelve al punto 1. Anuncia el
+cierre por el nombre del paso y su posición, no por el nombre del archivo:
+
+- **Mal:** «Paso html_1 completado.»
+- **Bien:** «Paso 1 de 11 completado — Inicio + Investigación. Tu reporte está en
+  `html_1.html`. Siguiente: paso 2 de 11, Decisión — Entrevistas.»
 
 > Si el paso ya tiene su HTML en disco (por ejemplo al retomar un proyecto), pregunta
 > antes: **regenerar** o **continuar al siguiente**. Nunca sobreescribas en silencio.
@@ -174,11 +241,62 @@ Reglas:
 - **Registra todo** con `estado_flujo.py`: lo que no queda en el estado, no llega al
   siguiente paso ni al HTML.
 
+---
+
+## Cómo nombrar las cosas ante el usuario
+
+El usuario no conoce la notación interna del flujo. Tradúcela siempre.
+
+| No digas | Di |
+| --- | --- |
+| «Paso html_1 completado» | «Paso 1 de 11 completado — Inicio + Investigación» |
+| «Ahora vamos a html_5» | «Ahora vamos al paso 5 de 11: Problem-Solution Fit» |
+| «persona-profile quedará con supuestos» | «la ficha de persona quedará con supuestos» |
+| «2.Descubrimiento/journey-builder» | «el agente Journey Builder» |
+
+**`html_N` es el nombre del archivo que se entrega** (`html_5.html`), no el nombre del paso.
+Úsalo solo cuando hables del archivo: «tu reporte está en `html_5.html`». Los títulos de los
+pasos salen de `mostrar` y de `estado_flujo.py rutas`; los nombres de carpeta de las
+sub-skills (`2.Descubrimiento/persona-profile`) son rutas de disco y **nunca** se le
+muestran al usuario.
+
+### El asterisco hay que explicarlo
+
+`*` marca un dato **estimado, no verificado**. Es convención interna: el usuario no la
+conoce y un `*` suelto solo confunde. La primera vez que aparezca en la conversación,
+dilo con palabras:
+
+> Las cifras marcadas con `*` son estimaciones nuestras, no datos de una fuente citable:
+> sirven para dimensionar el orden de magnitud, no para presentarlas como evidencia.
+
+Y al ofrecer una opción, escribe el efecto completo en vez del símbolo a secas:
+
+- **Mal:** «Omitir (persona-profile quedará con supuestos marcados con `*`)»
+- **Bien:** «Omitir — la ficha de persona se construirá con supuestos en vez de evidencia
+  de campo. Cada dato supuesto se marcará con `*` en el reporte, para que se distinga de un
+  dato respaldado.»
+
+Lo mismo con las otras dos marcas, que también hay que explicar la primera vez:
+
+| Marca | Qué significa | Cómo decirlo |
+| --- | --- | --- |
+| `*` | Estimación propia, sin fuente | «estimado por nosotros, no es un dato citable» |
+| `[REFERENCIA DE INDUSTRIA]` | Cifra típica del sector, no medida en este proyecto | «referencia del sector, no un dato de tu caso» |
+| `[no disponible]` | No hay dato y no se inventa | «no tenemos ese dato y preferimos dejarlo en blanco antes que inventarlo» |
+
+Cuando preguntes por el acceso a una fuente de pago (Euromonitor, Statista, IWSR…), di qué
+pasa si no la hay **en una frase completa**, no con un símbolo entre paréntesis:
+
+> ¿Tienes acceso a Euromonitor, Statista o IWSR? Si no, trabajo con estimaciones de orden de
+> magnitud y las marco con `*` en el reporte, para que quede claro que no son cifras de una
+> fuente y no se puedan citar como tales.
+
 ## Integridad de datos
 
 Nunca inventes cifras. Estimado → `*` o `[REFERENCIA DE INDUSTRIA]`; sin dato →
 `[no disponible]`. Si un script puede calcularlo, lo calcula el script: tú redactas
-la interpretación, no las cifras.
+la interpretación, no las cifras. **Y explícale al usuario qué quiere decir cada marca**
+(ver «Cómo nombrar las cosas ante el usuario»).
 
 ---
 
@@ -187,6 +305,7 @@ la interpretación, no las cifras.
 | Para | Mira |
 | --- | --- |
 | Definición del flujo (fuente única) | `pasos.json` |
+| Los dos recorridos con el nombre de cada paso | `scripts/estado_flujo.py rutas` |
 | Máquina de estados y comandos | `scripts/estado_flujo.py` (`--help`) |
 | Grafo visual | `flujo_mermaid.md` |
 | Descripción de cada agente | `flujo_agentes.md` |

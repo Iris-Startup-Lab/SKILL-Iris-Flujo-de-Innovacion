@@ -19,7 +19,7 @@ Uso típico de la macro-skill:
     python scripts/estado_flujo.py decision --paso html_1 \
         --nodo "¿Cómo quieres iniciar?" --opcion "Estado actual"
     python scripts/estado_flujo.py completar --paso html_1 \
-        --skills 1.Investigación/benchmark-mercado \
+        --skills 1.Investigacion/benchmark-mercado \
         --resumen "TAM MX 4.2 mil M* y 3 huecos de oferta" \
         --veredicto perseverar --outputs html_1.html --datos reporte.json
 
@@ -175,12 +175,18 @@ def cmd_init(args):
 
     guardar_estado(estado, destino)
     render_state_md(estado, pasos, destino)
+
+    # Los pasos se anuncian por su título: un `html_7` no le dice nada al usuario.
+    titulos = {p["id"]: p["titulo"] for p in pasos["pasos"]}
     print(f"Proyecto «{args.proyecto}» iniciado en {destino.name}.")
     if ruta_minima:
         omitidos = [p["id"] for p in estado["pasos"] if p["estado"] == "omitido"]
-        print(f"  Ruta mínima: {' → '.join(pasos['ruta_minima'])}")
-        print(f"  Omitidos de entrada: {', '.join(omitidos)}")
-    print(f"  Primer paso: {primero}")
+        print("  Ruta mínima ("
+              + f"{len(pasos['ruta_minima'])} pasos): "
+              + " → ".join(titulos[i] for i in pasos["ruta_minima"]))
+        print(f"  Omitidos de entrada ({len(omitidos)}): "
+              + ", ".join(f"{titulos[i]} ({i})" for i in omitidos))
+    print(f"  Primer paso: {titulos.get(primero, '')} ({primero})")
     print(f"  STATE.md actualizado.")
     return 0
 
@@ -334,10 +340,18 @@ def _transicion(args, nuevo_estado):
     guardar_estado(estado, args.estado)
     render_state_md(estado, pasos, args.estado)
 
-    print(f"{args.paso} → {nuevo_estado}")
+    # Se nombra el paso, no solo su id: es lo que se le traslada al usuario.
+    total = len(estado["pasos"])
+    print(f"Paso {definicion.get('orden')} de {total} — {definicion['titulo']}"
+          f" → {nuevo_estado}  ({args.paso})")
     if nuevo_estado == "omitido":
         print(f"  Impacto declarado: {entrada['impacto'] or '(sin impacto declarado)'}")
-    print(f"  Siguiente paso: {pendiente or 'flujo completo'}")
+    if pendiente:
+        sig = def_paso(pasos, pendiente)
+        print(f"  Siguiente: paso {sig.get('orden')} de {total} — {sig['titulo']}"
+              f" ({pendiente})")
+    else:
+        print("  Siguiente: flujo completo")
     return 0
 
 
@@ -495,7 +509,12 @@ def cmd_mostrar(args):
     d = def_paso(pasos, paso_id)
     e = estado_paso(estado, paso_id)
 
-    print(f"# {paso_id} · {d['titulo']}  ({d['etapa']})")
+    # El encabezado trae ya la frase que se le dice al usuario («Paso 4 de 11 —
+    # Persona Profile»); `html_N` va aparte, porque es el nombre del archivo de
+    # entrega, no el del paso.
+    print(f"# Paso {d.get('orden')} de {len(estado['pasos'])} — {d['titulo']}"
+          f"  ({d['etapa']})")
+    print(f"Id interno: {paso_id} · entrega: {d['entrega']}")
     print(f"Proyecto: {estado.get('proyecto')}")
     print(f"Objetivo del paso: {d.get('objetivo','')}")
     print(f"Estado actual: {e['estado']}")
@@ -578,7 +597,7 @@ def cmd_mostrar(args):
 
     print("## Sub-skills invocables en este paso")
     for s in d["skills_posibles"]:
-        print(f"- sub-skills/{s}/SKILL.md")
+        print(f"- sub-skills/{s}/AGENTE.md")
     if d.get("cadenas"):
         for cadena in d["cadenas"]:
             print("- cadena obligatoria: " + " → ".join(cadena))
@@ -593,6 +612,48 @@ def cmd_mostrar(args):
         print(f"- NO se puede omitir. {d.get('razon_no_omitible','')}")
     print()
     print(f"## Entrega esperada\n- {d['entrega']} (validado por el generador)")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# rutas — los dos recorridos, con nombres, para presentarlos al usuario
+# --------------------------------------------------------------------------- #
+
+def cmd_rutas(args):
+    """Imprime los dos recorridos con el título de cada paso.
+
+    Existe para que la macro no tenga que enumerar los pasos de memoria ni
+    presentarlos como `html_N`, que al usuario no le dice nada. Sale de
+    `pasos.json`, así que no se puede desincronizar del flujo real.
+    """
+    pasos = cargar_pasos(args.pasos)
+    todos = pasos["pasos"]
+    minima_ids = pasos["ruta_minima"]
+    minima = [p for p in todos if p["id"] in minima_ids]
+    saltados = [p for p in todos if p["id"] not in minima_ids]
+
+    def linea(i, p):
+        return f"{i}. {p['titulo']} ({p['etapa']}) · {p['id']}"
+
+    print(f"# Recorridos disponibles\n")
+    print(f"## Ruta completa — {len(todos)} pasos")
+    print("El proceso íntegro, de la investigación al experimento.\n")
+    for i, p in enumerate(todos, 1):
+        print(linea(i, p))
+
+    print(f"\n## Ruta mínima — {len(minima)} pasos")
+    print("De la investigación al experimento, sin las etapas intermedias.\n")
+    for i, p in enumerate(minima, 1):
+        print(linea(i, p))
+
+    print(f"\n### Lo que la ruta mínima se salta ({len(saltados)} pasos)")
+    for p in saltados:
+        print(f"- {p['titulo']} ({p['id']}): {p.get('si_omitido', '')}")
+
+    print(
+        "\nLa ruta mínima se elige con `init --ruta minima`; esos pasos quedan "
+        "omitidos de entrada y su impacto se declara en todos los reportes."
+    )
     return 0
 
 
@@ -748,6 +809,12 @@ def main(argv=None):
     p.add_argument("--forzar", action="store_true", help="Sobreescribe un estado existente")
     _comunes(p)
     p.set_defaults(func=cmd_init)
+
+    p = sub.add_parser("rutas",
+                       help="Los dos recorridos con el título de cada paso "
+                            "(para presentarlos al usuario al arrancar)")
+    _comunes(p)
+    p.set_defaults(func=cmd_rutas)
 
     p = sub.add_parser("mostrar", help="Briefing del paso: histórico, decisiones y skills")
     p.add_argument("--paso", default=None, help="Por defecto, el paso_actual")
