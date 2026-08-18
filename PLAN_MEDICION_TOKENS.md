@@ -4,8 +4,9 @@
 > poder comparar la **ruta completa** (11 pasos) contra la **mínima** (5) con números en vez
 > de intuición.
 
-Estado: **plan definido, medición pendiente**. La línea base de §5 ya está tomada sobre un
-recorrido real; lo que falta es el nivel 2 (sesión instrumentada) y la comparación de las dos
+Estado: **nivel 1 ejecutado (17/08/2026)** con un tokenizador real (`tiktoken`, `cl100k_base`).
+Las cifras `÷4` de la línea base de §5 quedan reemplazadas por las exactas de «Resultados».
+Falta el nivel 2 (sesión instrumentada, 2× por ruta) para la comparación definitiva de las dos
 rutas sobre el mismo proyecto.
 
 ---
@@ -214,6 +215,90 @@ tokens*) que el modelo nunca emite.
 
 ---
 
+## Resultados — nivel 1 (17/08/2026)
+
+Medido con `scripts/medir_tokens.py` y `tiktoken` (`cl100k_base`, la familia GPT/Claude
+actual). Otra familia de modelo da cifras distintas, pero los **ratios** entre rutas y entre
+estrategias se mantienen. Todos los números de esta sección son conteos reales, no `÷4`.
+
+### E1 — arranque fijo (exacto, una vez por sesión)
+
+| Archivo | Caracteres | Tokens |
+| --- | --- | --- |
+| `AGENTS.md` | 15,687 | 4,577 |
+| `SKILL.md` | 15,211 | 4,551 |
+| `pasos.json` | 15,057 | 4,407 |
+| `_plantilla_html/README.md` | 10,470 | 3,151 |
+| `sub-skills/CONTRATO_JSON.md` | 4,154 | 1,213 |
+| **Total** | **60,579** | **17,899** |
+
+El estimador `÷4` daba ~15,145: **subestimó un 18%** en este contenido (español con acentos y
+JSON). Confirma que `÷4` sirve solo de orden de magnitud, no para presupuestar.
+
+### E3 — sub-skills por ruta (suelo: la primera skill de cada nodo de decisión)
+
+| Ruta | Pasos | Tokens |
+| --- | --- | --- |
+| **Completa** | 11 | 124,968 |
+| **Mínima** | 5 | 52,721 |
+
+`E1 + E3`: completa **142,867** · mínima **70,620** (~49%). El ahorro de la mínima está casi
+todo en E3: son 6 sub-skills que no se cargan.
+
+### Herencia (E4) — recorrido real de 6 pasos (`output/huertos-urbanos-mx/`)
+
+El único coste que crece. Tres formas de leerla, medidas sobre los `reporte.json` reales:
+
+| Estrategia | Tokens | Qué es |
+| --- | --- | --- |
+| **Solo predecesor directo** | 13,025 | El `reporte.json` del paso inmediato anterior |
+| **Predecesores declarados** (`pasos.json`) | 14,875 | Los que `mostrar` lista para ese paso |
+| **Toda la cadena** | 35,754 | Todos los `reporte.json` acumulados |
+
+La cadena completa cuesta **2.7×** el predecesor directo y **2.4×** los declarados — y no
+aporta nada: los bloques no son acumulativos entre reportes (`persona` está en html_4, `psf`
+en html_5; html_7 necesita **ambos**). Por eso la estrategia elegida es **predecesores
+declarados**: correcta (no pierde bloques) y solo un 14% más cara que leer uno solo. Queda
+escrita en `SKILL.md` § «El ciclo de un paso», punto 5.
+
+### Coste por paso (recorrido real, E2 + S1)
+
+| Paso | `mostrar` (E2) | `reporte.json` (S1) |
+| --- | --- | --- |
+| `html_1` | 859 | 2,270 |
+| `html_4` | 898 | 1,850 |
+| `html_5` | 777 | 2,548 |
+| `html_7` | 1,078 | 3,003 |
+| `html_8` | 746 | 3,354 |
+| `html_11` | 1,060 | 2,913 |
+| **Total** | **5,418** | **15,938** |
+
+`mostrar` sigue plano (746–1,078 por paso): no es problema de coste. La salida S1 crece
+moderadamente, sin dispararse.
+
+### Respuestas a las preguntas del alcance (§1)
+
+1. **Completa vs mínima (nivel 1):** 142,867 vs 70,620 tokens de entrada fijos — la mínima
+   cuesta ~49%. El desglose por E2/E4/S1 de las dos rutas queda para el nivel 2 (mismo
+   proyecto congelado, 2 sesiones por ruta).
+2. **Paso más caro:** en E3, `html_4` (persona-profile, 5,827) y `html_9` (dimensionador
+   estratégico, 5,254) por sus `references/`. En salida, `html_8` (3,354) por las 6 ideas
+   evaluadas.
+3. **Crecimiento de la herencia:** la cadena completa acumula de 2,270 (tras `html_4`) a
+   13,025 (lo que releería `html_11`). Con la estrategia elegida (declarados) el pico por paso
+   es 4,398 (`html_7`, que hereda persona + psf).
+4. **¿Vale releer la cadena?** No. Leer los predecesores declarados basta: 2.4× menos y no
+   pierde bloques.
+
+### Qué queda (nivel 2)
+
+El nivel 2 (sesión instrumentada, 2× por ruta con el mismo proyecto congelado) sigue pendiente:
+requiere una sesión real del usuario por ruta. El proyecto congelado y la hoja de registro están
+en §6 «Proyecto congelado (para el nivel 2)». Cuando corran las 4 sesiones, se rellena esta
+sección con el desglose por ruta y se cierra la checklist de terminado (§8).
+
+---
+
 ## 6. Protocolo de comparación: completa contra mínima
 
 La comparación solo es válida si las dos corridas comparten proyecto y decisiones. Condiciones:
@@ -232,6 +317,53 @@ acumulado de herencia al cerrar.
 
 **El recorrido de la línea base no es ninguna de las dos rutas** (6 pasos: la mínima más
 `html_5`), así que sus cifras son punto de partida, no el resultado de la comparación.
+
+### Proyecto congelado (para el nivel 2)
+
+Para que las dos rutas sean comparables, se congela este proyecto y estas decisiones **antes de
+empezar**:
+
+**Proyecto:** «Huertos urbanos MX — nivel 2» · objetivo «Validar demanda de kits de huerto con
+acompañamiento» · audiencia «Familias urbanas 28-45, CDMX».
+
+**Decisiones compartidas (iguales en las dos rutas):**
+
+| Nodo | Opción elegida |
+| --- | --- |
+| `html_1` ¿Cómo quieres iniciar? | Estado actual → benchmark-mercado |
+| `html_4` ¿Hay datos reales? | No — supuestos (la mínima la fuerza por `auto_si`; en la completa se elige igual para que los reportes sean comparables) |
+| `html_7` Ambición estratégica | Crecer Negocio Actual |
+| `html_7` Apalancamiento | Nuevos clientes |
+| `html_7` Selección de agentes de ideación | Ideación |
+| `html_8` Selección de ideas | La idea mejor rankeada |
+| `html_11` Selección de agente para validar | Simple Landing Page |
+
+**Solo ruta completa (los pasos que la mínima se salta):**
+
+| Paso | Decisión |
+| --- | --- |
+| `html_2` ¿Ejecución de entrevistas? | No — simulación (mantiene datos simulados, comparable con la mínima) |
+| `html_2` Selección de agentes | Los 4 (day-in-the-life, encuesta-kano, discovery-survey, expo-quest) |
+| `html_5` Elección de protopersona | Por problema más grande |
+
+La estrategia de herencia es **predecesores declarados** (la ya decidida en `SKILL.md` §5) para
+las dos rutas.
+
+### Hoja de registro del nivel 2 (una por sesión)
+
+Al cerrar cada paso, anota el uso que reporta la herramienta. Si solo da el **total acumulado**
+(como `/explain-usage` en Claude Code), anota el total al cerrar cada paso y calcula el delta; si
+da uso por turno, anótalo directo. 2 sesiones por ruta = 4 en total.
+
+| Sesión | Paso | Entrada (tok) | Salida (tok) | Nota (reintentos, paso más caro…) |
+| --- | --- | --- | --- | --- |
+| completa #1 | html_1 | | | |
+| completa #1 | … | | | |
+| completa #1 | **Total** | | | |
+
+Orden sugerido: completa → completa → mínima → mínima, para no arrastrar inercia de una ruta a
+la otra. Con los 4 totales, publicar aquí el rango por ruta y cerrar la tabla comparativa de
+«Resultados».
 
 ---
 
@@ -262,12 +394,12 @@ La medición no es un ejercicio contable: cada resultado tiene una acción asoci
 
 Este plan se considera ejecutado cuando:
 
-- [ ] `skills_env` tiene un tokenizador y las cifras dejan de llevar `*` por estimación.
-- [ ] `scripts/medir_tokens.py` existe, corre desde la raíz y emite CSV.
-- [ ] El nivel 1 está corrido sobre las dos rutas.
+- [x] `skills_env` tiene un tokenizador (`tiktoken`) y las cifras del nivel 1 son exactas.
+- [x] `scripts/medir_tokens.py` existe, corre desde la raíz y emite CSV.
+- [x] El nivel 1 está corrido sobre las dos rutas.
 - [ ] El nivel 2 está corrido 2 veces por ruta con el proyecto congelado.
-- [ ] La sección «Resultados» de este documento tiene la tabla comparativa.
-- [ ] Cada hallazgo de §7 que se cumpla tiene su acción abierta o descartada por escrito.
+- [~] La sección «Resultados» tiene la tabla comparativa (nivel 1 publicado; falta el desglose E2/E4/S1 por ruta del nivel 2).
+- [~] Cada hallazgo de §7 tiene acción: el de herencia ya se acotó en `SKILL.md` §5; el resto queda a confirmar con el nivel 2.
 
 ---
 

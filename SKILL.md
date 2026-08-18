@@ -167,9 +167,14 @@ gestores admiten un solo `SKILL.md` por paquete y ese es el de esta macro.)
 - Antes de invocarla, traslada al usuario sus **Parámetros de Entrada** y confirma los valores.
 - Pásale el contexto del flujo (paso 1) para que no repita preguntas ni reinvente supuestos.
 - **Pásale también los datos de sus predecesores, no solo el resumen.** `mostrar` imprime,
-  por cada predecesor, la ruta de su `reporte.json` (`datos estructurados: …`) o el HTML que
-  los lleva embebidos. Ahí están los bloques que la sub-skill hereda —`persona`, `psf`,
-  `secciones[].items[]`— y reteclearlos desde el resumen es perder evidencia.
+  por cada predecesor **declarado en `pasos.json`**, la ruta de su `reporte.json`
+  (`datos estructurados: …`) o el HTML que los lleva embebidos. Abre **solo esos** —los que
+  `mostrar` lista, no toda la cadena de pasos— y toma los bloques que la sub-skill hereda:
+  `persona`, `psf`, `secciones[].items[]`. Los bloques no son acumulativos entre reportes
+  (`persona` vive en el reporte de Persona Profile, `psf` en el de Problem-Solution Fit), así
+  que un paso puede necesitar más de un predecesor declarado; releer toda la cadena cuesta
+  **2.4× más** y no aporta nada que no esté en esos predecesores (ver
+  `PLAN_MEDICION_TOKENS.md` § Resultados).
 - Respeta `cadenas` (ejecución secuencial obligatoria) y `paralelo` (se ejecutan a la
   vez y se consolidan en un solo HTML).
 

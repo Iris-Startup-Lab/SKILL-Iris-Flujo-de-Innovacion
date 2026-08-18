@@ -1,4 +1,4 @@
-# To-do — 14/08/2026
+# To-do — 17/08/2026
 
 Los 5 pendientes del 13/08 están cerrados. El rechazo del ZIP por el gestor de habilidades
 también: **subida confirmada el 14/08/2026** tras encontrar la causa raíz (barra invertida en las
@@ -26,45 +26,63 @@ Nada está commiteado: los commits los lleva el usuario.
 
 ## Abierto
 
-### 1. Ejecutar el plan de medición de tokens
+> **Revisado el 17/08/2026** contra el estado real del repo. Queda un pendiente: el nivel 2 de
+> la medición de tokens. El de `senales-debiles` se cerró (modularización ya existía), el de
+> herencia quedó decidido en `SKILL.md`, y el de markdownlint se cerró con un `.markdownlint.json`.
 
-`PLAN_MEDICION_TOKENS.md` define el alcance, los dos niveles de medición, el protocolo de
-comparación y una línea base tomada sobre el recorrido real. Lo que falta es **ejecutarlo**:
+### 1. Terminar la medición de tokens — falta el nivel 2
 
-- Instalar un tokenizador en `skills_env` (no hay `tiktoken` ni `transformers`), para que las
-  cifras dejen de ser la aproximación `caracteres ÷ 4` marcada `*`.
-- Escribir `scripts/medir_tokens.py` (nivel 1, determinista, salida CSV).
-- Correr el nivel 2 dos veces por ruta con el proyecto congelado.
-- Publicar la comparación en la sección «Resultados» del plan.
+El **nivel 1 está hecho** (17/08): `tiktoken` instalado en `skills_env`, `scripts/medir_tokens.py`
+escrito (emite CSV) y los resultados exactos publicados en `PLAN_MEDICION_TOKENS.md` § Resultados.
+E1 = 17,899 tok; E3 completa 124,968 vs mínima 52,721; herencia: declarados 14,875 vs cadena
+35,754 (2.4×).
 
-La checklist completa está en `PLAN_MEDICION_TOKENS.md` §8.
+Falta el **nivel 2**: sesión instrumentada, 2× por ruta, con el mismo proyecto congelado. No se
+automatiza — requiere una sesión real del usuario por ruta. Checklist en `PLAN_MEDICION_TOKENS.md` §8.
 
-**Aviso a tener en cuenta al medir:** los arreglos del 14/08 engordaron el arranque fijo un
-**22%**, y `SKILL.md` un **63%** (9,304 → 15,211 car, ~3,800 tokens\*). Es el archivo que se
-carga en **cada activación** de la skill. Sigue por debajo de los 5k tokens\* que Anthropic
-recomienda para el cuerpo de un `SKILL.md`, así que no urge; si los cruza, el movimiento es
-mover a `references/` lo que no se lee en cada paso (las secciones «Cómo nombrar las cosas ante
-el usuario» y «Primer contacto» son las candidatas). Detalle en `PLAN_MEDICION_TOKENS.md` §5.
+### 2. Decidir la estrategia de herencia — cerrado (hecho)
 
-### 2. Decidir la estrategia de herencia
+Decidido: **leer solo los predecesores declarados en `pasos.json`** (los que `mostrar` lista),
+no toda la cadena. La cadena completa cuesta 2.4× más y no aporta bloques nuevos — los bloques
+no son acumulativos (`persona` está en html_4, `psf` en html_5, html_7 necesita ambos). Escrito
+en `SKILL.md` § «El ciclo de un paso», punto 5, y en `PLAN_MEDICION_TOKENS.md` § Resultados.
 
-El hallazgo con más impacto de la línea base: releer **toda** la cadena de `reporte.json` en
-cada paso cuesta **2.7×** más que leer solo el predecesor directo (~31,900 contra ~11,640
-tokens\* en el recorrido de 6 pasos). Hoy `SKILL.md` no acota cuál de las dos se espera.
+### 3. Partir el `AGENTE.md` de `senales-debiles` — cerrado (superado)
 
-Decidirlo y escribirlo en `SKILL.md` § «El ciclo de un paso», punto 5.
+La modularización **ya está hecha**: orquestador `AGENTE.md` (26,409 car) + `SPEC.md` (18,033) +
+`references/fase-0…4` y `design-system.md`. El orquestador sigue en **3.4×** la mediana de las 26
+sub-skills, pero su contenido son las reglas globales y el contrato JSON entre fases, no detalle
+que deba bajar a `references/`. Si se recortara más, sería cosmético y no urge.
 
-### 3. Partir el `SKILL.md` de `senales-debiles`
+### 4. Avisos de markdownlint que quedan (MD013) — cerrado (hecho)
 
-25,868 caracteres: **3.4×** la mediana de las 26 sub-skills (7,593). Es la candidata evidente
-a mover detalle a `references/`, que solo se lee cuando toca. Pendiente de confirmar con la
-medición fina antes de tocarlo.
+Creado `.markdownlint.json` en la raíz con `"MD013": false`. La prosa del repo usa líneas largas
+a propósito (hasta 747 car en los prompts base), así que desactivar la regla es lo correcto en
+vez de reescribir 30 documentos. El editor que use markdownlint lo descubre solo.
 
-### 4. Avisos de markdownlint que quedan (MD013)
+---
 
-`AGENTS.md` y el resto de los `.md` siguen con avisos de longitud de línea (>80). Es la
-convención de todo el repo, no un defecto de un archivo: si se quiere cerrar, se cierra con un
-`.markdownlint.json` que suba el límite, no reescribiendo 30 documentos.
+## Hecho el 17/08/2026
+
+### 1. Medición de tokens — nivel 1 ejecutado
+
+- **`tiktoken` instalado** en `skills_env` (0.14.0) y `scripts/medir_tokens.py` escrito: mide
+  E1 (arranque fijo), E3 (sub-skills por ruta) y, con `--proyecto`, E2 (briefing de `mostrar`),
+  E4 (herencia en tres estrategias) y S1 (salida). Emite CSV.
+- **Resultados publicados** en `PLAN_MEDICION_TOKENS.md` § Resultados. Confirmó que el estimador
+  `÷4` subestimaba un 18% (E1 real 17,899 vs ~15,145).
+- **Pendiente nivel 2** (sesión instrumentada, 2× por ruta): requiere sesión real del usuario.
+
+### 2. Estrategia de herencia decidida
+
+**Predecesores declarados** (los que `pasos.json` lista), no la cadena completa. La cadena cuesta
+2.4× más (35,754 vs 14,875 tokens en el recorrido de 6 pasos) y no aporta bloques: `persona` y
+`psf` viven en reportes distintos. Escrito en `SKILL.md` § «El ciclo de un paso», punto 5.
+
+### 3. Avisos de markdownlint (MD013) cerrados
+
+`.markdownlint.json` en la raíz con `"MD013": false`. La prosa larga es la convención del repo
+(hasta 747 car en los prompts base), no un defecto.
 
 ---
 

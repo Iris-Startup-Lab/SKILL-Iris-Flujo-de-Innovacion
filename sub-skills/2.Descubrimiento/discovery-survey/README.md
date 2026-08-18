@@ -2,9 +2,8 @@
 
 > Fase: 2.Descubrimiento
 
+Optimiza y mejora encuestas base ingresadas por el usuario (o diseñadas desde cero) para explorar Jobs, Pains y Gains, calculando tamaños de muestra estadísticamente significativos y estructurando Testing Cards profesionales.
 
-
-## Salida principal — HTML interactivo
 
 Esta skill entrega su resultado como un **reporte HTML autocontenido** con el diseño corporativo IRIS (logo oficial + paleta morado/dorado, tipografías Sora/Inter).
 

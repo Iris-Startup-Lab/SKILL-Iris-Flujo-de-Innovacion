@@ -19,7 +19,7 @@ Cuando ejecutes comandos de Python o scripts dentro de este proyecto, activa sie
 conda activate skills_env
 ```
 
-Python del entorno: **3.12**. Paquetes disponibles: `pandas`, `numpy`, `scipy`, `bs4` (beautifulsoup4), `pytrends`, `python-pptx`, `openpyxl`.
+Python del entorno: **3.12**. Paquetes disponibles: `pandas`, `numpy`, `scipy`, `bs4` (beautifulsoup4), `pytrends`, `python-pptx`, `openpyxl`, `tiktoken` (solo para la medición de tokens; `scripts/medir_tokens.py` cae a `÷4` si no está).
 
 ## 3. Estructura del repositorio
 

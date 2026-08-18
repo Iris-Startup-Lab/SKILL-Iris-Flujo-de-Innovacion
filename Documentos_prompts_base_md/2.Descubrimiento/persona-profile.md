@@ -50,9 +50,9 @@ Ejemplo: *"Cuando me mudé a una nueva ciudad por trabajo (Momento Vital: Mudanz
 Momentos Vitales a considerar en el JTBD:
 
 - \*\*Personales:\*\* Cambio de trabajo, matrimonio/divorcio, nacimiento de un hijo, mudanza, jubilación.  
-- \*\*Financieros:\*\* Incremento/reducción de ingresos, compra de una casa, pago de una deuda importante.  
-- \*\*De Consumo o Hábito:\*\* Cambio de estilo de vida, adopción de nuevas tecnologías, cambio en la forma de transporte.  
-- \*\*Culturales o Sociales:\*\* Tendencias del mercado, cambios en regulaciones, influencia de redes sociales o eventos globales.
+ - \*\*Financieros:\*\* Incremento/reducción de ingresos, compra de una casa, pago de una deuda importante.  
+ - \*\*De Consumo o Hábito:\*\* Cambio de estilo de vida, adopción de nuevas tecnologías, cambio en la forma de transporte.  
+ - \*\*Culturales o Sociales:\*\* Tendencias del mercado, cambios en regulaciones, influencia de redes sociales o eventos globales.
 
 Explica la relevancia del JTBD en el Customer Journey y cómo puede representar oportunidades estratégicas.
 
@@ -62,6 +62,20 @@ Explica la relevancia del JTBD en el Customer Journey y cómo puede representar 
 - **Frase Común:** Una frase típica que este perfil de usuario diría en relación con el tema analizado.
 - **Marcas, Influencers y Creadores de Contenido:** Marcas específicas que sigue, influencers o creadores de contenido que consume regularmente.
 - **Breve Biografía:** Un resumen narrativo sobre su historia personal y profesional, destacando aspectos clave de su evolución y situación actual.
+- **Tamaño de Mercado (TAM / SAM / SOM):** Cada protopersona incluye una estimación del tamaño del segmento que representa, en tres niveles:
+- **TAM:** población total del dominio que podría encajar con esta persona (p. ej., todos los {segmento} en {geografía}).
+- **SAM:** subconjunto del TAM que cumple las características específicas de la persona (geografía, contexto, perfil demográfico, situación vital). Derívalo bajando desde la \*Información general del mercado\* (y, si existe, del Benchmark), mostrando cada paso de reducción con su lógica.
+- **SOM:** porción del SAM alcanzable por los canales que esta persona usa (apartado Canales Físicos y Digitales), con tasa de captura realista (%) y su justificación. Márcalo (\*): es un supuesto pre-solución que se refinará en etapas posteriores (Dimensionador Estratégico).
+
+Reglas de integridad y fuentes del Tamaño de Mercado:
+
+- **Alcance conceptual:** estima cuántas personas "son" este perfil (lado demanda); no es la dimensión de negocio de una idea, eso lo hace el Dimensionador Estratégico.
+- **Base:** el Benchmark si existe (no es requisito duro); si no, datos públicos (INEGI, Statista, Euromonitor, fuentes sectoriales) con fuente citada en cada nivel.
+- **Coherente con la Declaración de naturaleza del perfil:** si la persona es protopersona hipotética, todo el TAM/SAM/SOM se entrega con (\*); si está validada con datos, solo lo estimado. Prohibido presentar cifras inventadas como reales.
+- **Sin base confiable:** si un nivel no tiene base pública confiable, escribe "sin base confiable" + (\*) e indica qué fuente se consultaría.
+- **Concisión:** cada nivel se entrega en tabla corta (valor, base/fuente, método o supuesto, precisión), respetando la longitud controlada del perfil (2-4 líneas por sección).
+
+Formato de entrega: sección "Tamaño de Mercado (TAM/SAM/SOM)" dentro de cada ficha (tabla corta) y, al final del documento, una tabla consolidada comparando todas las personas con las columnas: Persona | Perfil resumido | TAM | SAM | SOM | Fuente principal | Precisión (\*).
 
 Asegúrate de que la redacción final sea:
 
