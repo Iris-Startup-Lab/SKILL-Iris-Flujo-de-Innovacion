@@ -178,6 +178,45 @@ gestores admiten un solo `SKILL.md` por paquete y ese es el de esta macro.)
 - Respeta `cadenas` (ejecución secuencial obligatoria) y `paralelo` (se ejecutan a la
   vez y se consolidan en un solo HTML).
 
+### 5.1 Simular las entrevistas o encuestas
+
+En el paso 2 el usuario decide si ejecuta las entrevistas con usuarios reales o las **simula**.
+Si elige simular (opciones «No — simulación de respuestas e insights» y «Simular respuestas»),
+entra en juego un **simulador**: una sub-sub-skill que vive dentro de la sub-skill que
+normalmente analizaría esos datos.
+
+El orden no cambia el resto del flujo, porque el simulador **solo fabrica el dato de entrada**:
+
+1. **Registra la decisión primero.** Es lo que enciende la marca de simulación en todo el
+   proyecto:
+
+   ```bash
+   python scripts/estado_flujo.py decision --paso html_2 \
+       --nodo "¿Ejecución de entrevistas?" --opcion "No — simulación de respuestas e insights"
+   ```
+
+2. **Lee el simulador que `mostrar` indique** (`sub-skills/<ruta>/simulador/SIMULADOR.md`; las
+   rutas están en el campo `simuladores` del paso, no se deducen) y escribe con el usuario el
+   `plan.json`: el panel de personas, los códigos o características y su **prevalencia
+   declarada**. Ese plan es la conversación importante — son los supuestos del equipo puestos
+   por escrito para que se puedan discutir.
+3. **Ejecuta el script del simulador.** Produce **un CSV** (`*_SIMULADO.csv`) y **no** un HTML.
+   Todos los conteos, intervalos y avisos los calcula él: cítalos, no los reescribas.
+4. **Invoca la sub-skill padre con ese CSV**, con las mismas instrucciones que usaría con datos
+   reales, y sigue en el punto 6 (generar el HTML) como siempre.
+5. **Cierra el paso declarando los dos archivos:** `--outputs html_2.html entrevistas_SIMULADO.csv`.
+
+Lo que **no** tienes que hacer: acordarte de etiquetar el reporte. La marca la propaga el flujo
+—distintivo «Datos simulados» en la cabecera, caja ámbar en el contexto, advertencia automática
+y línea en el pie— en **todos** los HTML posteriores, no solo en el del paso 2. Lo que sí te
+toca es que la advertencia sea específica (qué se simuló, con qué `n`, con qué semilla) y que
+los items lleven el tag `SIMULADO`: el validador avisa si faltan.
+
+Ante el usuario, dilo sin rodeos: la simulación sirve para **ensayar el instrumento y ver cómo
+se leerían los resultados**, y para hacer explícitos los supuestos del equipo. No es evidencia,
+y ninguna decisión de inversión debería apoyarse solo en ella. Detalle de la convención y de
+los supuestos estadísticos: `sub-skills/SIMULACION.md`.
+
 ### 6. Generar el HTML
 
 Consolida los outputs en un `reporte.json` con el esquema `REPORT_DATA`

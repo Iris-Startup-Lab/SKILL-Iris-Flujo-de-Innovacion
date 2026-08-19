@@ -36,6 +36,8 @@ flujo_agentes.md                # Descripción de cada agente del flujo (vista d
 flujo_mermaid.md                # Grafo Mermaid de conexiones (vista de pasos.json)
 sub-skills/
   CONTRATO_JSON.md              # Contrato JSON estándar entre skills (decision.siguiente_paso)
+  SIMULACION.md                 # Convención de los simuladores (sub-sub-skills): plan.json,
+                                # CSV, supuestos estadísticos y propagación de la marca SIMULADO
   1.Investigacion/ ...          # benchmark-mercado, foresight, senales-debiles,
                                 # discussion-forums, search-trend-analysis
   2.Descubrimiento/ ...         # entrevistas-empatia, day-in-the-life, encuesta-kano,
@@ -67,7 +69,8 @@ Cada sub-skill vive en `sub-skills/<fase>/<skill>/` con:
 ├── README.md       # qué hace y cómo generar su HTML
 ├── assets/logo.png # copia del logo oficial
 ├── references/     # (opcional) taxonomías/catálogos/rúbricas vinculantes
-└── scripts/        # (opcional) scripts Python de soporte
+├── scripts/        # (opcional) scripts Python de soporte
+└── simulador/      # (opcional) sub-sub-skill que fabrica datos sintéticos — ver §4.1
 ```
 
 Reglas:
@@ -95,6 +98,36 @@ Reglas:
     su carpeta + `_plantilla_html/`, nada más.
 - **Integridad de datos:** nunca inventar cifras. Los datos estimados se marcan `*` o `[REFERENCIA DE INDUSTRIA]`; si no hay dato, `[no disponible]`. Si un script puede calcularlo, el script lo calcula (el LLM redacta interpretación, no cifras).
 - **Contrato JSON:** toda skill cierra con el contrato de `sub-skills/CONTRATO_JSON.md` (campos `skill`, `timestamp`, `parametros`, `output`, `decision` con `veredicto` + `siguiente_paso`, `advertencias`).
+
+## 4.1 Sub-sub-skills: los simuladores
+
+Cinco sub-skills de Descubrimiento llevan dentro un **simulador**, la sub-sub-skill que
+fabrica datos sintéticos cuando el usuario no tiene a quién entrevistar o encuestar
+(`entrevistas-empatia`, `day-in-the-life`, `encuesta-kano`, `discovery-survey`, `expo-quest`).
+La convención completa está en **`sub-skills/SIMULACION.md`**; lo esencial:
+
+```text
+<skill>/simulador/
+├── SIMULADOR.md               # instrucciones (frontmatter name + description)
+└── scripts/simular_*.py       # plan.json -> un CSV
+```
+
+- **El archivo se llama `SIMULADOR.md`.** No `SKILL.md` (el gestor exige exactamente uno por
+  ZIP y lo ocupa la macro) ni `AGENTE.md` (lo ocupa la sub-skill padre). Al empaquetar la
+  sub-skill suelta, `simulador/` viaja con ella y el único `SKILL.md` sigue siendo uno.
+- **Un simulador entrega un CSV y nada más:** ni HTML, ni `reporte.json`, ni cierre de paso.
+  La sub-skill padre analiza ese CSV con los mismos scripts que usaría con datos reales.
+- **El LLM escribe el `plan.json` (contenido cualitativo y prevalencias declaradas); el script
+  hace todos los números** —muestreo con semilla, conteos, IC de Wilson, saturación—, según la
+  regla de integridad de §4: si un script puede calcularlo, lo calcula el script.
+- **El archivo se llama `*_SIMULADO.csv`** y lleva una columna `simulado` en cada fila.
+- **La marca se propaga sola.** La opción de `pasos.json` marcada `marca_simulacion: true`
+  enciende `flujo.simulacion` en el contexto, y de ahí sale el distintivo «Datos simulados» en
+  la cabecera de **todos** los HTML posteriores, la caja ámbar del contexto, una advertencia
+  automática y la línea del pie. Ninguna skill tiene que acordarse de etiquetar.
+- **Validez externa nula, escrito en cada salida.** Una simulación puede ser internamente
+  válida (reproducible, con prevalencias declaradas e intervalos bien calculados) y no decir
+  nada sobre usuarios reales. Sin esa frase, los intervalos serían decoración pseudo-científica.
 
 ## 5. Salidas HTML (diseño IRIS)
 
@@ -243,6 +276,7 @@ El tono de los textos debe ser:
 | ¿Qué hace cada agente del flujo? | `flujo_agentes.md` |
 | ¿Cómo se conectan los agentes? | `flujo_mermaid.md` |
 | ¿Cómo se comunican las skills? | `sub-skills/CONTRATO_JSON.md` |
+| ¿Cómo se simulan entrevistas/encuestas y cómo se marca? | `sub-skills/SIMULACION.md` |
 | ¿Cómo genero un HTML de salida? | `_plantilla_html/README.md` |
 | ¿Qué se renderiza del contexto del flujo? | `_plantilla_html/README.md` § bloque `flujo` |
 | ¿Cuál es el diseño/logo oficial? | `Designs_files/Design_iris_main_colors.md` + `imagenes_iconos_etc/Logos_GS_Iris_transparent.png` |

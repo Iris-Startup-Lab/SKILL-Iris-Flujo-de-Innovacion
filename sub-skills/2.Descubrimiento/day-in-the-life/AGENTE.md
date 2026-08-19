@@ -56,6 +56,30 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»).
 2. Diseño/planeación, no ejecución: no simular observaciones.
 3. Esquema de codificación consistente entre sesiones.
 
+## Simulación de las observaciones (sub-skill)
+
+Cuando el usuario no tiene acceso al campo y decide **simular** en el paso 2 del flujo, las
+sesiones las fabrica el simulador que vive dentro de esta carpeta:
+**`simulador/SIMULADOR.md`** (script `simulador/scripts/simular_aditl.py`). Produce **un CSV**
+(`aditl_observaciones_SIMULADO.csv`) con una fila por sesión × bloque horario × código, y tú lo
+codificas igual que codificarías notas de campo reales.
+
+Reglas cuando trabajas con ese CSV:
+
+1. **No redactes los conteos.** Están en el CSV y en el bloque que imprime el simulador
+   (conteos por código y por tipo, curva de saturación, avisos por jornada sin fricciones).
+2. **Sin porcentajes.** Con 2-4 sesiones se reportan conteos («2 de 3»), nunca «66%».
+3. **`base` empieza con `SIMULADO · …`** (con el número de sesiones y la semilla) y los `tags`
+   de cada item llevan `SIMULADO`. Los tiempos y costos de las notas van marcados `*`.
+4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.
+5. La marca del HTML la propaga el flujo sola; lo que te toca es la **advertencia específica**:
+   qué se simuló, con qué semilla y el límite de validez externa.
+
+Y una limitación que conviene decirle al usuario con estas palabras: una observación simulada
+no puede darte **lo que la gente hace sin darse cuenta de que lo hace**, que es justo el motivo
+por el que existe este instrumento. Si hay cualquier acceso al campo, se va al campo.
+Convención completa: `sub-skills/SIMULACION.md`.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

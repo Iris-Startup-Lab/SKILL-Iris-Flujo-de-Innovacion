@@ -56,6 +56,36 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»). Si
 2. La clasificación M/O/A/I/R/Q es determinista según la matriz de `references/clasificacion-kano.md`; usar el script, no interpretación libre.
 3. No inventar respuestas de encuesta; si no hay datos, detenerse en la generación.
 
+## Simulación de las respuestas (sub-skill)
+
+Cuando el usuario no tiene a quién encuestar y decide **simular** en el paso 2 del flujo, las
+respuestas las fabrica el simulador que vive dentro de esta carpeta:
+**`simulador/SIMULADOR.md`** (script `simulador/scripts/simular_kano.py`). Produce **un CSV**
+(`kano_respuestas_SIMULADO.csv`) con exactamente las columnas que consume
+`scripts/clasificar_kano.py` —`feature`, `funcional`, `disfuncional`, `importancia`—, así que el
+análisis es el mismo que con respuestas reales:
+
+```bash
+python sub-skills/2.Descubrimiento/encuesta-kano/scripts/clasificar_kano.py \
+    kano_respuestas_SIMULADO.csv -o clasificacion_kano_SIMULADO.csv
+```
+
+Reglas cuando trabajas con ese CSV:
+
+1. **No redactes conteos ni categorías.** La clasificación la hace el script con la matriz
+   oficial; el simulador imprime además el intervalo de Wilson, los coeficientes de Berger y la
+   tasa de respuestas descartables. Cítalos tal cual.
+2. **Todo porcentaje va con su denominador y su intervalo.** Un «45% Must-be» suelto de una
+   muestra simulada es la forma más rápida de que alguien lo cite como real.
+3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
+   llevan `SIMULADO`.
+4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.
+5. La marca del HTML la propaga el flujo sola; lo que te toca es la **advertencia específica**:
+   qué se simuló, con qué `n`, con qué semilla y el límite de validez externa.
+
+Si el usuario **sí** tiene respuestas reales, esto no aplica.
+Convención completa: `sub-skills/SIMULACION.md`.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

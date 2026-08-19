@@ -20,7 +20,7 @@ ejecutarse en cualquier gestor de skills (Kimi Code, Antigravity, Claude Desktop
 | `scripts/estado_flujo.py` | Máquina de estados del flujo: avance, decisiones, omisiones y el contexto que viaja a cada HTML. |
 | `flujo_estado.json` / `STATE.md` | Estado del proyecto en curso (JSON) y su vista humana generada. |
 | `flujo_agentes.md` / `flujo_mermaid.md` | Vistas del flujo: descripción de cada agente y grafo Mermaid. |
-| `sub-skills/` | Las 26 sub-skills, organizadas por fase. |
+| `sub-skills/` | Las 26 sub-skills, organizadas por fase. Cinco de Descubrimiento llevan dentro un `simulador/` para fabricar datos sintéticos cuando no hay a quién entrevistar (ver `sub-skills/SIMULACION.md`). |
 | `_plantilla_html/` | Generador + plantilla + validador HTML compartidos (salida interactiva con diseño IRIS). |
 | `sub-skills_sample_outputs/` | Muestras de salida HTML por skill (para revisar el diseño). |
 | `Documentos_prompts_base_md/` | Los 24 prompts originales (fuente de cada skill). |

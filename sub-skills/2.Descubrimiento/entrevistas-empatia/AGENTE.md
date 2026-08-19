@@ -58,6 +58,30 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»).
 2. Incluir siempre el recordatorio de consentimiento y privacidad.
 3. No inventar resultados de entrevistas; esto es diseño, no ejecución.
 
+## Simulación de las respuestas (sub-skill)
+
+Esta skill **diseña** las entrevistas; no las ejecuta. Cuando el usuario no tiene a quién
+entrevistar y decide **simular** en el paso 2 del flujo, las respuestas las fabrica el
+simulador que vive dentro de esta carpeta: **`simulador/SIMULADOR.md`**
+(script `simulador/scripts/simular_entrevistas.py`). Produce **un CSV**
+(`entrevistas_SIMULADO.csv`) con una fila por entrevistado × pregunta × código, y tú lo
+codificas igual que codificarías transcripciones reales.
+
+Reglas cuando trabajas con ese CSV:
+
+1. **No redactes los conteos.** Están en el CSV y en el bloque que imprime el simulador
+   (conteos por código, curva de saturación, reparto de señales, avisos). Cítalos tal cual.
+2. **Sin porcentajes.** Con 5-8 entrevistas se reportan conteos («4 de 6»), nunca «66%»: el
+   margen de error de esa muestra haría de cualquier porcentaje un adorno.
+3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
+   llevan `SIMULADO`.
+4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.
+5. La marca del HTML la propaga el flujo sola; lo que te toca es la **advertencia específica**:
+   qué se simuló, con qué `n`, con qué semilla y el límite de validez externa.
+
+Si el usuario **sí** tiene acceso a usuarios, esto no aplica: la guía existe para usarla.
+Convención completa: `sub-skills/SIMULACION.md`.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

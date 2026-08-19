@@ -31,6 +31,9 @@
   .logo-chip{background:#fff;border-radius:12px;padding:8px 14px;box-shadow:var(--shadow-md);display:inline-flex;align-items:center}
   .logo-chip img{height:52px;width:auto;display:block}
   .badge-skill{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:8px 16px;border-radius:999px}
+  /* Distintivo de datos simulados: dorado y sólido, para que no se lea como una etiqueta más */
+  .badge-sim{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#4A2A00;background:var(--gold-400,#E9C46A);border:1px solid rgba(0,0,0,.12);padding:8px 16px;border-radius:999px;display:inline-flex;align-items:center;gap:8px}
+  .badge-sim::before{content:"";width:9px;height:9px;border-radius:50%;background:#8A5B00;flex:none}
   .eyebrow{position:relative;z-index:1;font-family:'Sora',sans-serif;color:var(--gold-400);text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:10px}
   .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold-400);display:inline-block}
   h1{position:relative;z-index:1;font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(1.5rem,3.2vw,2.35rem);margin:8px 0 10px;max-width:840px}
@@ -245,6 +248,7 @@
   <div class="header-top">
     <div class="logo-chip"><img id="logo-img" alt="IRIS" src="__LOGO_BASE64__"></div>
     <span class="badge-skill" id="badge-skill">Skill</span>
+    <span class="badge-sim" id="badge-sim" style="display:none">Datos simulados</span>
   </div>
   <nav class="flow-rail" id="flow-rail" aria-label="Avance del flujo de innovación"></nav>
   <div class="eyebrow" id="eyebrow"></div>
@@ -415,6 +419,18 @@ window.REPORT_DATA = __REPORT_DATA__;
 
     const body = document.getElementById('ctx-body');
     body.innerHTML = '';
+
+    // 0. Datos simulados: lo primero que se lee, porque condiciona todo lo demás
+    const sim = flujo.simulacion;
+    if(sim && sim.activo){
+      const det = ['<li><span>'+esc(sim.nota||NOTA_SIM_DEFECTO)+'</span></li>'];
+      if(sim.opcion){
+        det.push('<li><span class="id">'+esc(sim.desde||'')+'</span><span><span class="k">'
+          + esc(sim.nodo||'Decisión')+'</span> → '+esc(sim.opcion)+'</span></li>');
+      }
+      body.appendChild(caja('Datos simulados — esto no es evidencia de campo',
+                            det.join(''), null, 'warn full'));
+    }
 
     // 1. El proyecto
     const proy = [];
@@ -946,9 +962,30 @@ window.REPORT_DATA = __REPORT_DATA__;
     });
   }
 
+  // ---------- Datos simulados ----------
+  // La marca la enciende el flujo: `flujo.simulacion.activo` lo inyecta el generador a
+  // partir de la decisión registrada en pasos.json, así que no depende de que la skill
+  // se acuerde de ponerla. `meta.simulado` es el escape para una skill que corre suelta,
+  // fuera de un proyecto del flujo.
+  const NOTA_SIM_DEFECTO = 'Las entrevistas y encuestas de este reporte son SIMULADAS: '
+    + 'las respuestas las generó un simulador a partir de prevalencias declaradas y no '
+    + 'provienen de usuarios reales. Es un ensayo de cómo se leerían los resultados, no '
+    + 'evidencia de campo.';
+  function simulacion(){
+    const s = (DATA.flujo||{}).simulacion;
+    if(s && s.activo) return s;
+    if(meta.simulado) return {activo:true, nota: meta.nota_simulacion || NOTA_SIM_DEFECTO};
+    return null;
+  }
+
   function renderNotas(){
     const wrap = document.getElementById('notas-wrap');
-    const adv = DATA.advertencias||[], src = DATA.fuentes||[];
+    const sim = simulacion();
+    const adv = (DATA.advertencias||[]).slice(), src = DATA.fuentes||[];
+    // Si el reporte es simulado y nadie lo declaró en las advertencias, se declara aquí.
+    if(sim && !adv.some(a => /simulad/i.test(String(a)))){
+      adv.unshift(sim.nota || NOTA_SIM_DEFECTO);
+    }
     const advBox = document.getElementById('advertencias-box');
     const srcBox = document.getElementById('fuentes-box');
     if(adv.length || src.length){ wrap.style.display='block'; } else { wrap.style.display='none'; }
@@ -970,6 +1007,14 @@ window.REPORT_DATA = __REPORT_DATA__;
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); } });
 
   if(meta.metodologia){ const b=document.createElement('span'); b.className='badge-skill'; b.style.cssText='cursor:pointer;margin-left:auto'; b.textContent='Metodología'; b.onclick=()=>openModal('Metodología', '<p>'+esc(meta.metodologia)+'</p>'); const top=document.querySelector('.header-top'); if(top){ top.appendChild(b);} }
+
+  // Distintivo de la cabecera y marca en el pie: se encienden juntos con la simulación.
+  if(simulacion()){
+    document.getElementById('badge-sim').style.display='';
+    const fs = document.getElementById('foot-skill');
+    if(fs) fs.innerHTML += '<br><strong>DATOS SIMULADOS</strong>';
+    document.title = 'SIMULADO · ' + document.title;
+  }
 
   renderFlujo();
   render();

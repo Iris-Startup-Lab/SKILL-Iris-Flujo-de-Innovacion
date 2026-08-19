@@ -28,6 +28,19 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Simulación (sub-skill)
+
+`simulador/` contiene un **simulador de interacciones** para cuando no se puede asistir al
+evento: genera `expo_interacciones_SIMULADO.csv` (una fila por interacción × código, separando
+asistentes de expositores) con muestreo reproducible por semilla, conteos y curva de saturación.
+Esta skill consolida los hallazgos igual que con notas de campo reales.
+
+```bash
+python simulador/scripts/simular_expo.py plan.json -o expo_interacciones_SIMULADO.csv
+```
+
+Instrucciones: `simulador/SIMULADOR.md`. Convención: `sub-skills/SIMULACION.md`.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

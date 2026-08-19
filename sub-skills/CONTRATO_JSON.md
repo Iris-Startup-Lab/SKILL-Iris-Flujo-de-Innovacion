@@ -49,6 +49,12 @@ Estándar de comunicación entre la macro-skill orquestadora (`iris-flujo-de-inn
 2. **Datos reales por encima de síntesis.** Si un script (`scripts/`) o `webfetch` puede obtener el dato, se usa; el LLM solo redacta interpretación, no cifras crudas.
 3. **Trazabilidad de archivos.** Todo archivo declarado en `archivos_generados` debe existir realmente en disco.
 4. **Veredicto coherente con criterio de éxito.** El `decision.veredicto` se deriva de la Testing Card (criterio de éxito), no de una opinión libre.
+5. **Datos simulados, declarados como tales.** Si el output se apoya en un simulador
+   (`sub-skills/SIMULACION.md`), la primera entrada de `advertencias` dice qué se simuló, con
+   qué `n` y con qué **semilla**, y el `base` de los datos empieza con `SIMULADO · …`. El CSV
+   simulado se declara en `archivos_generados`. La marca en el HTML la pone el flujo por su
+   cuenta; esto es lo que le toca al contrato, y no es opcional: un contrato sin la marca es
+   un output que se puede citar más adelante como si fuera evidencia.
 
 ## Encadenamiento: la salida de un paso es la entrada del siguiente
 

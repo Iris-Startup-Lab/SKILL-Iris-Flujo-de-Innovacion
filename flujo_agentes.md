@@ -112,6 +112,13 @@ Definir:
 - **Simular o no**
 - **Selección de agentes**
 
+> La rama de simulación tiene skills propias: cada agente de Descubrimiento lleva dentro un
+> **simulador** (`sub-skills/<fase>/<skill>/simulador/SIMULADOR.md`) que fabrica el CSV de
+> datos sintéticos que después analiza el agente normal. Las rutas están en el campo
+> `simuladores` de cada paso en `pasos.json`. Elegir «No — simulación…» marca todos los
+> reportes posteriores como **DATOS SIMULADOS**, automáticamente. Ver
+> `sub-skills/SIMULACION.md`.
+
 ### Agentes
 
 #### Agente Entrevista de empatía

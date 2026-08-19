@@ -1,4 +1,8 @@
-# To-do — 17/08/2026
+# To-do — 19/08/2026
+
+**Nuevo el 19/08:** las 5 skills simuladoras de entrevistas se integraron al flujo como
+**sub-sub-skills** (`<skill>/simulador/SIMULADOR.md`), con estadística calculada por script y la
+marca SIMULADO propagándose sola a todos los reportes. Detalle en «Hecho el 19/08/2026».
 
 Los 5 pendientes del 13/08 están cerrados. El rechazo del ZIP por el gestor de habilidades
 también: **subida confirmada el 14/08/2026** tras encontrar la causa raíz (barra invertida en las
@@ -29,6 +33,9 @@ Nada está commiteado: los commits los lleva el usuario.
 > **Revisado el 17/08/2026** contra el estado real del repo. Queda un pendiente: el nivel 2 de
 > la medición de tokens. El de `senales-debiles` se cerró (modularización ya existía), el de
 > herencia quedó decidido en `SKILL.md`, y el de markdownlint se cerró con un `.markdownlint.json`.
+>
+> **19/08/2026:** los simuladores añaden cuatro pendientes (5 a 8), todos de validación con uso
+> real o de decisión del usuario. La implementación quedó probada; lo que falta es estrenarla.
 
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
@@ -60,7 +67,119 @@ Creado `.markdownlint.json` en la raíz con `"MD013": false`. La prosa del repo 
 a propósito (hasta 747 car en los prompts base), así que desactivar la regla es lo correcto en
 vez de reescribir 30 documentos. El editor que use markdownlint lo descubre solo.
 
+### 5. Decidir qué se hace con `skills_simuladoras_de_entrevistas/` — decisión del usuario
+
+Es la carpeta original con las 5 skills hechas en opencode. Su contenido ya está integrado en el
+flujo (`<skill>/simulador/`), así que **queda duplicado y fuera del flujo**: quien la encuentre
+suelta se llevará una versión sin estadística por script y sin la marca automática.
+
+No la borré: es material del usuario y borrar no es reversible. Cuando confirme que la
+integración le sirve, se elimina —o se deja como archivo histórico, pero entonces conviene un
+`README.md` dentro que diga «superado por `sub-skills/2.Descubrimiento/*/simulador/`».
+
+### 6. Ver un reporte simulado en el navegador
+
+La marca SIMULADO se verificó en el **markup** del HTML generado (distintivo en cabecera, caja
+ámbar del contexto, línea del pie, advertencia automática) y el script inline de la plantilla
+pasa `node --check`. Lo que no se hizo es **abrirlo en un navegador** para ver que el distintivo
+dorado no se pisa con el de la skill ni rompe la cabecera en móvil.
+
+Está a un comando: generar cualquier reporte con un `flujo_estado.json` que tenga la decisión de
+simular registrada, y abrirlo.
+
+### 7. Guardar una muestra de diseño del reporte simulado
+
+`sub-skills_sample_outputs/` es «¿dónde veo ejemplos de diseño?» (AGENTS.md §8) y no tiene
+ninguna salida con la marca de simulación. Conviene guardar una: es el único caso del repo donde
+la plantilla añade elementos por su cuenta, y sin muestra nadie sabe cómo se ve.
+
+### 8. Estrenar un simulador en un proyecto real
+
+Ningún proyecto ha corrido todavía la cadena completa **decisión → `plan.json` → CSV → skill
+padre → HTML marcado → cierre con los dos archivos**. Es la misma prueba de fuego que quedó
+pendiente para `--datos`, y ahora se pueden hacer las dos de una: un proyecto corto que simule
+las entrevistas del paso 2, construya la ficha de persona del paso 4 con esa evidencia y
+compruebe que la ficha sale marcada como simulada sin que nadie se lo pida.
+
+Lo que hay que mirar con ojo crítico en ese estreno: **si los avisos de los scripts ayudan o
+estorban**. Están calibrados a ojo (n<20, Q+R>10%, saturación en 2 sesiones sin novedad), y el
+uso real es lo único que dice si el umbral es el correcto.
+
 ---
+
+## Hecho el 19/08/2026
+
+### Simuladores de entrevistas y encuestas, integrados como sub-sub-skills
+
+Las 5 skills que el usuario había creado en opencode (`skills_simuladoras_de_entrevistas/`)
+quedaron dentro del flujo, con tres cambios de fondo respecto al original.
+
+**1. Ubicación y convención.** Cada simulador vive dentro de la sub-skill que analizaría esos
+datos, con el archivo de instrucciones llamado **`SIMULADOR.md`** —ni `SKILL.md` (uno por ZIP, y
+lo ocupa la macro) ni `AGENTE.md` (lo ocupa la sub-skill padre):
+
+```text
+sub-skills/2.Descubrimiento/<skill>/simulador/
+├── SIMULADOR.md
+└── scripts/simular_<x>.py
+```
+
+Convención escrita en **`sub-skills/SIMULACION.md`** (nueva, canónica) y en AGENTS.md §4.1.
+
+**2. Un CSV y nada más.** El simulador fabrica el dato; no analiza, no genera HTML y no cierra
+pasos. La skill padre analiza ese CSV con los mismos scripts que usaría con datos reales — por
+eso `clasificar_kano.py` se come el CSV simulado sin cambios. Los CSV se llaman `*_SIMULADO.csv`
+y llevan columna `simulado` y `seed` en cada fila, para que el archivo se declare solo si se
+separa de su contexto.
+
+**3. La estadística la hace el script, no el LLM.** El LLM escribe un `plan.json` con el
+contenido cualitativo (panel de personas, códigos, citas) y las **prevalencias declaradas**; el
+script sortea, cuenta y calcula. Lo que aporta cada uno:
+
+| Simulador | Instrumento | Estadística |
+| --- | --- | --- |
+| `simular_kano.py` | Kano funcional × disfuncional | Matriz oficial (idéntica al clasificador, 25 celdas verificadas), moda por feature, IC de Wilson, coeficientes de Berger CS/DS —suprimidos si la base A+O+M+I no llega a la mitad—, tasa de descartables, margen de error |
+| `simular_discovery.py` | Encuesta de descubrimiento | Proporciones con IC de Wilson, `n` requerido con las fórmulas de `calcular_muestra.py` (+ población finita y envíos), prueba z de dos proporciones entre segmentos |
+| `simular_entrevistas.py` | Entrevistas 1:1 | Conteos y **curva de saturación** de códigos. Sin porcentajes: con n=6 el margen sería de ±40 pp |
+| `simular_aditl.py` | Observación etnográfica | Conteos por tipo (incl. workarounds) y saturación por sesión; avisa de jornadas sin fricciones |
+| `simular_expo.py` | Interacciones en feria | Conteos, saturación, asistentes vs. expositores, `solo_tipo` para que los hallazgos de competencia solo salgan de expositores |
+
+Los cinco: semilla obligatoria (reproducible byte a byte), `ruido` que encoge la prevalencia
+hacia 0.5 para que el resultado no salga de laboratorio, aviso si ningún código refuta la
+hipótesis, y el límite **«validez externa: nula»** impreso en cada ejecución. Sin esa frase los
+intervalos serían decoración pseudo-científica: describen al generador, no a una población.
+
+**4. La marca SIMULADO se propaga sola.** La opción de `pasos.json` marcada
+`marca_simulacion: true` (dos opciones de `html_2`) enciende `flujo.simulacion` en el contexto
+del flujo, y de ahí sale, en **todos** los HTML posteriores: distintivo dorado «Datos simulados»
+en la cabecera, caja ámbar «esto no es evidencia de campo» como primer bloque del contexto,
+`DATOS SIMULADOS` en el pie, prefijo `SIMULADO ·` en el título de la pestaña y una advertencia
+automática si ninguna de las declaradas menciona la simulación. Ninguna skill tiene que
+acordarse de etiquetar. Para skills sueltas hay `meta.simulado: true`.
+
+**Archivos tocados:** `sub-skills/SIMULACION.md` (nuevo) · 5 × `simulador/SIMULADOR.md` (nuevos)
+· 5 × `simulador/scripts/simular_*.py` (nuevos) · `pasos.json` (`marca_simulacion` + campo
+`simuladores` en html_2/html_3) · `scripts/estado_flujo.py` (`detectar_simulacion`, bloque
+`flujo.simulacion`, aviso en `mostrar`, banner en `STATE.md`) ·
+`_plantilla_html/templates/reporte_base.html` (distintivo, caja, pie, título, advertencia
+automática) · `_plantilla_html/scripts/validar_report_data.py` (`_validar_simulacion`: 2 WARN) ·
+`_plantilla_html/README.md` · `AGENTS.md` (§3, §4, §4.1, §8) · `SKILL.md` (§5.1) ·
+`sub-skills/CONTRATO_JSON.md` (regla 5) · 5 × `AGENTE.md` y 5 × `README.md` de las skills padre ·
+`flujo_agentes.md` · `README.md`.
+
+**Verificado:** `py_compile` de los 5 scripts + los 2 modificados; los 5 simuladores ejecutados
+con planes reales; reproducibilidad por semilla (mismo hash con la misma, distinto con otra);
+matriz Kano del simulador **idéntica** a la del clasificador y conteos coincidentes (200 filas);
+`clasificar_kano.py` consume el CSV simulado sin cambios; validaciones de plan inválido devuelven
+exit 2 con mensaje útil; detección de la simulación en `mostrar` (antes/después de registrar la
+decisión), en los 4 simuladores de html_3 y en `STATE.md`; HTML generado con
+`flujo.simulacion.activo` y las cuatro marcas presentes; los 2 WARN del validador cuando la skill
+olvida la marca; script inline de la plantilla pasa `node --check`; ZIP de sub-skill suelta con el
+simulador dentro, un solo `SKILL.md`, 0 barras invertidas y la referencia `../AGENTE.md` reescrita
+a `../SKILL.md`; ZIP completo de la macro con los 5 simuladores (177 entradas, un `SKILL.md`);
+comprobación de rutas seguras sin hallazgos.
+
+**No verificado:** el render en un navegador (ver pendiente 6).
 
 ## Hecho el 17/08/2026
 

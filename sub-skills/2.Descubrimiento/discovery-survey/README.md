@@ -27,6 +27,19 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Simulación (sub-skill)
+
+`simulador/` contiene un **simulador de respuestas** para cuando la encuesta no se puede
+distribuir: genera `discovery_respuestas_SIMULADO.csv` en formato largo con muestreo
+reproducible por semilla, proporciones con intervalo de Wilson, el `n` requerido para el margen
+declarado y prueba z entre segmentos. Esta skill lo agrupa por afinidad igual que un export real.
+
+```bash
+python simulador/scripts/simular_discovery.py plan.json -o discovery_respuestas_SIMULADO.csv
+```
+
+Instrucciones: `simulador/SIMULADOR.md`. Convención: `sub-skills/SIMULACION.md`.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

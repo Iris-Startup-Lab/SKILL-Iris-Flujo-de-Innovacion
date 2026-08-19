@@ -55,7 +55,7 @@
           "tipo": "unica",
           "opciones": [
             { "opcion": "Sí — respuestas e insights reales", "efecto": "Los insights posteriores usan data real del usuario." },
-            { "opcion": "No — simulación de respuestas e insights", "efecto": "Los insights se simulan y quedan etiquetados como SIMULADO en todo reporte posterior." }
+            { "opcion": "No — simulación de respuestas e insights", "efecto": "Los insights se simulan y quedan etiquetados como SIMULADO en todo reporte posterior.", "marca_simulacion": true }
           ]
         },
         {
@@ -63,7 +63,7 @@
           "tipo": "unica",
           "solo_si": "¿Ejecución de entrevistas? = No",
           "opciones": [
-            { "opcion": "Simular respuestas", "efecto": "Se generan respuestas sintéticas etiquetadas SIMULADO." },
+            { "opcion": "Simular respuestas", "efecto": "Se generan respuestas sintéticas etiquetadas SIMULADO.", "marca_simulacion": true, "skills": ["2.Descubrimiento/entrevistas-empatia/simulador"] },
             { "opcion": "No simular", "efecto": "Se continúa solo con el guion de entrevista, sin respuestas." }
           ]
         },
@@ -80,6 +80,9 @@
         }
       ],
       "skills_posibles": ["2.Descubrimiento/entrevistas-empatia"],
+      "simuladores": {
+        "2.Descubrimiento/entrevistas-empatia": "2.Descubrimiento/entrevistas-empatia/simulador"
+      },
       "entrega": "html_2.html"
     },
     {
@@ -100,6 +103,12 @@
         "2.Descubrimiento/discovery-survey",
         "2.Descubrimiento/expo-quest"
       ],
+      "simuladores": {
+        "2.Descubrimiento/day-in-the-life": "2.Descubrimiento/day-in-the-life/simulador",
+        "2.Descubrimiento/encuesta-kano": "2.Descubrimiento/encuesta-kano/simulador",
+        "2.Descubrimiento/discovery-survey": "2.Descubrimiento/discovery-survey/simulador",
+        "2.Descubrimiento/expo-quest": "2.Descubrimiento/expo-quest/simulador"
+      },
       "paralelo": true,
       "entrega": "html_3.html"
     },

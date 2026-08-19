@@ -28,6 +28,20 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Simulación (sub-skill)
+
+`simulador/` contiene un **simulador de respuestas** para cuando no hay a quién entrevistar:
+genera `entrevistas_SIMULADO.csv` (una fila por entrevistado × pregunta × código) con muestreo
+reproducible por semilla, conteos y curva de saturación, y esta skill lo codifica igual que
+codificaría transcripciones reales. No genera HTML: el reporte sigue siendo el de esta skill,
+con la marca «Datos simulados» que el flujo añade solo.
+
+```bash
+python simulador/scripts/simular_entrevistas.py plan.json -o entrevistas_SIMULADO.csv
+```
+
+Instrucciones: `simulador/SIMULADOR.md`. Convención: `sub-skills/SIMULACION.md`.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

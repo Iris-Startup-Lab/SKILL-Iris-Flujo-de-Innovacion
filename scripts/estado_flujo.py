@@ -72,6 +72,15 @@ class ReglaDelFlujo(Exception):
 
 ABIERTOS = ("pendiente", "en_curso")
 
+# Nota que viaja a todos los reportes cuando el usuario elige simular. La escribe el
+# flujo, no las skills: así la marca no depende de que nadie se acuerde de ponerla.
+NOTA_SIMULACION = (
+    "Las entrevistas y encuestas de este proyecto son SIMULADAS: las respuestas las "
+    "generó un simulador a partir de prevalencias declaradas, no provienen de usuarios "
+    "reales. Lo que se lee aquí es un ensayo del instrumento y de cómo se leerían los "
+    "resultados, no evidencia de campo."
+)
+
 
 # --------------------------------------------------------------------------- #
 # Carga
@@ -399,6 +408,35 @@ def cmd_decision(args):
 # Bloque de contexto que viaja a cada HTML
 # --------------------------------------------------------------------------- #
 
+def detectar_simulacion(estado, pasos):
+    """¿Está activa la simulación de entrevistas/encuestas en este proyecto?
+
+    No se busca por texto. Una opción de `pasos.json` marcada `marca_simulacion: true`
+    enciende la marca en cuanto queda registrada como decisión, y desde ahí viaja a
+    todos los reportes posteriores.
+    """
+    for dec in estado.get("decisiones", []):
+        try:
+            definicion = def_paso(pasos, dec.get("paso"))
+        except ReglaDelFlujo:
+            continue
+        for nodo in definicion.get("decisiones", []):
+            if nodo.get("nodo") != dec.get("nodo"):
+                continue
+            for opcion in nodo.get("opciones", []):
+                if (opcion.get("opcion") == dec.get("opcion")
+                        and opcion.get("marca_simulacion")):
+                    return {
+                        "activo": True,
+                        "desde": dec.get("paso", ""),
+                        "nodo": dec.get("nodo", ""),
+                        "opcion": dec.get("opcion", ""),
+                        "registrado": dec.get("registrado", ""),
+                        "nota": NOTA_SIMULACION,
+                    }
+    return {"activo": False}
+
+
 def construir_bloque_flujo(estado, pasos, paso_id):
     """Devuelve el bloque `flujo` de REPORT_DATA para `paso_id`.
 
@@ -465,6 +503,7 @@ def construir_bloque_flujo(estado, pasos, paso_id):
             ),
         },
         "predecesores": definicion.get("predecesores", []),
+        "simulacion": detectar_simulacion(estado, pasos),
         "skills_del_paso": actual.get("skills", []),
         "ruta": ruta,
         "decisiones": estado.get("decisiones", []),
@@ -595,9 +634,27 @@ def cmd_mostrar(args):
             )
     print()
 
+    simulacion = detectar_simulacion(estado, pasos)
+    simuladores = d.get("simuladores") or {}
+    if simulacion["activo"]:
+        print("## SIMULACIÓN ACTIVA")
+        print(f"- Decidido en {simulacion['desde']}: «{simulacion['nodo']}» → "
+              f"«{simulacion['opcion']}»")
+        print(f"- {NOTA_SIMULACION}")
+        print("- Todo reporte de aquí en adelante sale marcado SIMULADO: lo hace el "
+              "generador, no hace falta pedirlo.")
+        if simuladores:
+            print("- Simuladores de este paso (generan el CSV que analiza la skill):")
+            for skill, sim in simuladores.items():
+                print(f"    {skill} → sub-skills/{sim}/SIMULADOR.md")
+        print()
+
     print("## Sub-skills invocables en este paso")
     for s in d["skills_posibles"]:
-        print(f"- sub-skills/{s}/AGENTE.md")
+        linea = f"- sub-skills/{s}/AGENTE.md"
+        if simulacion["activo"] and s in simuladores:
+            linea += f"  (datos simulados: sub-skills/{simuladores[s]}/SIMULADOR.md)"
+        print(linea)
     if d.get("cadenas"):
         for cadena in d["cadenas"]:
             print("- cadena obligatoria: " + " → ".join(cadena))
@@ -690,6 +747,16 @@ def render_state_md(estado, pasos, estado_path=None):
     total = len(estado["pasos"])
     L.append(f"**Avance:** {comp} completados · {omit} omitidos · {total} pasos.")
     L.append("")
+
+    simulacion = detectar_simulacion(estado, pasos)
+    if simulacion["activo"]:
+        L.append(
+            f"> ## ⚠ DATOS SIMULADOS\n>\n> {NOTA_SIMULACION}\n>\n> Decidido en "
+            f"`{simulacion['desde']}`: «{simulacion['nodo']}» → "
+            f"«{simulacion['opcion']}». Todos los reportes de este proyecto salen "
+            f"marcados."
+        )
+        L.append("")
 
     L.append("## Ruta")
     L.append("")

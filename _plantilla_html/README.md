@@ -68,7 +68,8 @@ _plantilla_html/
     "subtitulo": "Resumen de una línea del análisis",
     "resumen": "Resumen ejecutivo (2-3 líneas)",
     "fecha": "2026-08-12",
-    "metodologia": "Opcional: texto para el modal de metodología"
+    "metodologia": "Opcional: texto para el modal de metodología",
+    "simulado": false          // opcional: marca datos simulados en una skill suelta
   },
   "kpis": [
     { "label": "Keywords analizadas", "value": "12", "accent": false }
@@ -159,7 +160,11 @@ documenta aquí solo para saber qué se renderiza:
       { "id": "html_4", "titulo": "Persona Profile", "estado": "actual" }
     ],
     "decisiones": [{ "paso": "html_1", "nodo": "¿Cómo quieres iniciar?", "opcion": "Estado actual" }],
-    "omitidos": [{ "id": "html_2", "titulo": "…", "motivo": "…", "impacto": "…", "forzada": false }]
+    "omitidos": [{ "id": "html_2", "titulo": "…", "motivo": "…", "impacto": "…", "forzada": false }],
+    "simulacion": { "activo": true, "desde": "html_2",
+                    "nodo": "¿Ejecución de entrevistas?",
+                    "opcion": "No — simulación de respuestas e insights",
+                    "nota": "Las entrevistas y encuestas de este proyecto son SIMULADAS…" }
   }
 }
 ```
@@ -172,6 +177,14 @@ Se renderiza como:
   sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
   quien lea el reporte sepa qué le falta.
 - **Pie**: proyecto y posición en el flujo.
+- **Marca de datos simulados** (si `simulacion.activo`): distintivo dorado «Datos simulados» en
+  la cabecera, caja ámbar «esto no es evidencia de campo» como primer bloque del contexto,
+  `DATOS SIMULADOS` en el pie, prefijo `SIMULADO ·` en el título de la pestaña y una
+  advertencia automática si ninguna de las declaradas menciona la simulación. Lo enciende la
+  decisión registrada en el flujo (opción marcada `marca_simulacion` en `pasos.json`), así que
+  **ninguna skill tiene que acordarse de etiquetar**. Una skill que corre suelta, sin contexto
+  de flujo, consigue lo mismo con `meta.simulado: true`. Convención completa:
+  `sub-skills/SIMULACION.md`.
 
 `estado` admite: `pendiente`, `en_curso`, `completado`, `omitido`, `fallido`, `actual`
 (solo uno puede ser `actual`).

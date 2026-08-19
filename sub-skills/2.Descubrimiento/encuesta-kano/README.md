@@ -28,6 +28,20 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Simulación (sub-skill)
+
+`simulador/` contiene un **simulador de respuestas** para cuando no hay a quién encuestar:
+genera `kano_respuestas_SIMULADO.csv` con las columnas exactas que consume
+`scripts/clasificar_kano.py`, con muestreo reproducible por semilla, intervalos de Wilson y
+coeficientes de Berger. El análisis posterior es el mismo que con respuestas reales.
+
+```bash
+python simulador/scripts/simular_kano.py plan.json -o kano_respuestas_SIMULADO.csv
+python scripts/clasificar_kano.py kano_respuestas_SIMULADO.csv -o clasificacion_SIMULADO.csv
+```
+
+Instrucciones: `simulador/SIMULADOR.md`. Convención: `sub-skills/SIMULACION.md`.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

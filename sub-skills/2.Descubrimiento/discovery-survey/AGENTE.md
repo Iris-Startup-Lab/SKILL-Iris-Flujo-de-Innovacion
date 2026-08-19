@@ -73,6 +73,33 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»). Lo
 2. Si `N` o `tasa_respuesta` son supuestos, márcalos `*` en `advertencias`.
 3. No distribuir encuestas; solo preparar cuestionario, muestra y plan.
 
+## Simulación de las respuestas (sub-skill)
+
+Cuando el usuario no puede distribuir la encuesta y decide **simular** en el paso 2 del flujo,
+las respuestas las fabrica el simulador que vive dentro de esta carpeta:
+**`simulador/SIMULADOR.md`** (script `simulador/scripts/simular_discovery.py`). Produce **un
+CSV** (`discovery_respuestas_SIMULADO.csv`) en formato largo —una fila por encuestado ×
+pregunta × tema— y tú lo agrupas por afinidad igual que un export real de un formulario.
+
+Reglas cuando trabajas con ese CSV:
+
+1. **No redactes conteos, porcentajes ni intervalos.** El simulador imprime la proporción de
+   cada tema con su intervalo de Wilson, el `n` requerido para el margen declarado y la prueba z
+   entre segmentos. Cítalos tal cual.
+2. **Todo porcentaje va con denominador e intervalo:** «18 de 30 (60%, IC95 42-76%)», nunca
+   «60% de los usuarios».
+3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
+   llevan `SIMULADO`.
+4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.
+5. La marca del HTML la propaga el flujo sola; lo que te toca es la **advertencia específica**:
+   qué se simuló, con qué `n`, con qué semilla, el margen de error real y el límite de validez
+   externa.
+
+Cuidado con un malentendido fácil: que la prueba z encuentre diferencia entre dos segmentos
+**no** dice que difieran en la realidad, sino que la diferencia declarada en el plan es lo
+bastante grande para detectarse con esa `n`. Es información sobre el instrumento, no sobre el
+mercado. Convención completa: `sub-skills/SIMULACION.md`.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

@@ -46,6 +46,32 @@ Dos tablas markdown (Tabla 1 y Tabla 2) con las columnas indicadas, más la prop
 2. No incluir eventos genéricos o de bajo impacto.
 3. Adaptar rigurosamente la selección según B2B/B2C.
 
+## Simulación de las interacciones (sub-skill)
+
+Cuando el usuario no puede asistir al evento y decide **simular** en el paso 2 del flujo, las
+interacciones las fabrica el simulador que vive dentro de esta carpeta:
+**`simulador/SIMULADOR.md`** (script `simulador/scripts/simular_expo.py`). Produce **un CSV**
+(`expo_interacciones_SIMULADO.csv`) con una fila por interacción × código, separando asistentes
+de expositores, y tú consolidas los hallazgos igual que con notas de campo reales.
+
+Reglas cuando trabajas con ese CSV:
+
+1. **No redactes los conteos.** Están en el CSV y en el bloque que imprime el simulador
+   (conteos por código, tabla asistentes vs. expositores, saturación, avisos).
+2. **Sin porcentajes de población.** Es una muestra de conveniencia: quien se acerca a un stand
+   ya está autoseleccionado. Se reportan conteos («4 de 6»).
+3. **`base` empieza con `SIMULADO · …`** (con las interacciones y la semilla) y los `tags` de
+   cada item llevan `SIMULADO`. Las cifras de asistencia y precios van marcadas `*`.
+4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.
+5. **Los hallazgos de competencia no se atribuyen a competidores reales con nombre:** son
+   perfiles ficticios, no inteligencia de mercado. El evento también es ficticio y se dice.
+6. La marca del HTML la propaga el flujo sola; lo que te toca es la **advertencia específica**.
+
+Y la limitación de fondo: lo que hace valiosa una feria es enterarse de lo que no sabías que
+existía —el competidor que no tenías en el radar, la objeción que nadie del equipo había
+pensado— y una simulación solo puede devolver lo que ya se declaró en el plan.
+Convención completa: `sub-skills/SIMULACION.md`.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

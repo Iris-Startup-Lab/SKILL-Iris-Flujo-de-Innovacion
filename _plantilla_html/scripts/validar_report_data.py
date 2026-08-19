@@ -163,6 +163,55 @@ def validar(data, exigir_flujo=True):
 
     # ----------------------------------------------------------------- flujo
     h.extend(_validar_flujo(data.get("flujo"), exigir_flujo))
+    h.extend(_validar_simulacion(data))
+    return h
+
+
+def _validar_simulacion(data):
+    """Coherencia de la marca de datos simulados.
+
+    La plantilla añade la advertencia por su cuenta si falta, así que esto es un aviso,
+    no un error: existe para que la skill no delegue en el HTML algo que también tiene
+    que constar en su contrato JSON y en el `base` de sus datos.
+    """
+    h = []
+    meta = data.get("meta") or {}
+    flujo = data.get("flujo") or {}
+    sim = flujo.get("simulacion") or {}
+    activo = bool(sim.get("activo")) or bool(meta.get("simulado"))
+
+    if meta.get("simulado") is not None and not isinstance(meta["simulado"], bool):
+        h.append(Hallazgo("ERROR", "meta.simulado",
+                          "debe ser true o false (marca de datos simulados)"))
+
+    if not activo:
+        return h
+
+    advertencias = data.get("advertencias")
+    textos = [str(a) for a in advertencias] if isinstance(advertencias, list) else []
+    if not any("simulad" in t.lower() for t in textos):
+        h.append(Hallazgo(
+            "WARN", "advertencias",
+            "el reporte es de datos simulados y ninguna advertencia lo dice",
+            "añade una que declare qué se simuló, con qué n y con qué semilla; la "
+            "plantilla pone una genérica, pero la específica es la que sirve"))
+
+    etiquetados = 0
+    total_items = 0
+    for sec in data.get("secciones") or []:
+        for item in (sec or {}).get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            total_items += 1
+            tags = [str(t).lower() for t in (item.get("tags") or [])]
+            if any("simulad" in t for t in tags):
+                etiquetados += 1
+    if total_items and not etiquetados:
+        h.append(Hallazgo(
+            "WARN", "secciones[].items[].tags",
+            "ningún item lleva el tag SIMULADO",
+            "los filtros del reporte se navegan por tags: sin él, un item simulado se "
+            "lee igual que uno con evidencia real"))
     return h
 
 
