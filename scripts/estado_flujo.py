@@ -486,6 +486,23 @@ def construir_bloque_flujo(estado, pasos, paso_id):
 
     completados = [p for p in estado["pasos"] if p["estado"] == "completado"]
 
+    # Siguiente paso del flujo (para el cierre del reporte): el primero que sigue
+    # abierto, distinto del paso que se está renderizando. Sigue el orden de pasos.json.
+    siguiente_paso = None
+    for p in estado["pasos"]:
+        if p["id"] == paso_id:
+            continue
+        if p["estado"] in ABIERTOS:
+            d_sig = def_paso(pasos, p["id"])
+            siguiente_paso = {
+                "id": p["id"],
+                "titulo": p["titulo"],
+                "etapa": p["etapa"],
+                "orden": d_sig.get("orden"),
+                "objetivo": d_sig.get("objetivo", ""),
+            }
+            break
+
     return {
         "proyecto": estado.get("proyecto", ""),
         "objetivo_proyecto": estado.get("objetivo", ""),
@@ -508,6 +525,7 @@ def construir_bloque_flujo(estado, pasos, paso_id):
         "ruta": ruta,
         "decisiones": estado.get("decisiones", []),
         "omitidos": omitidos,
+        "siguiente_paso": siguiente_paso,
     }
 
 

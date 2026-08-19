@@ -25,8 +25,9 @@ El generador hace tres cosas antes de escribir el archivo:
    un reporte incompleto no se entregue como HTML en blanco.
 3. **Embebe el logo oficial en base64**.
 
-El resultado es un `.html` autocontenido (funciona offline; solo requiere conexión para
-Google Fonts y Chart.js, que tienen fallback del sistema).
+El resultado es un `.html` autocontenido para el contenido y el logo (embebido en
+base64). Las fuentes y Chart.js se cargan por CDN: sin conexión las fuentes caen al
+sistema y las gráficas muestran un aviso «no disponible sin conexión» en vez de romperse.
 
 ### Opciones
 
@@ -150,6 +151,8 @@ documenta aquí solo para saber qué se renderiza:
     "paso_orden": 4,
     "total_pasos": 11,
     "avance": { "completados": 1, "omitidos": 1, "pendientes": 8 },
+    "siguiente_paso": { "id": "html_5", "titulo": "Problem-Solution Fit",
+                        "etapa": "Descubrimiento", "orden": 5, "objetivo": "…" },
     "ruta": [
       { "id": "html_1", "titulo": "Inicio + Investigación", "estado": "completado",
         "resumen": "TAM MX 4.2 mil M*…", "archivo": "html_1.html",
@@ -176,6 +179,10 @@ Se renderiza como:
 - **«De dónde viene este reporte»**: el proyecto, las decisiones tomadas, lo que ya se
   sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
   quien lea el reporte sepa qué le falta.
+- **«En resumen»**: `meta.resumen` y la fila de veredictos al frente, antes del contexto,
+  para que la conclusión se lea en los primeros segundos.
+- **«Siguiente paso»** (`flujo.siguiente_paso`, lo calcula el generador): el cierre del
+  reporte anuncia qué paso toca después.
 - **Pie**: proyecto y posición en el flujo.
 - **Marca de datos simulados** (si `simulacion.activo`): distintivo dorado «Datos simulados» en
   la cabecera, caja ámbar «esto no es evidencia de campo» como primer bloque del contexto,
@@ -219,6 +226,41 @@ Los rellena `estado_flujo.py completar` con `--resumen`, `--datos` y `--outputs`
 - Secciones de **Advertencias** y **Fuentes**.
 - Modal de **Metodología** (si `meta.metodologia` está definido).
 - Accesibilidad: `aria-*`, foco visible dorado, `prefers-reduced-motion`, responsive.
+
+## Guía para que el reporte se lea sin manual (base generalista)
+
+La plantilla pone la forma; el autor pone el contenido. Un generalista —alguien que no
+conoce el flujo— debe poder responder en 10 segundos **qué muestra este reporte**, **de
+dónde viene** y **qué sigue**. Para eso, al escribir `reporte.json`:
+
+- **`meta.resumen` (2–3 líneas)**: la conclusión. Es lo que alimenta el bloque «En
+  resumen» del reporte. No es una descripción del método, es el «¿y entonces qué?».
+
+  - Mal: «Se analizaron 10 competidores con las 5 Fuerzas de Porter».
+  - Bien: «El nicho B2B SME es el hueco con mejor relación demanda/competencia: SOM
+    proyectado $52M y solo dos jugadores directos.»
+
+- **`meta.subtitulo` (1 línea)**: la bajada descriptiva del hero, complementaria al
+  título. Si `resumen` ya dice todo, el subtítulo puede ser la descripción del método.
+
+- **`kpis` (3–5 máximos)**: un número grande + `label` corto. Son el primer vistazo;
+  no conviertas en KPI una cifra que no resuma el resultado.
+
+- **`body` de cada item (2–4 bloques con `label` específico)**: evita un único bloque
+  genérico tipo «Análisis: …». Prefiere etiquetas que respondan algo («Segmento»,
+  «Modelo de ingresos», «Interpretación», «Riesgo»). La tarjeta expandida se lee por
+  etiquetas.
+
+- **`veredicto`**: úsalo solo cuando hay una decisión respaldada. El reporte lo pinta con
+  semáforo y lo explica al hover (perseverar = continuar · pivotear = ajustar ·
+  descartar = abandonar). Sin veredicto, la tarjeta no lleva semáforo, y está bien.
+
+- **`advertencias`**: declara aquí todo supuesto, cifra estimada (`*`) y ausencia
+  (`[no disponible]`). El footer explica las marcas; las advertencias son donde se usan.
+
+Checklist mínimo antes de dar por bueno un `reporte.json`: ¿tiene `resumen`? ¿los KPIs
+resumen el resultado? ¿cada item se entiende por sus `body.label` sin abrir el detalle?
+¿los supuestos están en `advertencias`?
 
 ## Verificación del HTML generado
 

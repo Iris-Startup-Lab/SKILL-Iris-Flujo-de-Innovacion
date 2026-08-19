@@ -83,6 +83,22 @@
   .ctx-list a{font-weight:600}
   .ctx-empty{font-size:.83rem;color:var(--ink-soft)}
 
+  /* ---------- En resumen (conclusión al frente) ---------- */
+  .resumen{max-width:1280px;margin:0 auto;padding:22px clamp(20px,4vw,56px) 0}
+  .resumen-box{background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold-400);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+  .resumen-box h2{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-600);display:flex;align-items:center;gap:8px}
+  .resumen-box h2::before{content:"";width:18px;height:2px;background:var(--gold-400);display:inline-block}
+  .resumen-texto{font-size:.95rem;color:var(--ink);line-height:1.55;max-width:1000px}
+  .resumen-verdictos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .resumen-leyenda{font-size:.74rem;color:var(--ink-soft);width:100%}
+
+  /* ---------- Siguiente paso (cierre del reporte) ---------- */
+  .siguiente{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
+  .siguiente-box{background:linear-gradient(135deg,var(--purple-900),var(--purple-700));color:#fff;border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow-md)}
+  .siguiente-box .lbl{font-family:'Sora',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold-400);flex:0 0 auto}
+  .siguiente-box .paso{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700}
+  .siguiente-box .obj{color:#D8CCEF;font-size:.85rem;width:100%}
+
   /* ---------- Toolbar ---------- */
   .toolbar{padding:16px clamp(20px,4vw,56px) 6px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;box-shadow:var(--shadow-sm)}
   .search-box{display:flex;align-items:center;gap:8px;background:var(--purple-050);border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;min-width:230px;flex:1;max-width:340px}
@@ -257,8 +273,17 @@
   <div class="hero-stats" id="hero-stats"></div>
 </header>
 
+<section class="resumen" id="resumen-wrap" style="display:none">
+  <div class="resumen-box">
+    <h2>En resumen</h2>
+    <p class="resumen-texto" id="resumen-texto"></p>
+    <div class="resumen-verdictos" id="resumen-verdictos"></div>
+    <div class="resumen-leyenda" id="resumen-leyenda"></div>
+  </div>
+</section>
+
 <section class="contexto" id="contexto-wrap" style="display:none">
-  <details id="contexto-det" open>
+  <details id="contexto-det">
     <summary>
       <span id="ctx-titulo">Contexto del flujo</span>
       <span class="tally" id="ctx-tally"></span>
@@ -296,6 +321,14 @@
   <div class="box" id="fuentes-box" style="display:none">
     <h3>Fuentes</h3>
     <ul id="fuentes"></ul>
+  </div>
+</section>
+
+<section class="siguiente" id="siguiente-wrap" style="display:none">
+  <div class="siguiente-box">
+    <span class="lbl">Siguiente paso</span>
+    <span class="paso" id="siguiente-paso"></span>
+    <span class="obj" id="siguiente-obj"></span>
   </div>
 </section>
 
@@ -346,6 +379,13 @@ window.REPORT_DATA = __REPORT_DATA__;
   const DATA = window.REPORT_DATA || {meta:{},kpis:[],secciones:[],decisiones:[],advertencias:[],fuentes:[]};
   const meta = DATA.meta || {};
   const VERDICT_LABEL = {perseverar:"Perseverar",pivotear:"Pivotear",descartar:"Descartar"};
+  const VERDICT_DESC = {
+    perseverar: "La evidencia respalda continuar con esta hipótesis o idea.",
+    pivotear: "La evidencia sugiere ajustar la hipótesis o el enfoque.",
+    descartar: "La evidencia recomienda abandonar esta línea."
+  };
+  const VERDICT_LEYENDA = 'Perseverar = continuar · Pivotear = ajustar · Descartar = abandonar.';
+  function verdictTitle(v){ return VERDICT_LABEL[v] + ': ' + (VERDICT_DESC[v] || ''); }
 
   // Header
   document.title = (meta.titulo || "IRIS") + " — Reporte";
@@ -489,6 +529,43 @@ window.REPORT_DATA = __REPORT_DATA__;
     wrapEl.style.display='';
   }
 
+  // ---------- En resumen (conclusión al frente) ----------
+  function renderResumen(){
+    const wrap = document.getElementById('resumen-wrap');
+    let texto = (meta.resumen || '').trim();
+    if(!texto){
+      const dec = (DATA.decisiones||[]).find(d => (d.texto||'').trim());
+      if(dec) texto = dec.texto.trim();
+    }
+    const counts = {};
+    allItems.forEach(it => { if(it.veredicto) counts[it.veredicto] = (counts[it.veredicto]||0)+1; });
+    (DATA.decisiones||[]).forEach(d => { if(d.veredicto) counts[d.veredicto] = (counts[d.veredicto]||0)+1; });
+    const orden = ['perseverar','pivotear','descartar'];
+    const badges = orden.filter(v => counts[v]).map(v =>
+      '<span class="verdict '+v+'" title="'+esc(verdictTitle(v))+'">'+esc(VERDICT_LABEL[v])+' · '+counts[v]+'</span>').join('');
+
+    if(!texto && !badges){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    document.getElementById('resumen-texto').textContent = texto;
+    document.getElementById('resumen-texto').style.display = texto ? '' : 'none';
+    document.getElementById('resumen-verdictos').innerHTML = badges;
+    document.getElementById('resumen-verdictos').style.display = badges ? '' : 'none';
+    document.getElementById('resumen-leyenda').textContent = badges ? VERDICT_LEYENDA : '';
+    document.getElementById('resumen-leyenda').style.display = badges ? '' : 'none';
+  }
+
+  // ---------- Siguiente paso (cierre del reporte) ----------
+  function renderSiguiente(){
+    const wrap = document.getElementById('siguiente-wrap');
+    const sig = flujo && flujo.siguiente_paso;
+    if(!sig){ wrap.style.display='none'; return; }
+    const n = sig.orden ? 'Paso ' + sig.orden + ' de ' + (flujo.total_pasos||'') + ' · ' : '';
+    document.getElementById('siguiente-paso').textContent = n + (sig.titulo||'');
+    document.getElementById('siguiente-obj').textContent = sig.objetivo || '';
+    document.getElementById('siguiente-obj').style.display = sig.objetivo ? '' : 'none';
+    wrap.style.display='block';
+  }
+
   function caja(titulo, htmlItems, vacio, extra){
     const d = document.createElement('div');
     d.className = 'ctx-box' + (extra ? ' '+extra : '');
@@ -612,7 +689,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     const card = document.createElement('div'); card.className='card';
     const tagsHtml = (it.tags||[]).slice(0,3).map(t=>'<span class="pill">'+esc(t)+'</span>').join('');
     let verdictHtml='';
-    if(it.veredicto) verdictHtml = '<span class="verdict '+esc(it.veredicto)+'">'+esc(VERDICT_LABEL[it.veredicto]||it.veredicto)+'</span>';
+    if(it.veredicto) verdictHtml = '<span class="verdict '+esc(it.veredicto)+'" title="'+esc(verdictTitle(it.veredicto))+'">'+esc(VERDICT_LABEL[it.veredicto]||it.veredicto)+'</span>';
     card.innerHTML =
       '<div class="card-top">'+(it.tags&&it.tags.length?'<span class="card-tag">'+esc(it.tags[0])+'</span>':'<span></span>')+verdictHtml+'</div>'+
       '<h3>'+esc(it.titulo)+'</h3>'+
@@ -882,6 +959,11 @@ window.REPORT_DATA = __REPORT_DATA__;
   function renderCharts(det, it, card){
     const c0 = chartDeItem(it);
     if(!c0) return;
+    if(typeof Chart === 'undefined'){
+      const cw = det.querySelector('.chart-wrap');
+      if(cw){ cw.innerHTML = '<div class="ct">'+esc(c0.titulo||'')+'</div><p style="color:var(--ink-soft);font-size:.82rem;padding-top:6px">Gráfica no disponible sin conexión: Chart.js no cargó. El resto del reporte se lee íntegro.</p>'; }
+      return;
+    }
     const canvas = det.querySelector('canvas');
     if(!canvas) return;
     if(c0.tipo === 'scatter'){ card._chart = renderScatter(canvas, c0); return; }
@@ -956,7 +1038,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     wrap.style.display='block'; cont.innerHTML='';
     decs.forEach(d => {
       const el = document.createElement('div'); el.className='dec';
-      let vh = d.veredicto ? '<span class="verdict '+(VERDICT_LABEL[d.veredicto]?d.veredicto:'')+'">'+esc(VERDICT_LABEL[d.veredicto]||d.veredicto)+'</span>' : '';
+      let vh = d.veredicto ? '<span class="verdict '+(VERDICT_LABEL[d.veredicto]?d.veredicto:'')+'" title="'+esc(verdictTitle(d.veredicto))+'">'+esc(VERDICT_LABEL[d.veredicto]||d.veredicto)+'</span>' : '';
       el.innerHTML = vh + '<h4>'+esc(d.titulo)+'</h4><p>'+esc(d.texto)+'</p>';
       cont.appendChild(el);
     });
@@ -1017,6 +1099,8 @@ window.REPORT_DATA = __REPORT_DATA__;
   }
 
   renderFlujo();
+  renderResumen();
+  renderSiguiente();
   render();
 })();
 </script>

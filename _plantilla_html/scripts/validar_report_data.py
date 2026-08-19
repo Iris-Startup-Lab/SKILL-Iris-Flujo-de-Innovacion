@@ -60,6 +60,10 @@ def validar(data, exigir_flujo=True):
     if not _texto(meta.get("resumen")) and not _texto(meta.get("subtitulo")):
         h.append(Hallazgo("WARN", "meta", "sin `resumen` ni `subtitulo`: el hero "
                                           "del reporte queda sin bajada"))
+    elif not _texto(meta.get("resumen")):
+        h.append(Hallazgo("WARN", "meta.resumen",
+                          "sin `resumen`: el bloque «En resumen» no tendrá conclusión",
+                          "escribe 2-3 líneas de qué se concluye del análisis"))
 
     # ------------------------------------------------------------- secciones
     secciones = data.get("secciones")
