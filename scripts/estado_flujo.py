@@ -47,6 +47,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+# En Windows la consola es cp1252 y caracteres como → (U+2192) rompen el print.
+# Se escribe UTF-8 a stdout/stderr para que el output no dependa del code page.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 _HERE = Path(__file__).resolve().parent
 REPO_ROOT = _HERE.parent
 

@@ -101,6 +101,71 @@ uso real es lo único que dice si el umbral es el correcto.
 
 ---
 
+## Hecho el 21/08/2026
+
+### 1. Render del HTML — encabezado cortado y tarjetas expandibles
+
+- **Encabezado cortado en los pasos finales (html_9 en adelante).** Causa raíz:
+  `scrollIntoView({inline:'center'})` desplazaba también el `header` (que con
+  `overflow:hidden` es contenedor de scroll), recortando logo y título. Arreglo en
+  `reporte_base.html`: `overflow:clip` (con fallback `hidden`) y `scrollLeft` manual del riel
+  (con clamp y re-centrado al cargar Sora/Inter).
+- **Botón «Ver detalle» vacío.** Oculto cuando la tarjeta no tiene `body`/`persona`/`psf`/`chart`
+  (`tieneDetalle()` + clase `.no-detail`).
+- **Panel de detalle mal ubicado.** Antes iba al fondo de la grilla (abajo de todas las tarjetas);
+  ahora `insertarDetalle()` lo coloca justo debajo de la fila de la tarjeta elegida.
+
+### 2. Legibilidad para expertos y no expertos
+
+- **Nada de abreviaturas en los pasos.** `pasos.json`: «HMW + Ambición estratégica» →
+  «El reto creativo (How Might We) + Ambición estratégica»; «Elección de protopersona» →
+  «Elección de la ficha de persona»; sin «protopersona/JTBD» en objetivo y `razon_no_omitible`.
+  Referencias actualizadas en `SKILL.md`, `README.md`, `flujo_agentes.md`, `flujo_mermaid.md`,
+  `PLAN_MEDICION_TOKENS.md` y `_plantilla_html/README.md`.
+- **Plantilla:** «Score»→«Puntaje», «JTBD»→«El trabajo que quiere hacer (Job To Be Done)»,
+  «Pains»→«Problemas…», «Protopersona»→«Persona hipotética», «N/D»→«[no disponible]», badges
+  «Paso N» en vez de `html_N` en el contexto, y leyenda siempre visible «Cómo leer este reporte».
+- **Skills de Descubrimiento:** sección «Vocabulario en el texto visible» en `persona-profile`,
+  `problem-solution-fit`, `day-in-the-life` y `discovery-survey`; etiquetas de `ficha-persona.md`
+  y `analisis-psf.md` en lenguaje claro (claves del JSON intactas: `pains`, `jtbd`, `psf`…).
+
+### 3. Medición de tokens + costo en dinero
+
+- **Bug:** `medir_tokens.py --proyecto` crasheaba con `UnicodeDecodeError` en Windows (leía stdout
+  de `estado_flujo.py` como UTF-8 cuando salía en cp1252). Arreglo: `PYTHONIOENCODING=utf-8`.
+- **`SKILL.md` § «¿Qué hacer al final de todo el flujo?»** ahora ejecuta `medir_tokens.py`.
+- **Precios y costo:** `scripts/precios_modelos.json` (catálogo curado con fuente y fecha) +
+  flags `--modelo` (costo por paso y total), `--precios` (catálogo) y `--precios --actualizar`
+  (chequeo de accesibilidad). Caducidad `validez_dias: 90`: avisa y hace fetch de accesibilidad,
+  **no** reescribe cifras (el refresco es manual, integridad de datos).
+
+### 4. Entradas del usuario y arranque intermedio
+
+- **`SKILL.md` § «Qué archivos puede adjuntar»:** solo texto e imágenes; audio/video requieren
+  transcripción externa y se orienta al usuario a convertir (gratis/pago).
+- **`SKILL.md` § «Empezar desde un paso intermedio»:** al saltar a un paso N se omiten los previos
+  y **se piden sus materiales** antes de ejecutar (si el usuario los aporta, son evidencia; si no,
+  supuestos `*`).
+
+### 5. Navegación entre los 11 HTML
+
+- **`scripts/generar_indice.py`** (nuevo): genera `index.html`, tablero con los 11 pasos, estado y
+  «Abrir reporte» por completado. Los enlaces del riel son relativos y funcionan en el navegador
+  con los HTML en la misma carpeta; en el preview embebido del gestor no (sin sistema de archivos).
+  El riel abre en pestaña nueva (`target="_blank"`). Documentado en `SKILL.md`, `README.md` y `AGENTS.md`.
+
+### 6. Bug `estado_flujo.py`
+
+- Crascaba en Windows al imprimir `→` (U+2192, no está en cp1252) en `decision`/`completar`.
+  Arreglo: `sys.stdout/stderr.reconfigure(encoding="utf-8")` al arrancar.
+
+### 7. Simulación completa de prueba — «EcoPack Circular»
+
+Recorrido de punta a punta en `output/ecopack-circular/` con supuestos (sin investigación real):
+11 pasos ejecutados, 8 decisiones registradas, 11 HTML + `index.html` + `STATE.md` + 11
+`reporte_html_N.json`. Verificado con Chrome headless: los 11 renderizan sin errores de JS, con el
+riel de 11 pasos, la marca **Datos simulados** propagada desde el paso 2 y el encabezado sin cortar.
+
 ## Hecho el 19/08/2026
 
 ### Simuladores de entrevistas y encuestas, integrados como sub-sub-skills

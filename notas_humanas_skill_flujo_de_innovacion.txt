@@ -2,7 +2,7 @@ Debuggeo generalista
 
 Debuggeo Viernes 21 de Agosto de 2026
 
------------------------------- LISTO --------------------------------------------------
+------------------------------ CAMBIOS LISTOS --------------------------------------------------
 ------------------------------ GEMINI 
 Script ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente 
@@ -66,11 +66,6 @@ Como contexto esto para el llenado de los html:
 - **Objetivo:** Explorar y prototipar envases bio-basados solubles en agua a partir de residuos agroindustriales (bagazo de agave) para la industria de cosméticos y e-commerce.
 - **Audiencia:** Marcas de cosmética natural D2C y operadores logísticos de última milla en Latinoamérica.
 
------------------------------- CLAUDE
-
------------------------------- POR HACER --------------------------------------------------
-
-Cambios exitosos si los 11 html resultantes están bien
 
 
 Todos estos cambios escríbelos como ya realizados dentro del to_do.md 
@@ -78,9 +73,17 @@ Gracias, es todo, descansa, ahora nos toca a claude y a mi chambear en otro aspe
 Eres el mejor DeepSeek!!! 
 
 
+------------------------------ CLAUDE
+
+
+
+
+
+------------------------------ POR HACER --------------------------------------------------
+
+
 
 ------ mega validación de flujo  ------------------- generar todo esto como un to-do quizás
-
 Pasos generales de la macro skills
 Necesito mejorar el flujo general de esta macro skill
 Antes de comenzar, tienes AGENTS.md y CLAUDE.md para poder tener contexto del proceso.
@@ -208,8 +211,7 @@ Estos cambios míos como de DeepSeek están en el to_do.md documentados
 
 En general, es revisar el flujo, hacer pruebas y listo, terminamos la macro general
 Actualizar los archivos .md necesarios en este caso 
-Evalúa si esto tarda más de 1 hora en ejecutarse, si es así, lo hacemos si no, 
-lo evaluamos como potenciales cambios para otro día y lo documentamos en to_do.md
+Evalúa y lo documentamos en to_do.md porque creo que no da en hora y media para terminar
 Gracias 
 
 ------------
