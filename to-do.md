@@ -1,5 +1,8 @@
 # To-do — 21/08/2026
 
+**Lo primero que hay que retomar: el pendiente 0** (revisión del flujo general). El script y
+`pasos.json` ya exigen el flujo corregido; la documentación todavía describe el anterior.
+
 **Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente
 
@@ -30,6 +33,95 @@ conda activate skills_env
 Nada está commiteado: los commits los lleva el usuario.
 
 ---
+
+### 0. Revisión del flujo general — EN CURSO, interrumpido el 21/08
+
+Objetivo: que el agente macro **no pueda** saltarse el flujo, no solo que esté escrito que no
+debe. El flujo descrito por el usuario (los 11 pasos con sus sub-opciones) se comparó contra
+`pasos.json` y aparecieron 8 huecos reales; los de estructura ya están corregidos y con barreras
+en el script. Lo que falta es propagarlo a la documentación y probarlo de punta a punta.
+
+**Ya hecho y verificado** (detalle en «Hecho el 21/08/2026 — §8 y §9»): `pasos.json`
+reestructurado y `scripts/estado_flujo.py` con las dos barreras nuevas + comando `verificar`.
+
+**Falta, en este orden:**
+
+1. **Terminar las pruebas del script.** Probado: bloqueo por decisión sin registrar, opción
+   inventada, nodo inventado, opción válida con otra tipografía (acepta y guarda el texto
+   canónico), dos opciones en un nodo `unica`, nodo `multiple` con `minimo`, herencia de la
+   marca de simulación y filtrado de simuladores por agente elegido. **Sin probar todavía:**
+   - `opciones_desde` en el paso 7: que `Apalancamiento` resuelva solo las palancas de la
+     ambición elegida y rechace una palanca de otra ambición.
+   - `solo_si` estructurado en el paso 11: que «Entrega de la landing page» y «Origen de la
+     página a analizar» aparezcan **solo** si se eligió su agente, y que no bloqueen el cierre
+     cuando no aplican.
+   - `permite_propuestas` en el paso 7: que una ambición propuesta por el agente se rechace sin
+     `--forzar` y con `--forzar` quede marcada como propuesta en `STATE.md` y en el histórico.
+   - `verificar` sobre un proyecto completo (debe salir sin hallazgos) y sobre uno cerrado con
+     `--forzar` (debe salir con exit 2 y nombrar el hueco).
+
+2. **`SKILL.md` — cuatro cosas que el flujo nuevo exige y el documento todavía no dice:**
+   - **La puerta entre pasos.** El usuario pidió un «¿quieres seguir con todo el proceso?»
+     explícito entre paso y paso. Hoy el ciclo ofrece ejecutar u omitir, pero no **parar**:
+     hay que añadir «pausar aquí» como tercera salida (el estado queda guardado y el proyecto
+     se retoma después) y decirlo al cerrar cada paso.
+   - **Preguntar antes de ejecutar en los pasos 3, 8 y 11.** Son los tres pasos con varios
+     agentes. La regla es: preguntar si quiere todos o algunos, con un mínimo de uno, **antes**
+     de ejecutar nada. Ya está en `pasos.json` (`minimo`, `ofrecer_todos`); falta la instrucción
+     en el ciclo del paso.
+   - **La contradicción de las propuestas del agente.** «Human-in-the-loop» dice hoy: opciones
+     de `pasos.json` «sin reescribirlas ni añadir opciones nuevas». El usuario pidió lo
+     contrario para el paso 7: el agente **puede** proponer ambiciones extra, marcadas como
+     propuesta y sin quitar las 5 oficiales. Hay que reescribir esa regla: prohibido quitar,
+     renombrar, fusionar o reordenar; permitido **añadir** solo donde `pasos.json` lo declare
+     con `permite_propuestas`, y registrándolo con `--forzar`.
+   - **Los comandos nuevos.** `--opcion` repetido para los nodos `multiple`, la barrera de
+     `completar` y `verificar` al final del flujo.
+
+3. **`AGENTS.md` (y su copia `CLAUDE.md`) §6.** Los «tres invariantes» son cuatro: falta
+   *las decisiones del usuario se registran o el paso no cierra*. Y §8 necesita la fila de
+   `verificar`.
+
+4. **Las vistas derivadas de `pasos.json`.** `flujo_agentes.md` y `flujo_mermaid.md` describen
+   el flujo viejo: la selección de agentes de descubrimiento colgando del paso 2, la de ideación
+   colgando del paso 7, el nodo «Simular o no» que ya no existe y el paso 11 sin sus dos
+   sub-decisiones. Están declaradas como vistas de `pasos.json`, así que hoy mienten.
+   `README.md` necesita el comando `verificar` en su tabla.
+
+5. **Las sub-skills que tocan los nodos movidos.**
+   - `3.Ideacion/how-might-we/references/matriz-ambicion-palancas.md`: la palanca se llama ahora
+     **«Inteligencia artificial»**, no «IA» (regla de no abreviar), y el glosario nuevo de
+     `pasos.json` explica «Ecosistema» y las otras seis palancas que no se entienden solas.
+     Hay que alinear la referencia con el catálogo.
+   - `4.Prototipado/landing-page`: tiene que leer «Entrega de la landing page» y respetar las dos
+     salidas (HTML demo o solo el guion para una herramienta externa). Hoy no distingue.
+   - `4.Prototipado/landing-ux-analyzer`: tiene que exigir el material antes de arrancar (enlace
+     público, archivo HTML, capturas o la landing recién generada) y decir qué **no** evalúa en
+     cada caso.
+   - `2.Descubrimiento/entrevistas-empatia` y las 4 de descubrimiento: revisar si su `AGENTE.md`
+     menciona los nodos que se movieron o el desaparecido «Simular o no».
+
+6. **Compatibilidad de los proyectos ya recorridos.** `output/ecopack-circular` y
+   `output/huertos-urbanos-mx` tienen decisiones registradas con nombres de nodo que ya no
+   existen («Simular o no», «Selección de agentes», «Elección de protopersona»). `verificar` los
+   marcará como decisiones que el flujo ignora — **correcto y esperado**, son recorridos de
+   prueba anteriores al cambio. Decidir si se re-corren o se dejan como histórico; no editarlos
+   a mano.
+
+7. **Estreno de punta a punta con las barreras puestas.** El recorrido de «EcoPack Circular» es
+   anterior a este cambio, así que no probó ninguna barrera. Hace falta un proyecto nuevo que
+   pase por los 11 pasos, con los tres pasos de selección múltiple y las dos sub-decisiones del
+   paso 11, y que cierre con `verificar` sin hallazgos. Es también la prueba de que las barreras
+   **no estorban** en un recorrido bien hecho: si aparecen avisos en un flujo correcto, el umbral
+   está mal puesto.
+
+8. **Reempaquetar el ZIP** al final, con los guardias de siempre (un solo `SKILL.md`, 0 barras
+   invertidas, rutas seguras).
+
+9. **Revisar el render del histórico en el HTML.** Los reportes pintan `flujo.decisiones`. Una
+   decisión múltiple ahora llega como «A + B» (igual que antes, compatible) pero una propuesta
+   del agente lleva `propuesta_agente: true` y el HTML no lo distingue de una opción oficial.
+   Decidir si se marca en el reporte —debería, es la única opción que no salió del catálogo.
 
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
@@ -158,6 +250,83 @@ uso real es lo único que dice si el umbral es el correcto.
 
 - Crascaba en Windows al imprimir `→` (U+2192, no está en cp1252) en `decision`/`completar`.
   Arreglo: `sys.stdout/stderr.reconfigure(encoding="utf-8")` al arrancar.
+
+### 8. El flujo descrito por el usuario contra `pasos.json` — 8 huecos, corregidos
+
+Se comparó el flujo de 11 pasos tal como lo describió el usuario contra la definición real. Lo
+que faltaba o estaba mal colocado:
+
+| Hueco | Qué pasaba | Corrección |
+| --- | --- | --- |
+| Selección de agentes de descubrimiento | Colgaba del paso 2, no del 3: el agente preguntaba «cuáles ejecuto» un paso antes de ejecutarlos | Movida al paso 3, con `minimo: 1` y `ofrecer_todos` |
+| Selección de agentes de ideación | Igual: colgaba del paso 7 | Movida al paso 8, con `minimo: 1` |
+| Dos nodos que se contradecían | El paso 2 preguntaba «¿entrevistas sí o no?» y después «¿simular o no?», y se podía elegir «No — simulación» y luego «No simular» | Un solo nodo con 3 opciones excluyentes: reales / simuladas / solo el guion |
+| Paso 5 sin la tercera opción | Solo «problema más grande» y «tamaño de mercado» | Añadida «Por otro criterio que recomiende el agente» (`requiere_propuesta`) |
+| «IA» como palanca | Abreviatura, contra la regla de no abreviar | «Inteligencia artificial», con las cuatro preguntas que hay que responder para que la palanca sea real y no una etiqueta de moda |
+| «Ecosistema» sin explicar | El usuario pidió explícitamente explicarlo | `glosario` nuevo en el nodo de palancas: las 7 palancas que no se entienden solas, explicadas |
+| Paso 11 sin sub-decisiones | No se preguntaba si la landing es demo o guion, ni de dónde sale la página a analizar | Dos nodos con `solo_si` estructurado, que aparecen solo si se eligió su agente |
+| Ninguna selección múltiple tenía mínimo | Se podía «elegir» cero agentes y cerrar el paso igual | `minimo: 1` en los pasos 3, 8 y 11 |
+
+Además, `pasos.json` gana un bloque `convenciones_decisiones` que documenta qué significa cada
+campo de un nodo (`minimo`, `ofrecer_todos`, `glosario`, `solo_si`, `permite_propuestas`,
+`requiere_propuesta`, `efecto`, `agente`) y quién lo hace cumplir.
+
+### 9. Barreras en `estado_flujo.py`: el flujo se hace cumplir, no solo se describe
+
+La causa de que el agente macro se saltara el flujo era estructural: **nada comprobaba nada**.
+`decision` aceptaba cualquier texto como nodo y como opción, y `completar` cerraba un paso sin
+mirar si sus decisiones existían. La prosa de `SKILL.md` era la única defensa, y un documento no
+puede impedir nada.
+
+- **`decision` valida contra el catálogo.** Rechaza (exit 2) un nodo que no esté en el paso, una
+  opción que no esté en su lista, dos opciones en un nodo `unica` y menos opciones que el
+  `minimo`. Los mensajes listan lo válido, así que el error se corrige en el mismo turno.
+- **La comparación es tolerante con la tipografía y estricta con el contenido:** sin acentos, sin
+  mayúsculas y con cualquier guion largo reducido a `-`. «No - simulacion» entra como
+  «No — simulación de respuestas e insights», y **se guarda el texto canónico de `pasos.json`**,
+  no el que escribió el agente. Así el histórico no se llena de variantes del mismo valor.
+- **Nodos `multiple` de verdad.** `--opcion` se repite (`--opcion A --opcion B`) y se guarda
+  `opciones: [...]`. `opcion` sigue siendo el texto plano de antes, así que los proyectos ya
+  empezados, `STATE.md` y el bloque `flujo` del HTML no se enteran del cambio.
+- **`completar` se niega a cerrar un paso con decisiones sin registrar.** Es la barrera que
+  ataca el fallo real: ejecutar las sub-skills eligiendo por el usuario y cerrar como si él
+  hubiera decidido. `--forzar` cierra igual y lo anota en el histórico
+  (`decisiones_sin_registrar`), que es lo que después detecta `verificar`.
+- **`mostrar` ya no obliga a cruzar dos listas.** Cada nodo sale marcado `RESPONDIDA → «x»`,
+  `PENDIENTE` o `no aplica por ahora`, con su `efecto`, su glosario, su mínimo y una línea
+  `BARRERA` al final con lo que impide cerrar. Las sub-skills salen marcadas
+  `[ELEGIDA por el usuario]` o `(no elegida: no la ejecutes)`, y con la simulación activa solo
+  se listan los simuladores de los agentes elegidos.
+- **`solo_si` y `opciones_desde` se evalúan.** `solo_si` estructurado (`{nodo, opcion}` o
+  `{nodo, incluye}`) decide si el nodo aplica; en texto libre no se puede evaluar, así que se da
+  por aplicable y **no** bloquea —una condición que el script no entiende no puede detener el
+  flujo—. `opciones_desde` resuelve las palancas de la ambición elegida.
+- **`verificar` (comando nuevo).** Audita el proyecto contra `pasos.json` y responde una sola
+  pregunta: qué se cerró sin preguntar lo que había que preguntar. Detecta pasos cerrados sin
+  decisión, sin resumen, sin `--datos` o sin entrega; omisiones sin motivo; predecesores saltados
+  con `--forzar`; y decisiones cuyo nodo no existe en el flujo. Exit 2 si encuentra algo.
+
+**Verificado:** `py_compile` limpio; `pasos.json` válido con los 11 pasos y 14 nodos; los 5 casos
+de bloqueo (decisión sin registrar, opción inventada, nodo inventado, dos opciones en un `unica`,
+mínimo incumplido) devuelven exit 2 con el mensaje correcto; una opción escrita sin acentos ni
+mayúsculas se acepta y se guarda canónica; un nodo `multiple` con dos opciones se registra y
+recuerda lo que queda pendiente; la marca de simulación del paso 2 se hereda al 3 y filtra los
+simuladores a los 2 agentes elegidos de 4.
+
+**No verificado todavía:** lo que queda en el pendiente 0 (palancas del paso 7, sub-decisiones del
+paso 11, propuestas con `--forzar`, `verificar` sobre un proyecto completo).
+
+**Archivos tocados:** `pasos.json` (11 pasos + bloque `convenciones_decisiones`) ·
+`scripts/estado_flujo.py` (`_norm`, `_elegidas`, `decision_registrada`, `buscar_nodo`,
+`opciones_declaradas`, `nodo_aplica`, `decisiones_sin_resolver`, `_revisar_decisiones`,
+`cmd_verificar`, `cmd_decision` reescrito, `cmd_mostrar` ampliado, `detectar_simulacion` y
+`render_state_md` retocados, CLI con `--opcion` repetible y `--forzar` en `decision`).
+
+**Sin tocar todavía** (es el pendiente 0): `SKILL.md`, `AGENTS.md`/`CLAUDE.md`,
+`flujo_agentes.md`, `flujo_mermaid.md`, `README.md` y las sub-skills afectadas. **El repo está
+en un estado intermedio:** el script y `pasos.json` ya exigen el flujo nuevo, pero la
+documentación describe el viejo. Es coherente para ejecutar —las barreras guían con sus propios
+mensajes— e incoherente para leer.
 
 ### 7. Simulación completa de prueba — «EcoPack Circular»
 

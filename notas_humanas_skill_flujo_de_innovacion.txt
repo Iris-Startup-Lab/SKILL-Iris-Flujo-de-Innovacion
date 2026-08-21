@@ -80,9 +80,6 @@ Eres el mejor DeepSeek!!!
 
 
 ------------------------------ POR HACER --------------------------------------------------
-
-
-
 ------ mega validación de flujo  ------------------- generar todo esto como un to-do quizás
 Pasos generales de la macro skills
 Necesito mejorar el flujo general de esta macro skill

@@ -4,6 +4,23 @@
   "descripcion": "Fuente única de verdad del flujo IRIS. La macro-skill lee este archivo para saber, en cada paso: qué sub-skills invocar (ruta exacta), qué decisiones presentar al usuario, de qué pasos depende y qué pasa si se omite. Ningún otro documento define el flujo: flujo_agentes.md, flujo_mermaid.md y README.md son vistas de este archivo.",
   "ruta_minima": ["html_1", "html_4", "html_7", "html_8", "html_11"],
   "estados_validos": ["pendiente", "en_curso", "completado", "omitido", "fallido"],
+  "convenciones_decisiones": {
+    "_": "Qué significa cada campo de un nodo de decisión. `scripts/estado_flujo.py` los hace cumplir: `decision` rechaza una opción que no esté aquí y `completar` se niega a cerrar un paso con nodos sin responder. `--forzar` es el único escape y deja rastro en el histórico.",
+    "nodo": "Texto exacto de la pregunta. Es la clave con la que se registra la decisión: no se reescribe ni se traduce.",
+    "tipo": "`unica` = una sola opción. `multiple` = varias a la vez; se registran todas en el mismo comando (`--opcion A --opcion B`).",
+    "minimo": "Mínimo de opciones que hay que elegir en un nodo `multiple`. Si está en 1, seguir sin elegir ninguna no es una opción válida: hay que elegir o omitir el paso entero.",
+    "ofrecer_todos": "Ofrece explícitamente «todos» como atajo, además de la lista. Pregunta siempre antes de ejecutar: nunca ejecutes los agentes de un paso sin preguntar cuáles.",
+    "descripcion": "Instrucción para el agente sobre cómo presentar el nodo. No se le lee al usuario tal cual.",
+    "efecto": "Qué implica elegir esa opción, en lenguaje de usuario. Es lo que se le dice cuando pregunta «¿y si elijo esta?».",
+    "agente": "Nombre presentable del agente que ejecuta la opción. Se le muestra al usuario; la ruta de `skills` nunca.",
+    "glosario": "Términos del nodo que hay que explicar la primera vez que aparecen. Si una opción está en el glosario, se explica al presentarla, no solo si preguntan.",
+    "solo_si": "Condición para que el nodo aplique. En forma estructurada `{nodo, opcion}` o `{nodo, incluye}` la comprueba el script; en texto libre la interpreta el agente y el script no bloquea por ella.",
+    "auto_si": "Si se cumple la condición, la opción está decidida por el propio flujo: infórmasela al usuario, no la preguntes. Hay que registrarla igual.",
+    "opciones_desde": "Las opciones no están en este archivo: salen del nodo anterior (`Ambición estratégica.palancas`) o del contenido que produjo el paso (las ideas del paso 8). El script no valida el texto de esas opciones.",
+    "requiere_propuesta": "La opción existe pero su contenido lo propone el agente; hay que explicarlo y que el usuario lo apruebe antes de seguir.",
+    "permite_propuestas": "El agente puede AÑADIR opciones al catálogo, nunca quitar, renombrar ni reordenar las declaradas. Las propuestas se marcan como tales y se registran con `--forzar`.",
+    "marca_simulacion": "Elegir esa opción enciende la marca de datos simulados en todo el proyecto, de este paso en adelante."
+  },
   "pasos": [
     {
       "id": "html_1",
@@ -20,11 +37,12 @@
         {
           "nodo": "¿Cómo quieres iniciar?",
           "tipo": "unica",
+          "descripcion": "Primera pregunta del flujo, después de presentarte. Nombra el agente de cada opción y di en una línea qué entrega, porque el usuario no sabe todavía qué diferencia a uno de otro.",
           "opciones": [
-            { "opcion": "Estado actual", "skills": ["1.Investigacion/benchmark-mercado"] },
-            { "opcion": "Futuros", "skills": ["1.Investigacion/foresight"] },
-            { "opcion": "Señales débiles de usuarios actuales", "skills": ["1.Investigacion/senales-debiles"] },
-            { "opcion": "Opiniones y comentarios", "skills": ["1.Investigacion/discussion-forums", "1.Investigacion/search-trend-analysis"] }
+            { "opcion": "Estado actual", "agente": "Benchmark de Mercado", "efecto": "Retrata el mercado tal como está hoy: tamaño, jugadores y su oferta.", "skills": ["1.Investigacion/benchmark-mercado"] },
+            { "opcion": "Futuros", "agente": "Foresight", "efecto": "Proyecta escenarios y tendencias hacia dónde puede moverse el mercado.", "skills": ["1.Investigacion/foresight"] },
+            { "opcion": "Señales débiles de usuarios actuales", "agente": "Señales Débiles", "efecto": "Busca en tus propios datos de clientes los indicios tempranos que nadie ha nombrado.", "skills": ["1.Investigacion/senales-debiles"] },
+            { "opcion": "Opiniones y comentarios", "agente": "Discussion Forums → Search Trend Analysis", "efecto": "Lee conversaciones reales en foros y redes, y después mide en búsquedas si ese interés crece o se apaga. Son dos agentes, en ese orden obligatorio.", "skills": ["1.Investigacion/discussion-forums", "1.Investigacion/search-trend-analysis"] }
           ]
         }
       ],
@@ -53,29 +71,11 @@
         {
           "nodo": "¿Ejecución de entrevistas?",
           "tipo": "unica",
+          "descripcion": "Pregunta primero si quiere ejecutar el agente Entrevistas de Empatía y de dónde saldrán las respuestas. Las tres opciones son excluyentes: no preguntes dos veces por lo mismo.",
           "opciones": [
-            { "opcion": "Sí — respuestas e insights reales", "efecto": "Los insights posteriores usan data real del usuario." },
-            { "opcion": "No — simulación de respuestas e insights", "efecto": "Los insights se simulan y quedan etiquetados como SIMULADO en todo reporte posterior.", "marca_simulacion": true }
-          ]
-        },
-        {
-          "nodo": "Simular o no",
-          "tipo": "unica",
-          "solo_si": "¿Ejecución de entrevistas? = No",
-          "opciones": [
-            { "opcion": "Simular respuestas", "efecto": "Se generan respuestas sintéticas etiquetadas SIMULADO.", "marca_simulacion": true, "skills": ["2.Descubrimiento/entrevistas-empatia/simulador"] },
-            { "opcion": "No simular", "efecto": "Se continúa solo con el guion de entrevista, sin respuestas." }
-          ]
-        },
-        {
-          "nodo": "Selección de agentes",
-          "tipo": "multiple",
-          "descripcion": "Elige cuáles de los 4 agentes de descubrimiento (html_3) se ejecutan.",
-          "opciones": [
-            { "opcion": "A Day In The Life", "skills": ["2.Descubrimiento/day-in-the-life"] },
-            { "opcion": "Encuesta Kano", "skills": ["2.Descubrimiento/encuesta-kano"] },
-            { "opcion": "Discovery Survey", "skills": ["2.Descubrimiento/discovery-survey"] },
-            { "opcion": "Expo Quest", "skills": ["2.Descubrimiento/expo-quest"] }
+            { "opcion": "Sí — respuestas e insights reales", "efecto": "El usuario aporta las entrevistas (transcripciones, notas o audio ya transcrito). Todo lo que venga después se apoya en evidencia real.", "skills": ["2.Descubrimiento/entrevistas-empatia"] },
+            { "opcion": "No — simulación de respuestas e insights", "efecto": "No hay a quién entrevistar todavía: las respuestas las fabrica el simulador a partir de supuestos que se escriben con el usuario. Quedan marcadas como SIMULADO en este reporte y en todos los siguientes.", "marca_simulacion": true, "skills": ["2.Descubrimiento/entrevistas-empatia", "2.Descubrimiento/entrevistas-empatia/simulador"] },
+            { "opcion": "No — solo el guion, sin respuestas todavía", "efecto": "Se entrega el guion de entrevista listo para usar, sin respuestas. Los pasos siguientes trabajan con supuestos hasta que el usuario traiga las entrevistas hechas.", "skills": ["2.Descubrimiento/entrevistas-empatia"] }
           ]
         }
       ],
@@ -96,7 +96,34 @@
       "en_ruta_minima": false,
       "omitible": true,
       "si_omitido": "No hay evidencia de campo. La ficha de persona y el mapa del recorrido se construyen sobre la investigación inicial y sobre supuestos, que quedan señalados como tales en el reporte.",
-      "decisiones": [],
+      "decisiones": [
+        {
+          "nodo": "Selección de agentes de descubrimiento",
+          "tipo": "multiple",
+          "minimo": 1,
+          "ofrecer_todos": true,
+          "descripcion": "Pregunta ANTES de ejecutar nada: ¿quiere los cuatro agentes o solo alguno? Hay que elegir al menos uno; si elige varios se ejecutan en paralelo y se consolidan en un solo reporte. Explica en una línea qué hace cada uno: son nombres que no dicen nada por sí solos.",
+          "opciones": [
+            { "opcion": "A Day In The Life", "efecto": "Observa un día completo del usuario para ver dónde pierde tiempo y qué apaños se inventa.", "skills": ["2.Descubrimiento/day-in-the-life"] },
+            { "opcion": "Encuesta Kano", "efecto": "Mide qué características se dan por sentadas, cuáles entusiasman y cuáles sobran.", "skills": ["2.Descubrimiento/encuesta-kano"] },
+            { "opcion": "Discovery Survey", "efecto": "Encuesta de descubrimiento para medir con cuánta gente se repite el problema.", "skills": ["2.Descubrimiento/discovery-survey"] },
+            { "opcion": "Expo Quest", "efecto": "Aprovecha una feria o evento del sector para hablar con clientes y competidores en un mismo día.", "skills": ["2.Descubrimiento/expo-quest"] }
+          ]
+        },
+        {
+          "nodo": "Origen de las respuestas de descubrimiento",
+          "tipo": "unica",
+          "descripcion": "Solo si el usuario no trae los datos de campo hechos. Se hereda del paso 2 cuando ahí ya se decidió simular: no vuelvas a preguntarlo, infórmalo.",
+          "auto_si": {
+            "condicion": "en html_2 se eligió «No — simulación de respuestas e insights»",
+            "opcion": "Simular las respuestas con los simuladores del flujo"
+          },
+          "opciones": [
+            { "opcion": "Datos reales aportados por el usuario", "efecto": "El usuario adjunta las respuestas o las capturas; se analizan tal cual." },
+            { "opcion": "Simular las respuestas con los simuladores del flujo", "efecto": "Cada agente elegido usa su simulador: se escribe un plan de supuestos, el script genera el archivo de respuestas y el análisis corre igual que con datos reales. Todo queda marcado como SIMULADO.", "marca_simulacion": true }
+          ]
+        }
+      ],
       "skills_posibles": [
         "2.Descubrimiento/day-in-the-life",
         "2.Descubrimiento/encuesta-kano",
@@ -127,12 +154,13 @@
         {
           "nodo": "¿Hay datos reales de entrevistas / encuestas?",
           "tipo": "unica",
+          "descripcion": "Antes de dar la ficha por supuesta, pregunta si el usuario tiene material que no haya pasado por el flujo (entrevistas viejas, encuestas de otro proyecto, notas de ventas). Si no tiene nada y quiere evidencia, ofrécele volver al paso 2 o 3 y simularla: es reversible y deja los supuestos por escrito.",
           "opciones": [
-            { "opcion": "Sí — generación de profiles con data real", "efecto": "Persona construida con evidencia trazable." },
-            { "opcion": "No — generación de profiles a base de supuestos", "efecto": "Persona etiquetada SUPUESTOS; todos sus atributos llevan *." }
+            { "opcion": "Sí — generación de profiles con data real", "efecto": "La ficha se construye con evidencia que se puede rastrear hasta su origen." },
+            { "opcion": "No — generación de profiles a base de supuestos", "efecto": "La ficha se construye con supuestos del equipo. Cada atributo queda marcado con * para distinguirlo de un dato respaldado, y el reporte lo declara." }
           ],
           "auto_si": {
-            "condicion": "html_2 u html_3 con estado omitido",
+            "condicion": "html_2 u html_3 omitidos, o en html_2 se eligió «No — solo el guion, sin respuestas todavía»",
             "opcion": "No — generación de profiles a base de supuestos"
           }
         }
@@ -155,9 +183,11 @@
         {
           "nodo": "Elección de la ficha de persona",
           "tipo": "unica",
+          "descripcion": "Si el paso 4 produjo más de una ficha de persona, hay que elegir sobre cuál se trabaja el encaje problema-solución. Di con qué criterio se prioriza, no solo el nombre del criterio.",
           "opciones": [
-            { "opcion": "Por problema más grande", "efecto": "Se prioriza la persona con el dolor más intenso." },
-            { "opcion": "Por mayor tamaño en mercado", "efecto": "Se prioriza la persona con mayor volumen potencial." }
+            { "opcion": "Por problema más grande", "efecto": "Se prioriza la persona con el dolor más intenso, aunque su mercado sea pequeño." },
+            { "opcion": "Por mayor tamaño en mercado", "efecto": "Se prioriza la persona con mayor volumen potencial, aunque su dolor sea menos agudo." },
+            { "opcion": "Por otro criterio que recomiende el agente", "efecto": "El agente propone el criterio a partir de la evidencia del proyecto (por ejemplo: facilidad de alcanzar a esa persona, disposición a pagar, encaje con el negocio actual), lo explica y el usuario lo aprueba antes de seguir.", "requiere_propuesta": true }
           ]
         }
       ],
@@ -194,29 +224,34 @@
         {
           "nodo": "Ambición estratégica",
           "tipo": "unica",
+          "descripcion": "Las 5 ambiciones son el catálogo oficial del flujo y se muestran las 5 siempre, en este orden. El agente puede añadir una propuesta propia si el proyecto la pide, pero AÑADIENDO: nunca sustituye ni esconde ninguna de las 5 (ver `permite_propuestas`).",
+          "permite_propuestas": {
+            "permitido": true,
+            "regla": "Solo se añaden opciones al final, marcadas «propuesta del agente, no forma parte del catálogo original», y con una línea que explique por qué encaja en este proyecto. Si el usuario elige una propuesta, se registra con --forzar y queda anotada como tal en el histórico y en el reporte.",
+            "prohibido": "Quitar, renombrar, fusionar o reordenar las 5 ambiciones y sus palancas."
+          },
           "opciones": [
-            { "opcion": "Optimizar Negocio Actual", "palancas": ["Reducir Costos", "Productividad"] },
-            { "opcion": "Crecer Negocio Actual", "palancas": ["Nuevos clientes", "Mayor frecuencia", "Mayor ticket", "Recuperación", "Participación de mercado"] },
-            { "opcion": "Expandir Negocio", "palancas": ["Ampliar mercado", "Nuevos casos de uso", "Ecosistema"] },
-            { "opcion": "Crear Nuevos Negocios", "palancas": ["Nuevo producto", "Nuevo modelo de negocio"] },
-            { "opcion": "Reinventar el Futuro", "palancas": ["Disrupción", "Nuevas categorías", "IA"] }
+            { "opcion": "Optimizar Negocio Actual", "efecto": "Hacer mejor lo que ya haces: que lo mismo cueste menos o salga más rápido.", "palancas": ["Reducir Costos", "Productividad"] },
+            { "opcion": "Crecer Negocio Actual", "efecto": "Vender más de lo mismo: más clientes, que compren más veces o que gasten más.", "palancas": ["Nuevos clientes", "Mayor frecuencia", "Mayor ticket", "Recuperación", "Participación de mercado"] },
+            { "opcion": "Expandir Negocio", "efecto": "Llevar lo que ya tienes a un territorio nuevo: otro mercado, otro uso u otros socios.", "palancas": ["Ampliar mercado", "Nuevos casos de uso", "Ecosistema"] },
+            { "opcion": "Crear Nuevos Negocios", "efecto": "Construir algo que hoy no existe en la empresa: otro producto u otra forma de cobrar.", "palancas": ["Nuevo producto", "Nuevo modelo de negocio"] },
+            { "opcion": "Reinventar el Futuro", "efecto": "Cambiar las reglas del sector en vez de competir con las actuales.", "palancas": ["Disrupción", "Nuevas categorías", "Inteligencia artificial"] }
           ]
         },
         {
           "nodo": "Apalancamiento",
           "tipo": "unica",
-          "descripcion": "Mostrar SOLO las palancas de la ambición elegida (campo `palancas` del nodo anterior).",
-          "opciones_desde": "Ambición estratégica.palancas"
-        },
-        {
-          "nodo": "Selección de agentes de ideación",
-          "tipo": "multiple",
-          "descripcion": "Elige cuáles de los 3 agentes de ideación (html_8) se ejecutan.",
-          "opciones": [
-            { "opcion": "Ideación", "skills": ["3.Ideacion/ideacion"] },
-            { "opcion": "Caressing the client", "skills": ["3.Ideacion/caressing-client"] },
-            { "opcion": "Referral Builder", "skills": ["3.Ideacion/referral-builder"] }
-          ]
+          "descripcion": "Muestra SOLO las palancas de la ambición elegida (campo `palancas` del nodo anterior), nunca las 17 juntas. Explica cada una en una línea antes de que el usuario elija.",
+          "opciones_desde": "Ambición estratégica.palancas",
+          "glosario": {
+            "Recuperación": "Volver a activar clientes que te compraban y dejaron de hacerlo.",
+            "Participación de mercado": "Ganar terreno a la competencia dentro del mismo mercado, sin agrandarlo.",
+            "Ecosistema": "Dejar de vender solo tu producto y montar una plataforma donde otros —proveedores, socios, desarrolladores, incluso competidores— ofrezcan lo suyo junto a lo tuyo. Tú ganas por facilitar esos intercambios: comisión, suscripción o el valor de los datos que se generan. Ejemplo: pasar de vender un producto a operar el mercado donde se venden varios.",
+            "Nuevos casos de uso": "Usar lo que ya tienes para resolver un problema distinto, con la misma capacidad.",
+            "Disrupción": "Atacar el mercado con una propuesta más simple o más barata que la actual, aunque canibalice lo que ya vendes.",
+            "Nuevas categorías": "Crear un tipo de producto que hoy no existe y que todavía no tiene nombre en el mercado.",
+            "Inteligencia artificial": "Usar inteligencia artificial como el motor del negocio, no como un adorno. Al elegir esta palanca hay que responder DÓNDE y CÓMO se usa: qué decisión concreta automatiza o mejora, con qué datos se alimenta, qué pasa cuando se equivoca y por qué esa capacidad es difícil de copiar. Si no hay respuesta a esas cuatro, la palanca no es Inteligencia artificial: es otra con una etiqueta de moda encima."
+          }
         }
       ],
       "skills_posibles": ["3.Ideacion/how-might-we"],
@@ -236,9 +271,23 @@
       "razon_no_omitible": "Es el paso que produce las ideas. Sin ideas no hay nada que dimensionar, modelar ni validar.",
       "decisiones": [
         {
+          "nodo": "Selección de agentes de ideación",
+          "tipo": "multiple",
+          "minimo": 1,
+          "ofrecer_todos": true,
+          "descripcion": "Pregunta ANTES de ejecutar nada: ¿quiere los tres agentes o solo alguno? Hay que elegir al menos uno; si elige varios se ejecutan en paralelo y se consolidan en un solo reporte. Los tres trabajan sobre el mismo reto creativo del paso 7.",
+          "opciones": [
+            { "opcion": "Ideación", "efecto": "Genera un abanico amplio de ideas contra el reto creativo y las puntúa.", "skills": ["3.Ideacion/ideacion"] },
+            { "opcion": "Caressing the client", "efecto": "Busca ideas en los momentos de la relación con el cliente: cómo hacer que cada contacto se sienta mejor.", "skills": ["3.Ideacion/caressing-client"] },
+            { "opcion": "Referral Builder", "efecto": "Busca ideas para que los propios clientes traigan a los siguientes: recomendación y boca a boca.", "skills": ["3.Ideacion/referral-builder"] }
+          ]
+        },
+        {
           "nodo": "Selección de ideas",
           "tipo": "multiple",
-          "descripcion": "El usuario elige qué ideas pasan a dimensionamiento y validación."
+          "minimo": 1,
+          "descripcion": "Después de generar las ideas, el usuario elige cuáles pasan a dimensionamiento y validación. Las opciones son las ideas que salieron de este paso, así que no están en este archivo: preséntalas con su nombre y su puntaje y registra las elegidas.",
+          "opciones_desde": "las ideas generadas en este paso"
         }
       ],
       "skills_posibles": [
@@ -295,14 +344,39 @@
         {
           "nodo": "Selección de agente para validar",
           "tipo": "multiple",
+          "minimo": 1,
+          "ofrecer_todos": true,
+          "descripcion": "Pregunta ANTES de ejecutar nada: ¿quiere los siete experimentos o solo alguno? Hay que elegir al menos uno. Si el paso 10 recomendó un experimento, dilo al presentar las opciones, pero la elección sigue siendo del usuario.",
           "opciones": [
-            { "opcion": "Simple Landing Page", "skills": ["4.Prototipado/landing-page"] },
-            { "opcion": "Landing Page UX Analyzer", "skills": ["4.Prototipado/landing-ux-analyzer"] },
-            { "opcion": "Online Ads", "skills": ["5.Validacion/online-ads"] },
-            { "opcion": "Email Campaign", "skills": ["5.Validacion/email-campaign"] },
-            { "opcion": "Explainer Video", "skills": ["5.Validacion/explainer-video"] },
-            { "opcion": "Pop-Up Store", "skills": ["5.Validacion/popup-store"] },
-            { "opcion": "Feature Stub", "skills": ["5.Validacion/feature-stub"] }
+            { "opcion": "Simple Landing Page", "efecto": "Una página de aterrizaje que mide si alguien deja su correo por la promesa.", "skills": ["4.Prototipado/landing-page"] },
+            { "opcion": "Landing Page UX Analyzer", "efecto": "Analiza una página que ya existe y señala qué le impide convertir.", "skills": ["4.Prototipado/landing-ux-analyzer"] },
+            { "opcion": "Online Ads", "efecto": "Anuncios pagados para medir si el mensaje interesa a desconocidos.", "skills": ["5.Validacion/online-ads"] },
+            { "opcion": "Email Campaign", "efecto": "Correos a una lista propia para medir interés sin gastar en medios.", "skills": ["5.Validacion/email-campaign"] },
+            { "opcion": "Explainer Video", "efecto": "Un video corto que explica la propuesta y mide si se entiende y engancha.", "skills": ["5.Validacion/explainer-video"] },
+            { "opcion": "Pop-Up Store", "efecto": "Una presencia física temporal para vender cara a cara y ver reacciones.", "skills": ["5.Validacion/popup-store"] },
+            { "opcion": "Feature Stub", "efecto": "Un botón de una función que aún no existe, para contar cuánta gente la busca.", "skills": ["5.Validacion/feature-stub"] }
+          ]
+        },
+        {
+          "nodo": "Entrega de la landing page",
+          "tipo": "unica",
+          "solo_si": { "nodo": "Selección de agente para validar", "incluye": "Simple Landing Page" },
+          "descripcion": "Antes de ejecutar el agente Simple Landing Page hay que saber qué espera recibir el usuario: la página construida o las instrucciones para construirla él.",
+          "opciones": [
+            { "opcion": "La landing page como demo, construida con el contexto del flujo", "efecto": "El agente entrega un archivo HTML autocontenido, listo para abrir y publicar, escrito con la persona, el problema y la propuesta que salieron de los pasos anteriores." },
+            { "opcion": "Solo los pasos para construirla en una herramienta externa", "efecto": "El agente entrega el guion —titular, textos, estructura, llamada a la acción y qué medir— para que el usuario lo arme en la herramienta que ya use (Webflow, Framer, WordPress, Unbounce…). No se genera código." }
+          ]
+        },
+        {
+          "nodo": "Origen de la página a analizar",
+          "tipo": "unica",
+          "solo_si": { "nodo": "Selección de agente para validar", "incluye": "Landing Page UX Analyzer" },
+          "descripcion": "Este agente analiza una página que ya existe, así que necesita el material antes de arrancar. Pide una de las tres formas y no continúes sin ella: sin página no hay nada que analizar.",
+          "opciones": [
+            { "opcion": "Un enlace público", "efecto": "El usuario pega la dirección de una página accesible sin contraseña. Si está detrás de un acceso restringido, no se puede leer: pide capturas." },
+            { "opcion": "Un archivo HTML", "efecto": "El usuario adjunta el archivo de la página. Se analiza el contenido y la estructura tal como están escritos." },
+            { "opcion": "Capturas de pantalla", "efecto": "El usuario adjunta imágenes de la página completa (encabezado, cuerpo y cierre). Se analiza lo que se ve; lo que quede fuera de la captura no se evalúa." },
+            { "opcion": "La landing page recién generada en este mismo paso", "efecto": "Si también se eligió Simple Landing Page con entrega de demo, se analiza esa. Es la revisión de la propia propuesta, no de una página en producción." }
           ]
         }
       ],

@@ -36,6 +36,17 @@ sigue abierto (pendiente / en curso) y **bloquean** si ese predecesor no es
 omitible, con `--forzar` como escape. Cerrar un paso omitiéndolo o marcándolo
 fallido no depende de sus predecesores: no consume su input.
 
+Las dos barreras que hacen cumplir el flujo, no solo describirlo:
+
+- `decision` **rechaza** un nodo que no esté en `pasos.json` y una opción que no
+  esté en su catálogo, y exige el `minimo` de los nodos `multiple`. En un nodo
+  `multiple` se repite `--opcion` una vez por elección.
+- `completar` **se niega** a cerrar un paso con nodos de decisión sin responder:
+  si el paso pregunta algo, ese algo lo decide el usuario. `--forzar` cierra igual
+  y lo deja anotado en el histórico.
+
+    python scripts/estado_flujo.py verificar     # ¿se respetó el flujo? (exit 2 si no)
+
     python scripts/estado_flujo.py contexto --paso html_4 -o contexto.json
     python scripts/estado_flujo.py render          # reescribe STATE.md
 
@@ -44,6 +55,7 @@ Códigos de salida: 0 ok · 1 error de uso/archivo · 2 regla del flujo violada.
 import argparse
 import json
 import sys
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -132,6 +144,146 @@ def estado_paso(estado, paso_id):
         if p["id"] == paso_id:
             return p
     raise ReglaDelFlujo(f"El paso {paso_id} no está en flujo_estado.json")
+
+
+# --------------------------------------------------------------------------- #
+# Decisiones: catálogo, condiciones y qué falta responder
+#
+# Aquí vive la parte del flujo que antes solo estaba escrita en prosa: qué nodos
+# tiene un paso, qué opciones son legítimas y cuándo un nodo aplica. El script lo
+# comprueba porque un documento no puede: si el catálogo solo vive en `pasos.json`
+# y nadie lo verifica, una opción inventada o un nodo sin responder pasan sin ruido
+# y el proyecto avanza con un hueco que nadie declaró.
+# --------------------------------------------------------------------------- #
+
+def _norm(texto):
+    """Normaliza un texto para comparar nodos y opciones.
+
+    Sin mayúsculas, sin acentos y con cualquier guion largo reducido a `-`. La
+    comparación tiene que ser tolerante con la tipografía y estricta con el
+    contenido: «No — simulación» y «No - simulacion» son la misma opción, y
+    rechazarla por el guion sería un falso positivo molesto e inútil.
+    """
+    t = unicodedata.normalize("NFKD", str(texto or "").strip().lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    for guion in ("—", "–", "−"):
+        t = t.replace(guion, "-")
+    return " ".join(t.split())
+
+
+def _elegidas(dec):
+    """Las opciones de una decisión registrada, siempre como lista.
+
+    Los nodos `multiple` guardan `opciones: [...]`; los antiguos y los `unica`
+    guardan un solo `opcion`. Se lee de las dos formas para no romper proyectos
+    ya empezados.
+    """
+    if isinstance(dec.get("opciones"), list) and dec["opciones"]:
+        return list(dec["opciones"])
+    return [dec.get("opcion", "")]
+
+
+def decision_registrada(estado, paso_id, nombre_nodo):
+    """La decisión ya registrada para ese nodo del paso, o None."""
+    for dec in estado.get("decisiones", []):
+        if dec.get("paso") == paso_id and _norm(dec.get("nodo")) == _norm(nombre_nodo):
+            return dec
+    return None
+
+
+def buscar_nodo(definicion, nombre):
+    """El nodo de decisión del paso cuyo texto coincide con `nombre`, o None."""
+    for nodo in definicion.get("decisiones", []):
+        if _norm(nodo["nodo"]) == _norm(nombre):
+            return nodo
+    return None
+
+
+def opciones_declaradas(nodo, estado, pasos, paso_id):
+    """Las opciones válidas del nodo, o None si `pasos.json` no las conoce.
+
+    `opciones_desde` significa exactamente eso: el catálogo no está en el archivo.
+    O sale de otro nodo del mismo paso (las palancas de la ambición elegida), o lo
+    produce el propio paso (las ideas del paso 8). El primer caso se resuelve; el
+    segundo no tiene catálogo posible y el script no se inventa uno.
+    """
+    if nodo.get("opciones"):
+        return [o["opcion"] for o in nodo["opciones"]]
+
+    origen = str(nodo.get("opciones_desde") or "")
+    if "." not in origen:
+        return None
+
+    nodo_origen, campo = origen.split(".", 1)
+    definicion = def_paso(pasos, paso_id)
+    previo = buscar_nodo(definicion, nodo_origen)
+    dec = decision_registrada(estado, paso_id, nodo_origen)
+    if previo is None or dec is None:
+        return None                       # todavía no se sabe: el nodo previo está sin responder
+
+    valores = []
+    for elegida in _elegidas(dec):
+        for opcion in previo.get("opciones", []):
+            if _norm(opcion["opcion"]) == _norm(elegida):
+                valores.extend(opcion.get(campo, []))
+    return valores or None
+
+
+def nodo_aplica(nodo, estado, paso_id):
+    """¿Hay que preguntar este nodo en este proyecto?
+
+    Devuelve `(aplica, comprobable)`. Un `solo_si` estructurado
+    (`{nodo, opcion}` o `{nodo, incluye}`) se evalúa. En texto libre no se puede,
+    así que el nodo se da por aplicable y se marca como no comprobable: la barrera
+    no debe bloquear por una condición que el script no entiende.
+    """
+    cond = nodo.get("solo_si")
+    if not cond:
+        return True, True
+    if not isinstance(cond, dict):
+        return True, False
+
+    ref = None
+    for dec in estado.get("decisiones", []):
+        if _norm(dec.get("nodo")) == _norm(cond.get("nodo")):
+            ref = dec
+            break
+    if ref is None:
+        # El nodo del que depende no se ha respondido: por ahora no aplica.
+        return False, True
+
+    elegidas = [_norm(x) for x in _elegidas(ref)]
+    if cond.get("opcion") is not None:
+        return _norm(cond["opcion"]) in elegidas, True
+    if cond.get("incluye") is not None:
+        return _norm(cond["incluye"]) in elegidas, True
+    return True, False
+
+
+def decisiones_sin_resolver(estado, definicion):
+    """Decisiones del paso que impiden cerrarlo: `[(nodo, motivo)]`.
+
+    Solo cuenta lo que el script puede afirmar: nodos que aplican y no tienen
+    respuesta, y nodos `multiple` con menos opciones elegidas que su `minimo`.
+    """
+    faltan = []
+    for nodo in definicion.get("decisiones", []):
+        aplica, _ = nodo_aplica(nodo, estado, definicion["id"])
+        if not aplica:
+            continue
+        dec = decision_registrada(estado, definicion["id"], nodo["nodo"])
+        if dec is None:
+            faltan.append((nodo, "sin responder"))
+            continue
+        minimo = nodo.get("minimo")
+        if minimo:
+            n = len([x for x in _elegidas(dec) if str(x).strip()])
+            if n < minimo:
+                faltan.append((
+                    nodo,
+                    f"se registraron {n} opciones y el mínimo de este nodo es {minimo}",
+                ))
+    return faltan
 
 
 # --------------------------------------------------------------------------- #
@@ -278,6 +430,43 @@ def _revisar_predecesores(args, estado, pasos, definicion, entrada):
         )
 
 
+def _revisar_decisiones(args, estado, definicion, entrada):
+    """Bloquea el cierre de un paso con decisiones del usuario sin registrar.
+
+    No es burocracia: cada nodo de `pasos.json` es una elección que le toca al
+    usuario. Si el paso se cierra sin ella, alguien decidió en su nombre —casi
+    siempre el agente, ejecutando lo que le pareció— y eso no queda en ninguna
+    parte. `--forzar` deja seguir, pero lo anota.
+    """
+    faltan = decisiones_sin_resolver(estado, definicion)
+    if not faltan:
+        return
+
+    detalle = "\n".join(
+        f"  - «{nodo['nodo']}» ({nodo.get('tipo', 'unica')}): {motivo}"
+        + (f"\n      {nodo['descripcion']}" if nodo.get("descripcion") else "")
+        for nodo, motivo in faltan
+    )
+    if not args.forzar:
+        raise ReglaDelFlujo(
+            f"{args.paso} ({definicion['titulo']}) no se puede cerrar: hay decisiones "
+            f"del usuario sin registrar.\n{detalle}\n"
+            f"  Pregúntaselas y regístralas:\n"
+            f"    python scripts/estado_flujo.py decision --paso {args.paso} "
+            f"--nodo \"<nodo>\" --opcion \"<opción>\"\n"
+            f"  Si el usuario no quiere este paso, omítelo con su motivo en vez de "
+            f"cerrarlo sin decisión. --forzar cierra igual y lo deja anotado."
+        )
+
+    entrada["decisiones_sin_registrar"] = [nodo["nodo"] for nodo, _ in faltan]
+    print(
+        "Aviso: --forzar cierra el paso con decisiones sin registrar: "
+        + ", ".join(f"«{nodo['nodo']}»" for nodo, _ in faltan)
+        + ". Nadie sabrá qué eligió el usuario ahí: decláralo en `advertencias`.",
+        file=sys.stderr,
+    )
+
+
 def _transicion(args, nuevo_estado):
     pasos = cargar_pasos(args.pasos)
     estado = cargar_estado(args.estado)
@@ -298,6 +487,12 @@ def _transicion(args, nuevo_estado):
     # Omitir o fallar un paso no depende de sus predecesores: no consume su input.
     if nuevo_estado in ("en_curso", "completado"):
         _revisar_predecesores(args, estado, pasos, definicion, entrada)
+
+    # Cerrar un paso exige haber preguntado lo que el paso pregunta. Es la barrera
+    # que impide el fallo más común del flujo: ejecutar las sub-skills eligiendo por
+    # el usuario y cerrar el paso como si él hubiera decidido.
+    if nuevo_estado == "completado":
+        _revisar_decisiones(args, estado, definicion, entrada)
 
     entrada["estado"] = nuevo_estado
     entrada["cerrado"] = datetime.now().isoformat(timespec="seconds")
@@ -389,26 +584,129 @@ def cmd_fallar(args):
 
 
 def cmd_decision(args):
+    """Registra la elección de un nodo, comprobándola contra `pasos.json`.
+
+    Tres cosas se verifican antes de escribir: que el nodo exista en el paso, que
+    el tipo permita el número de opciones y que cada opción esté en el catálogo.
+    `--forzar` es el escape para el único caso legítimo —una opción propuesta por
+    el agente en un nodo con `permite_propuestas`— y deja rastro en el histórico.
+    """
     pasos = cargar_pasos(args.pasos)
     estado = cargar_estado(args.estado)
-    def_paso(pasos, args.paso)  # valida que el paso exista
+    definicion = def_paso(pasos, args.paso)
+
+    elegidas = [x for x in (args.opcion or []) if str(x).strip()]
+    if not elegidas:
+        raise ReglaDelFlujo("--opcion no puede ir vacío: registra lo que eligió el usuario.")
+
+    nodo = buscar_nodo(definicion, args.nodo)
+    if nodo is None:
+        declarados = [n["nodo"] for n in definicion.get("decisiones", [])]
+        detalle = (
+            "\n".join(f"    · {n}" for n in declarados)
+            if declarados
+            else "    (este paso no tiene ningún nodo de decisión)"
+        )
+        if not args.forzar:
+            raise ReglaDelFlujo(
+                f"«{args.nodo}» no es un nodo de decisión de {args.paso} "
+                f"({definicion['titulo']}). Los nodos de este paso son:\n{detalle}\n"
+                f"  Usa el texto exacto de `pasos.json`. Si de verdad hace falta un nodo "
+                f"nuevo, repite con --forzar y quedará marcado como fuera del flujo."
+            )
+        print(
+            f"Aviso: «{args.nodo}» no está en pasos.json. Se registra como nodo fuera "
+            f"del flujo; el flujo no lo tendrá en cuenta en ningún paso posterior.",
+            file=sys.stderr,
+        )
+
+    nombre_nodo = nodo["nodo"] if nodo else args.nodo
+    tipo = (nodo or {}).get("tipo", "unica")
+
+    if nodo and tipo != "multiple" and len(elegidas) > 1:
+        raise ReglaDelFlujo(
+            f"«{nombre_nodo}» es de tipo {tipo}: admite una sola opción y llegaron "
+            f"{len(elegidas)} ({', '.join(elegidas)}).\n"
+            f"  Si el usuario eligió varias cosas, es que es el nodo equivocado: revisa "
+            f"`mostrar --paso {args.paso}`."
+        )
+
+    catalogo = opciones_declaradas(nodo, estado, pasos, args.paso) if nodo else None
+    canonicas, fuera = [], []
+    for elegida in elegidas:
+        if catalogo is None:
+            canonicas.append(elegida)          # nodo sin catálogo: el texto lo pone el paso
+            continue
+        match = next((c for c in catalogo if _norm(c) == _norm(elegida)), None)
+        if match is None:
+            fuera.append(elegida)
+        else:
+            canonicas.append(match)            # se guarda el texto de pasos.json, no el reescrito
+
+    if fuera:
+        propuestas_ok = bool((nodo or {}).get("permite_propuestas", {}).get("permitido")) \
+            if isinstance((nodo or {}).get("permite_propuestas"), dict) \
+            else bool((nodo or {}).get("permite_propuestas"))
+        lista = "\n".join(f"    · {c}" for c in (catalogo or []))
+        if not args.forzar:
+            extra = (
+                "  Este nodo admite propuestas del agente: si es una opción nueva y el "
+                "usuario la eligió a conciencia, repite con --forzar y quedará marcada "
+                "como propuesta en el histórico y en el reporte."
+                if propuestas_ok else
+                "  No inventes opciones ni reescribas las declaradas: preséntalas como "
+                "están. Si aun así hay que registrarla, usa --forzar y quedará marcada "
+                "como fuera del catálogo."
+            )
+            raise ReglaDelFlujo(
+                f"Opción no declarada en «{nombre_nodo}» de {args.paso}: "
+                f"{', '.join(fuera)}\n  Opciones válidas:\n{lista}\n{extra}"
+            )
+        canonicas.extend(fuera)
+        etiqueta = "propuesta del agente" if propuestas_ok else "FUERA del catálogo"
+        print(
+            f"Aviso: {', '.join(fuera)} se registra como {etiqueta} en «{nombre_nodo}». "
+            f"Decláralo así ante el usuario y en `advertencias` del reporte.",
+            file=sys.stderr,
+        )
+
+    minimo = (nodo or {}).get("minimo")
+    if minimo and len(canonicas) < minimo:
+        raise ReglaDelFlujo(
+            f"«{nombre_nodo}» exige elegir al menos {minimo} "
+            f"{'opción' if minimo == 1 else 'opciones'} y llegaron {len(canonicas)}.\n"
+            f"  Si el usuario no quiere ninguna, lo que corresponde es omitir el paso "
+            f"({args.paso}) con su motivo, no cerrarlo sin decisión."
+        )
+
+    registro = {
+        "paso": args.paso,
+        "nodo": nombre_nodo,
+        # `opcion` sigue siendo el texto plano de siempre (un solo valor queda idéntico
+        # al formato anterior); `opciones` es la lista, que es lo que se puede comprobar.
+        "opcion": " + ".join(canonicas),
+        "opciones": canonicas,
+        "registrado": datetime.now().isoformat(timespec="seconds"),
+    }
+    if fuera:
+        registro["fuera_de_catalogo"] = fuera
+        registro["propuesta_agente"] = True
 
     estado["decisiones"] = [
         d
         for d in estado["decisiones"]
-        if not (d["paso"] == args.paso and d["nodo"] == args.nodo)
+        if not (d["paso"] == args.paso and _norm(d["nodo"]) == _norm(nombre_nodo))
     ]
-    estado["decisiones"].append(
-        {
-            "paso": args.paso,
-            "nodo": args.nodo,
-            "opcion": args.opcion,
-            "registrado": datetime.now().isoformat(timespec="seconds"),
-        }
-    )
+    estado["decisiones"].append(registro)
     guardar_estado(estado, args.estado)
     render_state_md(estado, pasos, args.estado)
-    print(f"Decisión registrada · {args.paso} · {args.nodo} → {args.opcion}")
+    print(f"Decisión registrada · {args.paso} · {nombre_nodo} → {registro['opcion']}")
+
+    # Lo que queda por preguntar en este paso: evita cerrarlo a medias.
+    faltan = decisiones_sin_resolver(estado, definicion)
+    if faltan:
+        print("  Todavía sin responder en este paso: "
+              + ", ".join(f"«{n['nodo']}»" for n, _ in faltan))
     return 0
 
 
@@ -429,10 +727,12 @@ def detectar_simulacion(estado, pasos):
         except ReglaDelFlujo:
             continue
         for nodo in definicion.get("decisiones", []):
-            if nodo.get("nodo") != dec.get("nodo"):
+            if _norm(nodo.get("nodo")) != _norm(dec.get("nodo")):
                 continue
+            # En un nodo `multiple` la marca la enciende cualquiera de las elegidas.
+            elegidas = [_norm(x) for x in _elegidas(dec)]
             for opcion in nodo.get("opciones", []):
-                if (opcion.get("opcion") == dec.get("opcion")
+                if (_norm(opcion.get("opcion")) in elegidas
                         and opcion.get("marca_simulacion")):
                     return {
                         "activo": True,
@@ -640,25 +940,103 @@ def cmd_mostrar(args):
     if not d["decisiones"]:
         print("- (ninguna: este paso no tiene nodo de decisión)")
     for dec in d["decisiones"]:
-        marca = " [condicional]" if dec.get("solo_si") else ""
-        print(f"- {dec['nodo']} ({dec['tipo']}){marca}")
+        aplica, comprobable = nodo_aplica(dec, estado, paso_id)
+        registrada = decision_registrada(estado, paso_id, dec["nodo"])
+
+        if registrada is not None:
+            marca = "RESPONDIDA → «" + registrada.get("opcion", "") + "»"
+        elif not aplica:
+            marca = "no aplica por ahora (depende de otra decisión)"
+        else:
+            marca = "PENDIENTE — hay que preguntarla antes de cerrar el paso"
+        print(f"- {dec['nodo']} ({dec['tipo']}) · {marca}")
+
+        if dec.get("descripcion"):
+            print(f"    cómo presentarla: {dec['descripcion']}")
+        if dec.get("minimo"):
+            print(f"    hay que elegir al menos {dec['minimo']} "
+                  f"{'opción' if dec['minimo'] == 1 else 'opciones'}; "
+                  f"si el usuario no quiere ninguna, se omite el paso")
+        if dec.get("ofrecer_todos"):
+            print("    ofrece «todos» como atajo, pero PREGUNTA antes de ejecutar nada")
         if dec.get("solo_si"):
-            print(f"    solo si: {dec['solo_si']}")
+            cond = dec["solo_si"]
+            texto = (f"«{cond.get('nodo')}» "
+                     + (f"= «{cond['opcion']}»" if cond.get("opcion")
+                        else f"incluye «{cond.get('incluye')}»")
+                     ) if isinstance(cond, dict) else str(cond)
+            print(f"    solo si: {texto}"
+                  + ("" if comprobable else "  (condición en texto: la juzgas tú)"))
         if dec.get("opciones_desde"):
-            print(f"    opciones desde: {dec['opciones_desde']}")
+            resueltas = opciones_declaradas(dec, estado, pasos, paso_id)
+            if resueltas:
+                print(f"    opciones desde {dec['opciones_desde']} → "
+                      + ", ".join(resueltas))
+            else:
+                print(f"    opciones desde: {dec['opciones_desde']} "
+                      f"(no están en pasos.json: salen del nodo previo o de este paso)")
+
         for o in dec.get("opciones", []):
             extra = ""
+            if o.get("agente"):
+                extra += f"  [agente: {o['agente']}]"
             if o.get("skills"):
-                extra = "  → " + ", ".join(o["skills"])
-            elif o.get("palancas"):
-                extra = "  → palancas: " + ", ".join(o["palancas"])
+                extra += "  → " + ", ".join(o["skills"])
+            if o.get("palancas"):
+                extra += "  → palancas: " + ", ".join(o["palancas"])
+            if o.get("marca_simulacion"):
+                extra += "  [enciende la marca de datos simulados]"
+            if o.get("requiere_propuesta"):
+                extra += "  [el contenido lo propone el agente y lo aprueba el usuario]"
             print(f"    · {o['opcion']}{extra}")
+            if o.get("efecto"):
+                print(f"        efecto: {o['efecto']}")
+
+        if dec.get("glosario"):
+            print("    explica estos términos al presentarlos (no esperes a que pregunte):")
+            for termino, explicacion in dec["glosario"].items():
+                print(f"        {termino}: {explicacion}")
+        if dec.get("permite_propuestas"):
+            pp = dec["permite_propuestas"]
+            if isinstance(pp, dict):
+                print(f"    propuestas del agente: {pp.get('regla','')}")
+                if pp.get("prohibido"):
+                    print(f"    PROHIBIDO: {pp['prohibido']}")
+            else:
+                print("    puedes AÑADIR opciones marcadas como propuesta; nunca quitar "
+                      "ni reescribir las declaradas")
         if dec.get("auto_si"):
             print(
                 f"    auto: si {dec['auto_si']['condicion']} → "
-                f"«{dec['auto_si']['opcion']}»"
+                f"«{dec['auto_si']['opcion']}» — infórmalo al usuario en vez de "
+                f"preguntarlo, y regístralo igual"
             )
+
+    faltan = decisiones_sin_resolver(estado, d)
+    if faltan:
+        print()
+        print("- BARRERA: este paso no se puede cerrar hasta registrar "
+              + ", ".join(f"«{n['nodo']}»" for n, _ in faltan))
     print()
+
+    # Lo que las decisiones ya registradas eligieron: son las que se ejecutan, no
+    # todas las del catálogo. La decisión puede venir de otro paso (así se enlaza
+    # «elegir agentes» con «ejecutarlos»), por eso se recorre el histórico entero.
+    elegidas_por_decision = []
+    for dec in estado.get("decisiones", []):
+        try:
+            dsel = def_paso(pasos, dec.get("paso"))
+        except ReglaDelFlujo:
+            continue
+        nodo = buscar_nodo(dsel, dec.get("nodo"))
+        if not nodo:
+            continue
+        marcadas = [_norm(x) for x in _elegidas(dec)]
+        for o in nodo.get("opciones", []):
+            if _norm(o.get("opcion")) in marcadas:
+                for s in o.get("skills", []):
+                    if s in d["skills_posibles"] and s not in elegidas_por_decision:
+                        elegidas_por_decision.append(s)
 
     simulacion = detectar_simulacion(estado, pasos)
     simuladores = d.get("simuladores") or {}
@@ -669,18 +1047,27 @@ def cmd_mostrar(args):
         print(f"- {NOTA_SIMULACION}")
         print("- Todo reporte de aquí en adelante sale marcado SIMULADO: lo hace el "
               "generador, no hace falta pedirlo.")
-        if simuladores:
-            print("- Simuladores de este paso (generan el CSV que analiza la skill):")
-            for skill, sim in simuladores.items():
+        # Solo los simuladores de las skills elegidas: listar los cuatro cuando el
+        # usuario pidió dos invita a ejecutar lo que nadie pidió.
+        pertinentes = {k: v for k, v in simuladores.items()
+                       if not elegidas_por_decision or k in elegidas_por_decision}
+        if pertinentes:
+            print("- Simuladores a usar en este paso (generan el CSV que analiza la skill):")
+            for skill, sim in pertinentes.items():
                 print(f"    {skill} → sub-skills/{sim}/SIMULADOR.md")
         print()
 
     print("## Sub-skills invocables en este paso")
     for s in d["skills_posibles"]:
         linea = f"- sub-skills/{s}/AGENTE.md"
+        if elegidas_por_decision:
+            linea += ("  [ELEGIDA por el usuario]" if s in elegidas_por_decision
+                      else "  (no elegida: no la ejecutes)")
         if simulacion["activo"] and s in simuladores:
             linea += f"  (datos simulados: sub-skills/{simuladores[s]}/SIMULADOR.md)"
         print(linea)
+    if not elegidas_por_decision and d["skills_posibles"] and d["decisiones"]:
+        print("- (ninguna elegida todavía: la decisión de este paso dice cuáles corren)")
     if d.get("cadenas"):
         for cadena in d["cadenas"]:
             print("- cadena obligatoria: " + " → ".join(cadena))
@@ -701,6 +1088,87 @@ def cmd_mostrar(args):
 # --------------------------------------------------------------------------- #
 # rutas — los dos recorridos, con nombres, para presentarlos al usuario
 # --------------------------------------------------------------------------- #
+
+def cmd_verificar(args):
+    """Audita el proyecto contra `pasos.json`: ¿se respetó el flujo?
+
+    Se ejecuta al final (o cuando algo huele raro) y responde una sola pregunta:
+    qué se cerró sin preguntar lo que había que preguntar. Devuelve 2 si encuentra
+    algo, para que se pueda usar como comprobación automática.
+    """
+    pasos = cargar_pasos(args.pasos)
+    estado = cargar_estado(args.estado)
+
+    hallazgos = []
+    ids_validos = {p["id"] for p in pasos["pasos"]}
+
+    for entrada in estado["pasos"]:
+        definicion = def_paso(pasos, entrada["id"])
+        etiqueta = f"paso {definicion.get('orden')} ({entrada['id']}) {definicion['titulo']}"
+
+        if entrada["estado"] == "completado":
+            for nodo, motivo in decisiones_sin_resolver(estado, definicion):
+                hallazgos.append(
+                    f"{etiqueta}: cerrado sin la decisión «{nodo['nodo']}» ({motivo})"
+                )
+            if not entrada.get("resumen"):
+                hallazgos.append(f"{etiqueta}: cerrado sin resumen para el paso siguiente")
+            if not entrada.get("datos"):
+                hallazgos.append(f"{etiqueta}: cerrado sin --datos (el siguiente paso "
+                                 f"solo hereda el resumen)")
+            if not entrada.get("outputs"):
+                hallazgos.append(f"{etiqueta}: cerrado sin declarar su entrega "
+                                 f"({definicion['entrega']})")
+            if entrada.get("decisiones_sin_registrar"):
+                hallazgos.append(
+                    f"{etiqueta}: cerrado con --forzar dejando sin registrar "
+                    + ", ".join(f"«{n}»" for n in entrada["decisiones_sin_registrar"])
+                )
+        if entrada.get("predecesores_saltados"):
+            hallazgos.append(
+                f"{etiqueta}: saltó con --forzar los predecesores "
+                + ", ".join(entrada["predecesores_saltados"])
+            )
+        if entrada["estado"] == "omitido" and not entrada.get("motivo"):
+            hallazgos.append(f"{etiqueta}: omitido sin motivo declarado")
+
+    # Decisiones que no corresponden a ningún nodo del flujo: o el nodo se registró
+    # con otro texto, o se inventó. En los dos casos el flujo no las verá.
+    for dec in estado.get("decisiones", []):
+        if dec.get("paso") not in ids_validos:
+            hallazgos.append(f"decisión en un paso inexistente: {dec.get('paso')}")
+            continue
+        definicion = def_paso(pasos, dec["paso"])
+        if buscar_nodo(definicion, dec.get("nodo")) is None:
+            hallazgos.append(
+                f"paso {definicion.get('orden')} ({dec['paso']}): la decisión "
+                f"«{dec.get('nodo')}» no es un nodo de pasos.json — el flujo la ignora"
+            )
+        if dec.get("fuera_de_catalogo"):
+            hallazgos.append(
+                f"paso {definicion.get('orden')} ({dec['paso']}): «{dec.get('nodo')}» "
+                f"se registró con una opción fuera del catálogo "
+                f"({', '.join(dec['fuera_de_catalogo'])}) — debe estar declarada en el reporte"
+            )
+
+    print(f"# Verificación del flujo — {estado.get('proyecto','(sin nombre)')}")
+    cerrados = sum(1 for p in estado["pasos"] if p["estado"] == "completado")
+    omitidos = sum(1 for p in estado["pasos"] if p["estado"] == "omitido")
+    print(f"Pasos completados: {cerrados} · omitidos: {omitidos} · "
+          f"decisiones registradas: {len(estado.get('decisiones', []))}")
+    print()
+    if not hallazgos:
+        print("Sin hallazgos: cada paso cerrado registró sus decisiones, su resumen y "
+              "sus datos, y todas las decisiones corresponden a nodos del flujo.")
+        return 0
+    print(f"{len(hallazgos)} hallazgos:")
+    for h in hallazgos:
+        print(f"- {h}")
+    print()
+    print("Ninguno se arregla editando el estado a mano: se corrige registrando la "
+          "decisión que falta o volviendo a cerrar el paso con lo que le falte.")
+    return 2
+
 
 def cmd_rutas(args):
     """Imprime los dos recorridos con el título de cada paso.
@@ -805,7 +1273,13 @@ def render_state_md(estado, pasos, estado_path=None):
     L.append("")
     if estado.get("decisiones"):
         for d in estado["decisiones"]:
-            L.append(f"- `{d['paso']}` **{d['nodo']}** → {d['opcion']}")
+            linea = f"- `{d['paso']}` **{d['nodo']}** → {d['opcion']}"
+            if d.get("fuera_de_catalogo"):
+                # Se anota en la vista humana porque es lo único del histórico que no
+                # sale de `pasos.json`: quien lea el estado tiene que poder distinguirlo.
+                linea += (" — _propuesta fuera del catálogo original: "
+                          + ", ".join(d["fuera_de_catalogo"]) + "_")
+            L.append(linea)
     else:
         L.append("_(ninguna registrada todavía)_")
     L.append("")
@@ -954,10 +1428,22 @@ def main(argv=None):
 
     p = sub.add_parser("decision", help="Registra la elección de un nodo de decisión")
     p.add_argument("--paso", required=True)
-    p.add_argument("--nodo", required=True)
-    p.add_argument("--opcion", required=True)
+    p.add_argument("--nodo", required=True,
+                   help="Texto exacto del nodo en pasos.json")
+    p.add_argument("--opcion", required=True, action="append",
+                   help="Opción elegida, tal como está en pasos.json. Se repite en los "
+                        "nodos `multiple`: --opcion A --opcion B")
+    p.add_argument("--forzar", action="store_true",
+                   help="Registrar una opción o un nodo que no están en pasos.json "
+                        "(queda marcado como propuesta / fuera del catálogo)")
     _comunes(p)
     p.set_defaults(func=cmd_decision)
+
+    p = sub.add_parser("verificar",
+                       help="Audita el proyecto contra pasos.json: qué se cerró sin "
+                            "preguntar lo que había que preguntar")
+    _comunes(p)
+    p.set_defaults(func=cmd_verificar)
 
     p = sub.add_parser("contexto",
                        help="Inspecciona qué hereda un paso (contenido del bloque `flujo`)")
