@@ -117,12 +117,12 @@
       "orden": 4,
       "etapa": "Descubrimiento",
       "titulo": "Persona Profile",
-      "objetivo": "Convertir la evidencia en protopersonas con JTBD y Momentos Vitales.",
+      "objetivo": "Convertir la evidencia en fichas de persona con el trabajo que quiere hacer (Job To Be Done) y Momentos Vitales.",
       "nodo_mermaid": ["N19", "N36"],
       "predecesores": ["html_3", "html_2", "html_1"],
       "en_ruta_minima": true,
       "omitible": false,
-      "razon_no_omitible": "Todo el flujo posterior —priorización de problemas, mapa del recorrido, reto creativo e ideación— se aplica sobre una protopersona concreta. Sin ella no hay a quién resolverle nada.",
+      "razon_no_omitible": "Todo el flujo posterior —priorización de problemas, mapa del recorrido, reto creativo e ideación— se aplica sobre una ficha de persona concreta. Sin ella no hay a quién resolverle nada.",
       "decisiones": [
         {
           "nodo": "¿Hay datos reales de entrevistas / encuestas?",
@@ -150,10 +150,10 @@
       "predecesores": ["html_4"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay problemas priorizados. La ficha de persona se queda sin las secciones «¿Cómo lo soluciona?», «Costo de la solución actual» ni la matriz Importancia × Satisfacción, porque esa evaluación nace en este paso. El reto creativo (HMW) se formula sobre el problema que declare el usuario, sin un ranking respaldado por evidencia.",
+      "si_omitido": "No hay problemas priorizados. La ficha de persona se queda sin las secciones «¿Cómo lo soluciona?», «Costo de la solución actual» ni la matriz Importancia × Satisfacción, porque esa evaluación nace en este paso. El reto creativo (How Might We) se formula sobre el problema que declare el usuario, sin un ranking respaldado por evidencia.",
       "decisiones": [
         {
-          "nodo": "Elección de protopersona",
+          "nodo": "Elección de la ficha de persona",
           "tipo": "unica",
           "opciones": [
             { "opcion": "Por problema más grande", "efecto": "Se prioriza la persona con el dolor más intenso." },
@@ -174,7 +174,7 @@
       "predecesores": ["html_5", "html_4"],
       "en_ruta_minima": false,
       "omitible": true,
-      "si_omitido": "No hay mapa del recorrido, así que tampoco obstáculos localizados: el reto creativo (HMW) pierde el anclaje a un momento concreto de la experiencia del usuario.",
+      "si_omitido": "No hay mapa del recorrido, así que tampoco obstáculos localizados: el reto creativo (How Might We) pierde el anclaje a un momento concreto de la experiencia del usuario.",
       "decisiones": [],
       "skills_posibles": ["2.Descubrimiento/journey-builder"],
       "entrega": "html_6.html"
@@ -183,13 +183,13 @@
       "id": "html_7",
       "orden": 7,
       "etapa": "Ideación",
-      "titulo": "HMW + Ambición estratégica",
+      "titulo": "El reto creativo (How Might We) + Ambición estratégica",
       "objetivo": "Formular el reto creativo y fijar la ambición y la palanca de negocio.",
       "nodo_mermaid": ["N14", "N26", "N27", "N32"],
       "predecesores": ["html_6", "html_5", "html_4"],
       "en_ruta_minima": true,
       "omitible": false,
-      "razon_no_omitible": "El reto creativo (HMW) es la consigna literal de los agentes de ideación. Sin reto formulado, la ideación no tiene sobre qué trabajar.",
+      "razon_no_omitible": "El reto creativo (How Might We) es la consigna literal de los agentes de ideación. Sin reto formulado, la ideación no tiene sobre qué trabajar.",
       "decisiones": [
         {
           "nodo": "Ambición estratégica",
@@ -228,7 +228,7 @@
       "orden": 8,
       "etapa": "Ideación",
       "titulo": "Ideación",
-      "objetivo": "Generar y seleccionar ideas contra el HMW y la palanca elegida.",
+      "objetivo": "Generar y seleccionar ideas contra el reto creativo (How Might We) y la palanca elegida.",
       "nodo_mermaid": ["N15", "N3", "N22", "N33"],
       "predecesores": ["html_7"],
       "en_ruta_minima": true,

@@ -29,13 +29,13 @@ graph TD
         N11["Agente Expo Quest"]
     end
     subgraph Persona_y_Problem_Solution_Fit["Persona y Problem-Solution Fit | HTML_OUTPUT: html_4 + html_5 + html_6"]
-        N14["Agente HMW"]
+        N14["Agente How Might We"]
         N16["Agente Journey Builder"]
         N19["Agente Persona Profile"]
         N21["Agente Problem Solution Fit"]
         N26{"Ambición estratégica"}
         N27{"Apalancamiento"}
-        N29{"Elección de protopersona"}
+        N29{"Elección de la ficha de persona"}
         N36{"¿Hay datos reales de entrevistas / encuestas?"}
     end
     subgraph 3__Ideacion["3. Ideacion | HTML_OUTPUT: html_7 + html_8 + html_9 + html_10"]
@@ -88,7 +88,7 @@ graph TD
     N5 --> N19
     N19 --> N36
 
-    %% HTML 5: Problem Solution Fit → Elección de protopersona
+    %% HTML 5: Problem Solution Fit → Elección de la ficha de persona
     N36 -->|"Sí — Generación de profiles con data real"| N21
     N36 -->|"No — Generación de profiles a base de supuestos"| N21
     N21 --> N29
@@ -98,7 +98,7 @@ graph TD
     %% HTML 6: Journey Builder
     N16 --> N14
 
-    %% HTML 7: HMW → Ambición estratégica → Apalancamiento → Selección ideación
+    %% HTML 7: El reto creativo (How Might We) → Ambición estratégica → Apalancamiento → Selección ideación
     N14 --> N26
     N26 -->|"Optimizar Negocio Actual"| N27
     N26 -->|"Crecer Negocio Actual"| N27

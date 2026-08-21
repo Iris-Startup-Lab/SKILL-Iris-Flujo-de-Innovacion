@@ -1,0 +1,247 @@
+Debuggeo generalista 
+
+Debuggeo Viernes 21 de Agosto de 2026
+
+------------------------------ LISTO --------------------------------------------------
+------------------------------ GEMINI 
+Script ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
+Esto solo lo actualiza la persona no el agente 
+------------------------------ DEEPSEEK 
+Encabezados del HMTL mal generados 
+
+Por otro lado, cuando se presentan sub menús en las pasarelas.
+Hay botones que dicen "Ver detalle" que a veces no muestran cosas, es decir, cuando no tengan
+que mostrar algo, mejor desaparecer ese botón.
+los que si tienen contenido, la pasarela al tener más de 4 componentes, al dar click a "Ver detalle" 
+la ventana nueva se ve abajo de todas las pasarelas y no solo de la seleccionada
+¿Es posible arreglar todo esto?
+
+
+Proceso de tokens 
+Al generar el proceso de tokens 
+Investigar en internet el precio con base al modelo seleccionado:
+Aquí tienes los principales que se usan en la empresa:
+sites_pricing_models.txt
+Si hay otros pues decir que no se tienen los precios oficiales, se irán añadiendo más conforme avanza la skill 
+Para ello quizás sea necesario crear un script con request para poder visualizar los precios 
+Entonces generará un estimado del costo total con base al modelo seleccionado, los costos y generará el resumen por 
+cada paso 
+
+Si el json de precios tiene más de 3 meses a partir de la fecha concurrente, correr el script de scraping 
+¿o esto es contraproducente?
+Ya que dudo que el archivo de la skill se actualice cada día en la plataforma elegida ya sea GEMINI SPARK o CLAUDE Desktop/Code/ etc...
+Nota: Por ahora advierte y posteriormente, si el usuario quiere, ejecuta la búsqueda
+
+
+
+Todos los pasos necesitan ser dichos especificamente con el nombre, nada de abreviaturas en los pasos 
+ya que este agente será para personas no expertas tanto como aquellas familiarizadas con el tema
+
+Los archivos input que el usuario puede generar son en general archivos de texto o imágenes 
+No pueden ser audios o videos ya que, por ahora, el agente no puede leerlos ya que se necesitan herramientas externas 
+Es necesario aclararlo cuando el proceso sea ejecutado y el agente debe decirlo y si se intentan adjuntar ese tipo 
+de archivos, orientarlo a como convertir audio o video a texto con herramientas ya sea gratuitas o pagadas
+
+
+Dentro de los html, verifica que el texto sea legible para humanos en todos los apartados
+Genera un diseño nuevo si es necesario. También que nada de los cambios realizados se modifique ya que también fue en aras de mejorar el diseño, 
+recuerda que es para personas expertas y no expertas 
+
+
+La skill está diseñada para poder comenzar desde pasos posteriores al 1?, es decir, si el usuario quiere iniciar 
+desde el paso 5 o del paso 7 
+si es así, ¿Pide los materiales de los pasos anteriores?, es solo verificar si esto lo hace, ya que es un requisito.
+
+¿Cómo enlazar los html dentro de la skill? 
+Es decir, arriba de cada html están los pasos y se supone que si le das click a un paso anterior debe ir a un html posterior. 
+Pero dentro de Claude o los gestores no lo respeta porque genera los html individuales 
+¿Cómo poder lograrlo?
+Generar nuevamente el html estaría muy mal y sería gastar tokens sin sentido.
+
+
+Puedes hacer una prueba para todos los flujos (simulando todo para probar las salidas solamente), esto en la carpeta "output" 
+No necesitas hacer la investigación, solo generar supuestos para ver los productos finales que serían los 11 HTML
+Como contexto esto para el llenado de los html: 
+- **Nombre:** `EcoPack Circular`
+- **Objetivo:** Explorar y prototipar envases bio-basados solubles en agua a partir de residuos agroindustriales (bagazo de agave) para la industria de cosméticos y e-commerce.
+- **Audiencia:** Marcas de cosmética natural D2C y operadores logísticos de última milla en Latinoamérica.
+
+------------------------------ CLAUDE
+
+------------------------------ POR HACER --------------------------------------------------
+
+Cambios exitosos si los 11 html resultantes están bien
+
+
+Todos estos cambios escríbelos como ya realizados dentro del to_do.md 
+Gracias, es todo, descansa, ahora nos toca a claude y a mi chambear en otro aspecto de la skill
+Eres el mejor DeepSeek!!! 
+
+
+
+------ mega validación de flujo  ------------------- generar todo esto como un to-do quizás
+
+Pasos generales de la macro skills
+Necesito mejorar el flujo general de esta macro skill
+Antes de comenzar, tienes AGENTS.md y CLAUDE.md para poder tener contexto del proceso.
+Hay un tema en que al agente macro a veces  no respeta el flujo establecido por lo 
+que es necesario revisarlo
+Acá el flujo general 
+"""
+Recordando los pasos
+
+1 El agente se presenta y pregunta que quiere hacer 
+El usuario puede elegir entre 
+	1.1 "Agente Benchmark" 
+	1.2 "Agente Foresight" 
+	1.3 "Agente Señales débiles" 
+	1.4 "Agente Discussion Forums" 
+	 Si el usuario elige Agente Discussion Forums debe ejecutar el siguiente agente 
+	 1.4.1 "Search Trend Analysis" 
+El proceso anterior genera el html 1 
+Posteriormente si el usuario quiere seguir con todo el proceso
+
+2 El agente pregunta si quiere ejecutar el agente  "Entrevista de Empatía" 
+	* Donde el agente necesita o simular o pedir entrevistas/encuestas con ya los sub sub agentes creados 
+Esto más el contexto genera, debe generar el html 2
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+
+3 Con el contexto anterior el agente deberá ejecutar ya sea en paralelo o paso a paso como sea conveniente
+**Pero antes debe preguntar si quiere ejecutar todos o al menos 1**
+3.1 "A day in the life" 
+3.2 "Encuesta Kano" 
+3.3 "Discovery Survey" 
+3.4 "Expo Quest" 
+* Donde el agente necesita o simular o pedir entrevistas/encuestas con ya los sub sub agentes creados dependiendo del paso o el agente que lo necesite
+Todo este proceso genera el html 3
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+4 El agente "Persona profile" entra a escena 
+* Donde el agente necesita o simular o pedir entrevistas/encuestas con ya los sub sub agentes creados dependiendo del paso o el agente que lo necesite
+Todo este proceso genera el html 4
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+5 El agente "Problem Solution Fit" entra a escena 
+Donde el usuario puede elegir la protopersona entre:  
+	5.1 Por problema más grande" bajo contexto del agente
+	5.2 Por tamaño en mercado
+	5.3 Por otras consideraciones del agente
+
+Todo este proceso genera el html 5
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+6 El agente "Journey Builder" entra a escena 
+Todo este proceso genera el html 6
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+7 El agente "How-might-we" entra a escena 
+Donde se le pregunta la **Ambición estratégica**
+Opciones generales pero el agente puede proponer otras (proponer nuevas no eliminar las ya establecidas)
+7.1 Opciones
+	7.1.1 Optimizar negocio actual
+		Sub Opciones 
+		7.1.1.1 Reducir costos 
+		7.1.1.2 Productividad 		
+	7.1.2 Crecer negocio actual 
+		Sub Opciones 
+		7.1.2.1 Nuevos clientes 
+		7.1.2.2 Recuperación		
+		7.1.2.3 Mayor frecuencia 		
+		7.1.2.4 Mayor ticket		
+		7.1.2.5 Participación de mercado		
+	7.1.3 Expandir negocio 
+		Sub Opciones 
+		7.1.3.1 Ampliar mercado 
+		7.1.3.2 Ecosistema (explicar al usuario que es esto) 
+		7.1.3.3 Nuevos casos de uso 
+	7.1.4 Crear nuevos negocios 
+		Sub Opciones 
+			7.1.4.1 Nuevo producto 
+			7.1.4.2 Nuevo modelo de negocio 
+	7.1.5 Reinventar el futuro
+			7.1.5.1 Inteligencia artificial (Dónde o como usar la Inteligencia artificial en esto)
+			7.1.5.2 Disrupción 
+			7.1.5.3 Nuevas categorías
+	7.1.6 Potenciales extras por el agente (señalar que son propuestas extras del agente y no parte del flujo original)
+Todo este proceso genera el html 7
+Posteriormente si el usuario quiere seguir con todo el proceso
+8 Con el contexto anterior el agente deberá ejecutar ya sea en paralelo o paso a paso como sea conveniente
+**Pero antes debe preguntar si quiere ejecutar todos o al menos 1**
+8.1 "Agente ideación" 
+8.2 "Agente Caressing the client" 
+8.3 "Agente Referral Builder" 
+* Donde el agente necesita o simular o pedir entrevistas/encuestas con ya los sub sub agentes creados dependiendo del paso o el agente que lo necesite, si aplica 
+Todo este proceso genera el html 8
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+9 Entra en escena el agente "Dimensionador estratégico de ideas de negocio"
+Todo este proceso genera el html 9
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+10 Entra en escena el agente "Business model navogator"
+Todo este proceso genera el html 10
+
+Posteriormente si el usuario quiere seguir con todo el proceso
+11 Con el contexto anterior el agente deberá ejecutar ya sea en paralelo o paso a paso como sea conveniente
+**Pero antes debe preguntar si quiere ejecutar todos o al menos 1**
+11.1 "Agente simple landing page" (preguntar si ya quiere la landing como demo tomando el contexto o solo los pasos para ejecutar en herramientas externas) 
+11.2 "Agente landing page UX Analyzer" (preguntar si quiere usar una landing page ya hecha, el usuario deberá ingresar un link público, un archivo html o screenshots) 
+11.3 "Agente Online Ads" 
+11.4 "Agente Email Campaign" 
+11.5 "Agente Explainer Video" 
+11.6 "Agente Pop Store" 
+11.7 "Agente Feature Stub" 
+
+* Donde el agente necesita o simular o pedir entrevistas/encuestas con ya los sub sub agentes creados dependiendo del paso o el agente que lo necesite, si aplica 
+Todo este proceso genera el html 11
+"""
+
+El anterior proceso es a grosso modo el flujo
+No obstante ya tenemos todo una sería de flujos armados en el repositorio
+Solo es tomar en cuenta si el flujo está bien 
+Hacer los cambios necesarios
+Además de reforzar esto con lo ya realizado que en general va bien
+Además, ya hice cambios con DeepSeek para que nada de los pasos sea abreviado ya que este agente es para personas 
+de todos los estilos, tanto expertas como personas que no saben del proceso.
+Estos cambios míos como de DeepSeek están en el to_do.md documentados
+
+En general, es revisar el flujo, hacer pruebas y listo, terminamos la macro general
+Actualizar los archivos .md necesarios en este caso 
+Evalúa si esto tarda más de 1 hora en ejecutarse, si es así, lo hacemos si no, 
+lo evaluamos como potenciales cambios para otro día y lo documentamos en to_do.md
+Gracias 
+
+------------
+
+Evaluar los métodos estadísticos y proponer otra arquitectura de diseño
+además de los ya establecidos dentro de la skill
+Por ejemplo, no se tienen grupos control
+
+
+
+
+---------------------- MEJORAS SUGERIDAS ---------------------------------------------------------------------
+Gasto en tokens en 10 usd promedio que debe disminuirse a 8
+¿Cómo hacerlo sub agéntico?
+¿Cómo resolver el problema de los archivos de audio que necesitan transcribirse? 
+
+Arreglar el tema de GEMINI en el medidor de skills (scraper más robusto)
+¿O usar las APIS oficiales? Probar esto en COLAB
+
+
+¿Cómo generar este proceso en sitio web?
+Es decir, sé que necesitaremos usar API Keys
+Pero en este caso, cada paso sería más sencillo, usar diferentes modelos 
+
+
+------------------------------ PRUEBAS CON PROYECTOS REALES --------------------------------------------------
+Lunes 24 de Agosto de 2026
+
+Diana reclutalia
+Jonathan divisas 
+Jonathan presta prenda -- oro Andrea
+
+
+
+

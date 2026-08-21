@@ -97,7 +97,7 @@ _plantilla_html/
             "datasets": [ { "label": "huerto urbano", "data": [20,28,38] } ]
           },
           "fuentes": ["Google Trends (pytrends)"],
-          "persona": { },                                // opcional: ficha de protopersona
+          "persona": { },                                // opcional: ficha de persona
           "psf": { }                                     // opcional: análisis Problem-Solution Fit
         }
       ]
@@ -147,7 +147,7 @@ documenta aquí solo para saber qué se renderiza:
     "audiencia": "Familias urbanas 28-45, CDMX",
     "paso_actual": "html_4",
     "paso_titulo": "Persona Profile",
-    "paso_objetivo": "Convertir la evidencia en protopersonas…",
+    "paso_objetivo": "Convertir la evidencia en fichas de persona…",
     "paso_orden": 4,
     "total_pasos": 11,
     "avance": { "completados": 1, "omitidos": 1, "pendientes": 8 },

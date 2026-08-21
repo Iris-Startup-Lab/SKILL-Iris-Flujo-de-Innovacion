@@ -344,7 +344,7 @@ acompañamiento» · audiencia «Familias urbanas 28-45, CDMX».
 | --- | --- |
 | `html_2` ¿Ejecución de entrevistas? | No — simulación (mantiene datos simulados, comparable con la mínima) |
 | `html_2` Selección de agentes | Los 4 (day-in-the-life, encuesta-kano, discovery-survey, expo-quest) |
-| `html_5` Elección de protopersona | Por problema más grande |
+| `html_5` Elección de la ficha de persona | Por problema más grande |
 
 La estrategia de herencia es **predecesores declarados** (la ya decidida en `SKILL.md` §5) para
 las dos rutas.

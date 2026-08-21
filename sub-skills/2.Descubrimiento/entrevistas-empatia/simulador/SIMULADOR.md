@@ -20,7 +20,7 @@ la curva de saturación y los conteos calculados.
 
 **NO hace:**
 
-- **No analiza.** No consolida Jobs/Pains/Gains en el entregable final ni concluye: eso es de
+- **No analiza.** No consolida trabajos, dolores y ganancias (Jobs/Pains/Gains) en el entregable final ni concluye: eso es de
   `2.Descubrimiento/entrevistas-empatia`, que codifica el CSV como codificaría transcripciones
   reales.
 - **No genera HTML** ni `reporte.json`, y no cierra pasos del flujo.
@@ -157,7 +157,7 @@ en el contexto, advertencia automática y línea en el pie). Lo que te toca:
    de validez externa.
 4. El CSV se declara en `output.archivos_generados` y en `--outputs` al cerrar el paso.
 5. **Si esta evidencia alimenta la ficha de persona** (paso 4), esa ficha nace simulada: sus
-   pains llevan la marca y el reporte lo dice, no se disimula por venir de un paso anterior.
+   problemas llevan la marca y el reporte lo dice, no se disimula por venir de un paso anterior.
 
 ## Contrato JSON (salida)
 

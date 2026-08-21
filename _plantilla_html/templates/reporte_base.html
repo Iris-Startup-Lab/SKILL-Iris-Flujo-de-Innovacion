@@ -92,6 +92,11 @@
   .resumen-verdictos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .resumen-leyenda{font-size:.74rem;color:var(--ink-soft);width:100%}
 
+  /* ---------- Leyenda «cómo leer» (siempre visible) ---------- */
+  .marcas{max-width:1280px;margin:0 auto;padding:12px clamp(20px,4vw,56px) 0;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.76rem;color:var(--ink-soft);align-items:baseline}
+  .marcas .marcas-titulo{font-family:'Sora',sans-serif;font-weight:700;color:var(--ink);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
+  .marcas b{color:var(--purple-700);font-weight:700}
+
   /* ---------- Siguiente paso (cierre del reporte) ---------- */
   .siguiente{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
   .siguiente-box{background:linear-gradient(135deg,var(--purple-900),var(--purple-700));color:#fff;border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow-md)}
@@ -284,6 +289,13 @@
   </div>
 </section>
 
+<div class="marcas" aria-label="Cómo leer este reporte">
+  <span class="marcas-titulo">Cómo leer este reporte</span>
+  <span><b>*</b> estimación propia, sin fuente citable</span>
+  <span><b>[REFERENCIA DE INDUSTRIA]</b> cifra típica del sector, no medida en este proyecto</span>
+  <span><b>[no disponible]</b> no hay dato y no se inventa</span>
+</div>
+
 <section class="contexto" id="contexto-wrap" style="display:none">
   <details id="contexto-det">
     <summary>
@@ -302,7 +314,7 @@
   <select class="sort" id="sort" aria-label="Orden">
     <option value="orig">Orden original</option>
     <option value="az">A–Z</option>
-    <option value="score">Por score</option>
+    <option value="score">Por puntaje</option>
   </select>
   <div class="chips" id="chips"></div>
   <div class="results-line"><span id="results-count"></span><button id="clear-filters">Limpiar filtros</button></div>
@@ -424,6 +436,10 @@ window.REPORT_DATA = __REPORT_DATA__;
       railEl.style.display='none'; wrapEl.style.display='none'; return;
     }
     const actualId = flujo.paso_actual;
+    // Número de orden por paso (html_N -> Paso N), para no mostrar ids internos.
+    const indice = {};
+    flujo.ruta.forEach((p, i) => { indice[p.id] = i + 1; });
+    const pasoLbl = id => (indice[id] ? ('Paso ' + indice[id]) : id);
 
     // Riel de progreso
     flujo.ruta.forEach((p,i) => {
@@ -432,12 +448,20 @@ window.REPORT_DATA = __REPORT_DATA__;
       const enlazable = !esActual && p.archivo;
       const el = document.createElement(enlazable ? 'a' : 'span');
       el.className = 'flow-step ' + clase;
-      if(enlazable) el.href = p.archivo;
+      if(enlazable){
+        // Enlace relativo: funciona cuando los 11 HTML se abren desde la misma
+        // carpeta en el navegador. En una vista previa embebida (sin sistema de
+        // archivos) no puede resolver el archivo vecino; por eso se abre en una
+        // pestaña nueva, para no perder el reporte actual.
+        el.href = p.archivo;
+        el.target = '_blank';
+        el.rel = 'noopener';
+      }
       el.innerHTML = '<span class="n">'+(i+1)+'</span><span>'+esc(p.titulo||p.id)+'</span>';
       const nota = esActual ? (p.objetivo||'')
                  : (p.estado==='omitido' ? ('Omitido — '+(p.impacto||p.motivo||''))
                                          : (p.resumen || p.objetivo || ''));
-      el.title = p.id + ' · ' + (ESTADO_LABEL[esActual?'actual':p.estado]||p.estado)
+      el.title = 'Paso ' + (i+1) + ' de ' + (flujo.total_pasos||'') + ' · ' + esc(p.titulo||p.id)
                + (nota ? '\n' + nota : '');
       if(esActual) el.setAttribute('aria-current','step');
       railEl.appendChild(el);
@@ -479,7 +503,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     if(sim && sim.activo){
       const det = ['<li><span>'+esc(sim.nota||NOTA_SIM_DEFECTO)+'</span></li>'];
       if(sim.opcion){
-        det.push('<li><span class="id">'+esc(sim.desde||'')+'</span><span><span class="k">'
+        det.push('<li><span class="id">'+esc(pasoLbl(sim.desde||''))+'</span><span><span class="k">'
           + esc(sim.nodo||'Decisión')+'</span> → '+esc(sim.opcion)+'</span></li>');
       }
       body.appendChild(caja('Datos simulados — esto no es evidencia de campo',
@@ -500,7 +524,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     // 2. Decisiones ya tomadas
     const decs = flujo.decisiones||[];
     body.appendChild(caja('Decisiones tomadas', decs.length
-      ? decs.map(d => '<li><span class="id">'+esc(d.paso)+'</span><span><span class="k">'
+      ? decs.map(d => '<li><span class="id">'+esc(pasoLbl(d.paso))+'</span><span><span class="k">'
           + esc(d.nodo)+'</span> → '+esc(d.opcion)+'</span></li>').join('')
       : null, 'Sin decisiones registradas todavía.'));
 
@@ -512,7 +536,7 @@ window.REPORT_DATA = __REPORT_DATA__;
             ? '<a href="'+esc(p.archivo)+'">'+esc(p.titulo)+'</a>' : '<span class="k">'+esc(p.titulo)+'</span>';
           const r = p.resumen ? ' — '+esc(p.resumen) : '';
           const v = p.veredicto ? ' <span class="muted">('+esc(p.veredicto)+')</span>' : '';
-          return '<li><span class="id">'+esc(p.id)+'</span><span>'+t+r+v+'</span></li>';
+          return '<li><span class="id">'+esc(pasoLbl(p.id))+'</span><span>'+t+r+v+'</span></li>';
         }).join('')
       : null, 'Este es el primer paso ejecutado del flujo.'));
 
@@ -523,7 +547,7 @@ window.REPORT_DATA = __REPORT_DATA__;
         const forz = p.forzada ? ' <span class="muted">(omisión forzada)</span>' : '';
         const mot = p.motivo ? '<br><span class="muted">Motivo: '+esc(p.motivo)+'</span>' : '';
         const imp = p.impacto ? '<br><span class="muted">Impacto: '+esc(p.impacto)+'</span>' : '';
-        return '<li><span class="id">'+esc(p.id)+'</span><span><span class="k">'
+        return '<li><span class="id">'+esc(pasoLbl(p.id))+'</span><span><span class="k">'
              + esc(p.titulo||p.id)+'</span>'+forz+mot+imp+'</span></li>';
       }).join('');
       body.appendChild(caja('Pasos omitidos — lo que le falta a este reporte', html, null, 'warn full'));
@@ -533,8 +557,8 @@ window.REPORT_DATA = __REPORT_DATA__;
     const fcol = document.getElementById('foot-flujo-col');
     const fp = [];
     if(flujo.proyecto) fp.push(esc(flujo.proyecto));
-    if(flujo.paso_orden) fp.push('paso '+flujo.paso_orden+'/'+flujo.total_pasos
-                                 +' · '+esc(flujo.paso_actual));
+    if(flujo.paso_orden) fp.push('paso '+flujo.paso_orden+' de '+flujo.total_pasos
+                                 +(flujo.paso_titulo ? ' · '+esc(flujo.paso_titulo) : ''));
     if(fp.length){
       document.getElementById('foot-flujo').innerHTML = fp.join('<br>');
       fcol.style.display='';
@@ -718,7 +742,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       '<div class="card-top">'+(it.tags&&it.tags.length?'<span class="card-tag">'+esc(it.tags[0])+'</span>':'<span></span>')+verdictHtml+'</div>'+
       '<h3>'+esc(it.titulo)+'</h3>'+
       (it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+
-      '<div class="card-foot">'+tagsHtml+(typeof it.score==='number'?'<span class="pill">Score '+it.score+'</span>':'')+'</div>'+
+      '<div class="card-foot">'+tagsHtml+(typeof it.score==='number'?'<span class="pill">Puntaje '+it.score+'</span>':'')+'</div>'+
       (expandible?'<div class="expand-hint">Ver detalle <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>':'');
     if(!expandible) return card;
     card.addEventListener('click', e => {
@@ -795,7 +819,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     if(p.base) meta.push('Con base en: '+esc(p.base));
     if(p.fecha_ejecucion) meta.push('Fecha de ejecución: '+esc(p.fecha_ejecucion));
     if(p.naturaleza) meta.push(esc(p.naturaleza));
-    h += '<div class="pf-jtbd"><div class="lbl">JTBD</div>'
+    h += '<div class="pf-jtbd"><div class="lbl">El trabajo que quiere hacer (Job To Be Done)</div>'
        + '<blockquote>'+esc(p.jtbd||'[no disponible]')+'</blockquote>'
        + (meta.length?'<div class="meta-linea"><span>'+meta.join('</span><span>')+'</span></div>':'')
        + '</div>';
@@ -823,11 +847,11 @@ window.REPORT_DATA = __REPORT_DATA__;
       const cSol = hayCol('solucion'), cCosto = hayCol('costo');
       const cMet = pains.some(d => typeof d.importancia==='number' || typeof d.satisfaccion==='number');
       const sinEval = !cSol && !cCosto && !cMet;
-      let head = '<th class="num"></th><th>Pain</th>';
+      let head = '<th class="num"></th><th>Problema</th>';
       if(cSol)   head += '<th>¿Cómo lo soluciona?</th>';
       if(cCosto) head += '<th>Costo de la solución actual</th>';
       if(cMet)   head += '<th>Importancia / Satisfacción</th>';
-      h += '<div class="pf-box full"><h5>Pains de productos/servicios actuales</h5><div class="pf-tabla-wrap">'
+      h += '<div class="pf-box full"><h5>Problemas con los productos y servicios actuales</h5><div class="pf-tabla-wrap">'
          + '<table class="pf-tabla'+(sinEval?' slim':'')+'"><thead><tr>'+head+'</tr></thead><tbody>';
       pains.forEach((d,i) => {
         h += '<tr><td class="num"><span>'+(d.n||i+1)+'</span></td>'
@@ -867,7 +891,7 @@ window.REPORT_DATA = __REPORT_DATA__;
 
     // Solución evaluada + procedencia de la evidencia
     const meta = [];
-    if(p.persona)   meta.push('Protopersona: '+esc(p.persona));
+    if(p.persona)   meta.push('Persona hipotética: '+esc(p.persona));
     if(p.base)      meta.push('Con base en: '+esc(p.base));
     if(p.n_muestra!=null) meta.push('Muestra: '+esc(p.n_muestra));
     if(p.solucion_propuesta || meta.length){
@@ -899,7 +923,7 @@ window.REPORT_DATA = __REPORT_DATA__;
            + (d.contexto?'<span class="ctx">'+esc(d.contexto)+'</span>':'')+'</td>';
         if(cFrec)  h += '<td>'+esc(d.frecuencia||'—')+'</td>';
         if(cSol)   h += '<td>'+esc(d.solucion_actual||'—')+'</td>';
-        if(cCosto) h += '<td>'+esc([d.costo_tiempo, d.costo_dinero].filter(Boolean).join(' · ')||'N/D')+'</td>';
+        if(cCosto) h += '<td>'+esc([d.costo_tiempo, d.costo_dinero].filter(Boolean).join(' · ')||'[no disponible]')+'</td>';
         if(cMet)   h += '<td class="metrica">'+esc(metrica(d))+'</td>';
         if(cCubre) h += '<td>'+badgeCubre(d.cubre)
                       + (d.ajustes?'<span class="ctx">'+esc(d.ajustes)+'</span>':'')+'</td>';
@@ -909,11 +933,11 @@ window.REPORT_DATA = __REPORT_DATA__;
     }
 
     if(p.jtbd)
-      h += '<div class="pf-box full"><h5>Job To Be Done</h5><p class="db-text">'+esc(p.jtbd)+'</p></div>';
+      h += '<div class="pf-box full"><h5>El trabajo que quiere hacer (Job To Be Done)</h5><p class="db-text">'+esc(p.jtbd)+'</p></div>';
     if(p.patrones && p.patrones.length)
       h += '<div class="pf-box w6"><h5>Patrones y tendencias</h5>'+lista(p.patrones)+'</div>';
     if(p.blue_ocean && p.blue_ocean.length)
-      h += '<div class="pf-box gold w6"><h5>Oportunidad Blue Ocean</h5>'+lista(p.blue_ocean)+'</div>';
+      h += '<div class="pf-box gold w6"><h5>Oportunidad Blue Ocean (espacio sin competencia)</h5>'+lista(p.blue_ocean)+'</div>';
     if(p.anexo && p.anexo.length)
       h += '<div class="pf-box"><h5>Anexo</h5>'+lista(p.anexo)+'</div>';
 
@@ -1028,7 +1052,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     const min = (c.min!=null?c.min:0), max = (c.max!=null?c.max:5);
     const puntos = c.puntos || [];
     const ds = {
-      label: c.serie || 'Pains',
+      label: c.serie || 'Problemas',
       data: puntos.map(p => ({x:p.x, y:p.y})),
       backgroundColor: '#5A3A8C',
       borderColor: '#3D2766',

@@ -58,10 +58,11 @@ deteniéndose en cada decisión y registrando todo en el estado del flujo.
 | Recorrido | Pasos | Para qué |
 | --- | --- | --- |
 | **Completa** | 11 | El proceso íntegro, de la investigación al experimento. |
-| **Mínima** (`--ruta minima`) | 5 | Investigación → Persona → Reto (HMW) → Ideación → Validación, sin las etapas intermedias. |
+| **Mínima** (`--ruta minima`) | 5 | Investigación → Persona Profile → El reto creativo (How Might We) + Ambición estratégica → Ideación → Prototipado y Validación, sin las etapas intermedias. |
 
 Los 5 pasos de la ruta mínima son **Inicio + Investigación**, **Persona Profile**,
-**HMW + Ambición estratégica**, **Ideación** y **Prototipado y Validación**. Se salta los 6
+**El reto creativo (How Might We) + Ambición estratégica**, **Ideación** y
+**Prototipado y Validación**. Se salta los 6
 restantes: entrevistas, descubrimiento de campo, Problem-Solution Fit, Journey Builder,
 Dimensionador estratégico y Business Model Navigator — cada uno con su impacto declarado en los
 reportes posteriores.
@@ -78,8 +79,9 @@ En cada paso el usuario elige **Ejecutar**, **Omitir** o **¿Por qué importa?**
 el hueco queda declarado: el reporte de cada paso posterior muestra qué falta y por qué,
 y los datos que dependían de ese input se marcan como supuestos con `*`.
 
-Los pasos que sostienen el resto del flujo (`html_4` Persona, `html_7` HMW, `html_8`
-Ideación, `html_11` Validación) piden confirmación extra antes de omitirse.
+Los pasos que sostienen el resto del flujo (`html_4` Persona Profile, `html_7`
+El reto creativo (How Might We), `html_8`
+Ideación, `html_11` Prototipado y Validación) piden confirmación extra antes de omitirse.
 
 ### Contexto en cada reporte
 
@@ -87,6 +89,23 @@ Los 11 HTML llevan **el contexto completo del flujo**: un riel de progreso con l
 pasos (completados, omitidos, el actual), las decisiones tomadas hasta ese punto, el
 resumen de cada paso previo con enlace a su reporte, y los pasos omitidos con su impacto.
 Ningún reporte se lee fuera de contexto.
+
+### Navegar entre los reportes
+
+Los reportes se enlazan entre sí con **enlaces relativos** (el riel del flujo apunta a
+`html_1.html`, `html_4.html`, …). Esos enlaces funcionan cuando los 11 HTML están en la
+**misma carpeta** y se abren con el **navegador** (no desde la vista previa embebida de un
+gestor, que no tiene sistema de archivos).
+
+Para una puerta de entrada única, genera el tablero de navegación:
+
+```bash
+python scripts/generar_indice.py --estado <carpeta>/flujo_estado.json
+```
+
+Escribe `index.html` en esa carpeta, con los 11 pasos, su estado y un botón «Abrir
+reporte» por cada paso completado. Se abre una vez y desde ahí se navega a cualquier
+reporte.
 
 ### Retomar un proyecto
 

@@ -9,7 +9,7 @@ no se cambian: es el formato con el que el equipo lee y compara perfiles.
 | # | Sección | Contenido | Quién la produce |
 | --- | --- | --- | --- |
 | 1 | **Nombre del perfil** | El segmento en mayúsculas (ej. `PRODUCTORES CASADOS`), no el nombre de la persona | persona-profile |
-| 2 | **JTBD** | «Cuando (situación en un momento vital), quiero (tarea que debe cumplir), para (resultado esperado)» | persona-profile |
+| 2 | **El trabajo que quiere hacer (Job To Be Done)** | «Cuando (situación en un momento vital), quiero (tarea que debe cumplir), para (resultado esperado)» | persona-profile |
 | 3 | **Con base en** | `N entrevistas` / `N encuestas` / `supuestos` — de dónde sale la ficha | persona-profile |
 | 4 | **Fecha de ejecución** | `día/mes/año – día/mes/año` del trabajo de campo | persona-profile |
 | 5 | **Identidad** | Nombre, Edad (rango), Rango de ingresos | persona-profile |
@@ -17,10 +17,10 @@ no se cambian: es el formato con el que el equipo lee y compara perfiles.
 | 7 | **¿Cuándo lo quiere? (Momentos vitales)** | Cuándo necesita el producto (o el de la competencia) | persona-profile |
 | 8 | **¿Dónde está?** | Par **Canal físico** / **Canal digital**: espacios donde interactúa | persona-profile |
 | 9 | **¿En quién confía? / Le recomienda** | Par **físico** / **digital**: de quién se inspira, quién lo impulsa a decidir | persona-profile |
-| 10 | **Pains de productos/servicios actuales** | Numerados 1..N — los dolores que la persona relató | persona-profile |
-| 11 | **¿Cómo lo soluciona?** | Numerado, **alineado 1:1 con los pains** | **problem-solution-fit** |
-| 12 | **Costo de la solución actual** | Tiempo y dinero por pain: `1–2 horas, $3,000 – $10,000 MXN por jornada` | **problem-solution-fit** |
-| 13 | **Importancia del problema × Satisfacción** | Matriz de cuadrantes: un punto numerado por pain | **problem-solution-fit** |
+| 10 | **Problemas con los productos y servicios actuales** | Numerados 1..N — los dolores que la persona relató | persona-profile |
+| 11 | **¿Cómo lo soluciona?** | Numerado, **alineado 1:1 con los problemas** | **problem-solution-fit** |
+| 12 | **Costo de la solución actual** | Tiempo y dinero por problema: `1–2 horas, $3,000 – $10,000 MXN por jornada` | **problem-solution-fit** |
+| 13 | **Importancia del problema × Satisfacción** | Matriz de cuadrantes: un punto numerado por problema | **problem-solution-fit** |
 | 14 | **Accionables** | Hipótesis que surgieron, siguientes pasos, experimentos posibles | persona-profile |
 | 15 | **Anexo** | Contexto extra que no cabe en las secciones anteriores | persona-profile |
 
@@ -33,23 +33,23 @@ escala, mide costos a partir de citas explícitas y valida el encaje de la soluc
 
 Por lo tanto:
 
-- **La sección 10 se queda.** Los pains son lo que la persona relató en campo — el
-  apartado «Frustraciones o Dolores» del perfil. Van numerados, con `texto`.
+- **La sección 10 se queda.** Los problemas son los dolores que la persona relató en
+  campo — el apartado «Frustraciones o Dolores» del perfil. Van numerados, con `texto`.
 - **Las secciones 11, 12 y 13 solo se rellenan si ya existe ese análisis** (porque
   `html_5` corrió antes y estás regenerando la ficha, o porque el usuario aportó la
   evaluación como insumo). Si no existe, **se omiten**: no se escriben `[no disponible]`
   ni valores estimados.
 - **Nunca inventes `importancia`, `satisfaccion` o `costo`** para llenar la ficha. Puntuar
-  un pain sin el análisis detrás es fabricar evidencia, y esas cifras alimentan después la
+  un problema sin el análisis detrás es fabricar evidencia, y esas cifras alimentan después la
   priorización de todo el flujo.
-- El HTML es adaptativo: la tabla de pains muestra solo las columnas con dato y la matriz
+- El HTML es adaptativo: la tabla de problemas muestra solo las columnas con dato y la matriz
   de cuadrantes aparece únicamente cuando hay pares `importancia` + `satisfaccion`. Con la
   ficha sin evaluar, el reporte imprime una nota que remite a Problem-Solution Fit.
 
-**Cuando las cuatro sí están, comparten número.** El pain 2 se resuelve con la solución 2,
+**Cuando las cuatro sí están, comparten número.** El problema 2 se resuelve con la solución 2,
 cuesta lo que dice el costo 2 y es el punto 2 de la matriz. Por eso en `reporte.json` van
 como **un solo array de objetos**, no como cuatro listas paralelas que se pueden
-desalinear. O las trae la lista completa de pains, o ninguno: una tabla a medias no se
+desalinear. O las trae la lista completa de problemas, o ninguno: una tabla a medias no se
 puede leer ni comparar.
 
 ## La matriz Importancia × Satisfacción
@@ -61,8 +61,8 @@ puede leer ni comparar.
 
 Los dos valores son **juicios derivados de la evidencia**, no cifras inventadas, y su
 fuente es `problem-solution-fit`. La matriz **la dibuja la plantilla** a partir de
-`importancia` y `satisfaccion` de cada pain. No escribas un bloque `chart`: sería duplicar
-la fuente de verdad.
+`importancia` y `satisfaccion` de cada problema. No escribas un bloque `chart`: sería
+duplicar la fuente de verdad.
 
 ## Bloque `persona` en `reporte.json`
 
@@ -80,7 +80,7 @@ buscador, filtros y orden funcionen igual que en el resto del flujo.
     "jtbd": "Cuando estoy por ejecutar una producción de alta visibilidad y múltiples dependencias, quiero trabajar con foros y staff conocidos que me hayan demostrado buenos resultados, para proteger el ritmo y mi reputación profesional.",
     "base": "2 entrevistas",
     "fecha_ejecucion": "03/03/2026 – 13/04/2026",
-    "naturaleza": "Persona validada con datos",
+    "naturaleza": "Persona validada con datos reales",
     "identidad": {
       "nombre": "Alan Martínez",
       "edad": "40 a 55 años",
@@ -139,9 +139,10 @@ análisis de html_5»).
 
 El validador (`_plantilla_html/scripts/validar_report_data.py`) **falla** si falta:
 `jtbd`, `identidad`, `metas`, `momentos_vitales`, `donde_esta`, `confianza`, `pains`
-(con `texto` en cada uno). Avisa —sin bloquear— si falta `base`, si el JTBD no sigue el
-formato «Cuando… quiero… para…», si un pain trae `importancia` sin `satisfaccion` (o al
-revés) o si unos pains traen evaluación y otros no.
+(con `texto` en cada uno). Avisa —sin bloquear— si falta `base`, si el trabajo que quiere
+hacer (`jtbd`) no sigue el formato «Cuando… quiero… para…», si un problema trae
+`importancia` sin `satisfaccion` (o al revés) o si unos problemas traen evaluación y
+otros no.
 
 `solucion`, `costo`, `importancia` y `satisfaccion` son **opcionales**: su ausencia no
 genera aviso, porque salen de `problem-solution-fit`. Cuando vienen, `importancia` y
@@ -151,7 +152,7 @@ genera aviso, porque salen de `problem-solution-fit`. Cuando vienen, `importanci
 
 La ficha se entrega igual, con la naturaleza declarada:
 
-- `naturaleza`: `"Protopersona hipotética"` y `base`: `"supuestos"`.
+- `naturaleza`: `"Ficha de persona hipotética (supuestos)"` y `base`: `"supuestos"`.
 - Cada afirmación no respaldada lleva `*`.
-- El motivo va en `advertencias` del reporte (ej. «html_2 y html_3 omitidos: sin
+- El motivo va en `advertencias` del reporte (ej. «los pasos 2 y 3 se omitieron: sin
   evidencia de campo»).

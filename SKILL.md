@@ -78,7 +78,8 @@ proyecto».
 ## Arranque de un proyecto
 
 Pide al usuario: **nombre**, **objetivo** y **audiencia**. Todo lo demás se pregunta
-paso a paso, cuando toca.
+paso a paso, cuando toca. Si el usuario quiere **empezar desde un paso intermedio** (no
+desde el 1), ofrécelo también: ver «Empezar desde un paso intermedio».
 
 Luego ofrece el recorrido. **Nombra los pasos, no los `html_N`:** al usuario «5 pasos»
 o «html_7» no le dicen nada. Pide la lista al script y preséntala:
@@ -91,8 +92,9 @@ Devuelve los dos recorridos con el título y la etapa de cada paso, y **qué se 
 ruta mínima con su impacto**. Muestra al usuario:
 
 - **Ruta completa** (11 pasos) — el proceso íntegro.
-- **Ruta mínima** (5 pasos) — Investigación → Persona → Reto (HMW) → Ideación →
-  Validación. Enumera los 5 por su nombre y di qué se pierde: sin entrevistas ni
+- **Ruta mínima** (5 pasos) — Investigación → Persona Profile → El reto creativo
+  (How Might We) + Ambición estratégica → Ideación → Prototipado y Validación.
+  Enumera los 5 por su nombre y di qué se pierde: sin entrevistas ni
   descubrimiento de campo, sin priorización de problemas, sin journey, sin
   dimensionamiento ni modelo de negocio.
 
@@ -105,6 +107,30 @@ python scripts/estado_flujo.py init --proyecto "<nombre>" \
 
 Si `flujo_estado.json` ya existe, el script se detiene y muestra el proyecto en curso:
 **pregunta al usuario si quiere continuarlo** antes de tocar nada.
+
+---
+
+## Qué archivos puede adjuntar el usuario
+
+Dilo cuando arranca el proceso y cada vez que el usuario quiera aportar material: este
+agente lee **texto e imágenes**, no audio ni video.
+
+- **Se puede adjuntar:**
+  - Texto: `.txt`, `.md`, `.csv`, `.json`, `.docx`, `.pdf`, `.xlsx`, presentaciones, etc.
+  - Imágenes: capturas de pantalla, fotos, diagramas (`.png`, `.jpg`, `.webp`…). Se leen directo.
+- **No se puede adjuntar por ahora:** audio (`.mp3`, `.wav`, `.m4a`…) y video
+  (`.mp4`, `.mov`…). Leerlos requiere una herramienta externa de transcripción que este
+  flujo todavía no integra.
+
+Si el usuario intenta adjuntar audio o video, no lo rechaces a secas: oriéntalo a
+pasarlo a texto.
+
+- Gratis: la transcripción automática de YouTube o de Google Meet/Google Docs, o correr
+  Whisper (modelo de transcripción de código abierto) por su cuenta.
+- De pago: servicios de transcripción profesionales (Rev, Trint, Sonix y similares).
+
+Pídele que pegue el texto resultante o lo adjunte como `.txt`/`.docx` y continúa el
+flujo con ese texto.
 
 ---
 
@@ -155,7 +181,7 @@ Para cada nodo de decisión que devolvió `mostrar`:
 
 ```bash
 python scripts/estado_flujo.py decision --paso html_5 \
-    --nodo "Elección de protopersona" --opcion "Por problema más grande"
+    --nodo "Elección de la ficha de persona" --opcion "Por problema más grande"
 ```
 
 ### 5. Invocar las sub-skills
@@ -271,9 +297,34 @@ Reglas:
    Trasládale el motivo al usuario. Si insiste, repite con `--forzar`: queda marcado
    como **omisión forzada** en el HTML.
 2. **El impacto se hereda.** Cada paso posterior recibe el `si_omitido` del paso
-   ausente. Cuando falte un input por una omisión: usa un supuesto, márcalo con `*` y
-   decláralo en `advertencias` del reporte.
+   ausente. Cuando falte un input por una omisión: **primero pregunta al usuario si ya
+   tiene ese material** (ver «Empezar desde un paso intermedio»); si no lo tiene, usa un
+   supuesto marcado `*` y decláralo en `advertencias` del reporte.
 3. **Nunca omitas por tu cuenta.** Solo cuando el usuario lo pida.
+
+---
+
+## Empezar desde un paso intermedio
+
+El usuario puede querer empezar desde un paso que no es el primero (por ejemplo, ya
+tiene la ficha de persona y quiere arrancar directo en el paso 5 o en el 7). Es válido,
+pero antes de ejecutar ese paso hay que hacer dos cosas:
+
+1. **Omite los pasos previos** con `omitir --motivo` (uno por uno, con `--forzar` si
+   alguno es `omitible: false`). Así su impacto queda declarado en el histórico y en
+   los HTML de aquí en adelante.
+2. **Pide los materiales de esos pasos.** `mostrar` lista los predecesores y, para cada
+   omitido, su impacto. Antes de invocar la sub-skill, pregunta al usuario si ya tiene
+   lo que esos pasos habrían producido. Ejemplos, según lo que se haya saltado:
+   - Investigación o Descubrimiento: «¿tienes la investigación de mercado, la ficha de
+     persona o los datos de entrevistas o encuestas? Si los tienes, pégalos o adjúntalos.»
+   - Ideación: «¿tienes el reto creativo (How Might We) y las ideas ya generadas?»
+   - Si el usuario aporta ese material, úsalo como evidencia (no lo marques `*`).
+   - Si no lo tiene, usa supuestos marcados `*` y decláralo en `advertencias`, como
+     manda «Omitir un paso».
+
+No arranques el paso con supuestos sin haber preguntado primero: el usuario puede tener
+el material y no saber que hace falta pedírselo.
 
 ---
 
@@ -303,6 +354,25 @@ El usuario no conoce la notación interna del flujo. Tradúcela siempre.
 pasos salen de `mostrar` y de `estado_flujo.py rutas`; los nombres de carpeta de las
 sub-skills (`2.Descubrimiento/persona-profile`) son rutas de disco y **nunca** se le
 muestran al usuario.
+
+### Nada de abreviaturas: este agente también lo usan personas no expertas
+
+Nombra **todos** los pasos y términos por su nombre completo. Nunca uses una sigla ni un
+nombre en clave: quien no conoce el tema no sabe qué es «HMW» o «PSF». Si el término es
+técnico, di su nombre y acláralo en una frase corta la primera vez que aparezca.
+
+| No digas | Di |
+| --- | --- |
+| «HMW» | «el reto creativo (How Might We): la pregunta que enmarca la ideación» |
+| «el PSF» | «Problem-Solution Fit: el encaje entre el problema del cliente y tu solución» |
+| «la persona» (sin más, si es la primera vez) | «la ficha de persona: quién es tu cliente y qué le duele» |
+| «JTBD» | «el trabajo que el cliente quiere hacer (Job To Be Done)» |
+| «TAM / SAM / SOM» | «el tamaño del mercado: el total, la parte que puedes alcanzar y la que puedes servir» |
+| «CLV:CAC» | «lo que ganas por cliente a lo largo del tiempo, frente a lo que cuesta conseguirlo» |
+
+Los títulos completos de los 11 pasos ya están escritos sin siglas en `pasos.json` (por
+ejemplo, el paso 7 se llama «El reto creativo (How Might We) + Ambición estratégica»).
+Léelos de ahí y repítelos tal cual; no los resumas a una sigla.
 
 ### El asterisco hay que explicarlo
 
@@ -368,9 +438,22 @@ la interpretación, no las cifras. **Y explícale al usuario qué quiere decir c
 
 ## ¿Qué hacer al final de todo el flujo?
 
-Tras cerrar el último paso (Prototipado y Validación), mide el coste del recorrido y
-preséntaselo al usuario. El medidor es `scripts/medir_tokens.py` y se ejecuta desde la
-raíz del repositorio:
+Tras cerrar el último paso (Prototipado y Validación), genera el **tablero de
+navegación** y mide el coste del recorrido:
+
+```bash
+python scripts/generar_indice.py --estado <dir>/flujo_estado.json   # index.html
+```
+
+`index.html` es la puerta de entrada al proyecto: lista los 11 pasos con su estado y un
+botón «Abrir reporte» por cada paso completado. Los enlaces entre HTML son **relativos**,
+así que funcionan cuando todos los reportes viven en la misma carpeta y se abren con el
+navegador (doble clic en `index.html`). En la vista previa embebida de un gestor no hay
+sistema de archivos y un HTML no puede abrir a su vecino: por eso la navegación se hace
+desde `index.html` en el navegador, no desde el preview. El riel de cada reporte también
+enlaza a los pasos previos (en pestaña nueva).
+
+El medidor es `scripts/medir_tokens.py` y se ejecuta desde la raíz del repositorio:
 
 ```bash
 python scripts/medir_tokens.py                              # E1 + E3, ruta completa y mínima

@@ -15,10 +15,28 @@ Actúa como un **analista experto en marketing y creación de perfiles de client
 ## Declaración de naturaleza del perfil (obligatoria)
 
 Al inicio de cada entrega, indica explícitamente si se trata de:
-- **Protopersona hipotética** (basada en supuestos y conocimiento general del mercado), o
-- **Persona validada con datos** (respaldada por entrevistas, encuestas o investigación real aportada por el usuario).
+- **Ficha de persona hipotética (supuestos)** — basada en supuestos y conocimiento general del mercado, o
+- **Persona validada con datos reales** — respaldada por entrevistas, encuestas o investigación real aportada por el usuario.
 
 Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no respaldada como **supuesto (\*)**. Nunca presentes datos inventados como reales.
+
+## Vocabulario en el texto visible (obligatorio)
+
+Este flujo lo usan personas expertas y no expertas. En **todo el texto que se ve en el
+HTML** (título, subtítulo, KPIs, labels del `body`, resumen, la naturaleza del perfil y
+las advertencias) usa palabras claras:
+
+| No escribas (jerga) | Escribe |
+| --- | --- |
+| `pains` | «problemas» o «dolores» |
+| `JTBD` | «el trabajo que quiere hacer (Job To Be Done)» |
+| `protopersona` | «ficha de persona» (o «persona hipotética» si hablas de la naturaleza) |
+| `PSF` | «Problem-Solution Fit» (o «el encaje problema-solución») |
+| `html_N` | «paso N» |
+
+Los **nombres de campo del JSON** (`pains`, `jtbd`, `persona`, `psf`, `naturaleza`,
+`importancia`, `satisfaccion`) **no cambian**: son el contrato que leen la plantilla y el
+validador. Solo cambia el texto visible, no las claves.
 
 ## Parámetros de Entrada
 
@@ -35,7 +53,7 @@ Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no r
 
 ## Instrucciones
 
-1. Recolecta y confirma los parámetros e insumos. Si faltan insumos reales, declara protopersona hipotética.
+1. Recolecta y confirma los parámetros e insumos. Si faltan insumos reales, declara la ficha de persona como hipotética (supuestos).
 2. **Lee `references/ficha-persona.md`.** Define la estructura obligatoria de salida (las 15
    secciones del template oficial), qué secciones son tuyas y cuáles pertenecen al paso
    siguiente, y el esquema del bloque `persona` en `reporte.json`. Es vinculante: no
@@ -43,9 +61,9 @@ Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no r
 3. Genera **una ficha por perfil** con estas secciones, en este orden:
    1. **Nombre del perfil** — el segmento en mayúsculas (ej. `PRODUCTORES CASADOS`), no el
       nombre de la persona.
-   2. **JTBD** — «Cuando (situación en un momento vital), quiero (tarea que debe cumplir),
-      para (resultado esperado)». Considera Momentos Vitales personales, financieros, de
-      consumo/hábito y culturales/sociales.
+   2. **El trabajo que quiere hacer (Job To Be Done)** — «Cuando (situación en un momento
+      vital), quiero (tarea que debe cumplir), para (resultado esperado)». Considera
+      Momentos Vitales personales, financieros, de consumo/hábito y culturales/sociales.
    3. **Con base en** — `N entrevistas` / `N encuestas` / `supuestos`.
    4. **Fecha de ejecución** del trabajo de campo (`día/mes/año – día/mes/año`).
    5. **Identidad** — nombre, edad (rango), rango de ingresos.
@@ -53,27 +71,27 @@ Si **no se proporcionan insumos reales**, avísalo y marca cada afirmación no r
    7. **¿Cuándo lo quiere? (Momentos vitales)** — cuándo necesita el producto o el de la competencia.
    8. **¿Dónde está?** — par **Canal físico** / **Canal digital**.
    9. **¿En quién confía? / Le recomienda** — par **físico** / **digital**.
-   10. **Pains de productos/servicios actuales** — numerados; los dolores que la persona
-       relató.
+   10. **Problemas con los productos y servicios actuales** — numerados; los dolores que la
+       persona relató.
    11. **¿Cómo lo soluciona?** — *solo si hay análisis de Problem-Solution Fit*.
    12. **Costo de la solución actual** — *solo si hay análisis de Problem-Solution Fit*.
    13. **Importancia del problema × Satisfacción de soluciones actuales** — *solo si hay
        análisis de Problem-Solution Fit*.
    14. **Accionables** — hipótesis surgidas, siguientes pasos, experimentos posibles.
    15. **Anexo** — contexto que no cabe arriba.
-4. **Las secciones 11, 12 y 13 son del paso siguiente.** La evaluación de cada pain
+4. **Las secciones 11, 12 y 13 son del paso siguiente.** La evaluación de cada problema
    —cómo lo resuelve hoy, cuánto le cuesta, qué tan importante es y qué tan satisfecho
    está— la produce `problem-solution-fit` (`html_5`). Rellénalas **solo** si ese análisis
    ya existe (porque el paso corrió antes y estás regenerando la ficha, o porque el
    usuario lo aportó como insumo). Si no existe, **omítelas**: no escribas
    `[no disponible]` ni valores estimados, y no las menciones como pendientes en el
    cuerpo de la ficha (el HTML ya imprime la nota que remite a Problem-Solution Fit).
-5. **Nunca inventes `importancia`, `satisfaccion` ni `costo`.** Puntuar un pain sin el
+5. **Nunca inventes `importancia`, `satisfaccion` ni `costo`.** Puntuar un problema sin el
    análisis detrás es fabricar evidencia, y esas cifras alimentan la priorización de todo
-   el flujo posterior. Cuando sí las tengas, van en escala 0 a 5 y **pain, solución, costo
-   y punto de la matriz comparten número**: el pain 2 se resuelve con la solución 2,
-   cuesta lo que dice el costo 2 y es el punto 2 de la matriz. En `reporte.json` van como
-   un solo array de objetos, no como cuatro listas paralelas.
+   el flujo posterior. Cuando sí las tengas, van en escala 0 a 5 y **problema, solución,
+   costo y punto de la matriz comparten número**: el problema 2 se resuelve con la
+   solución 2, cuesta lo que dice el costo 2 y es el punto 2 de la matriz. En
+   `reporte.json` van como un solo array de objetos, no como cuatro listas paralelas.
 6. Redacta conciso: viñetas cortas, 2–4 por sección. Formato homogéneo entre perfiles para
    que se puedan comparar lado a lado.
 
@@ -95,13 +113,13 @@ qué campos son supuestos (`*`).
 
 ## Reglas y Restricciones
 
-1. Declaración obligatoria de protopersona vs. persona validada.
+1. Declaración obligatoria de ficha de persona hipotética vs. persona validada con datos reales.
 2. Sin insumos reales, todo dato no respaldado lleva `*`.
 3. No inventar datos demográficos/cuantitativos como si fueran verificados.
 4. No omitir secciones propias del template (1–10, 14–15): si no hay dato, escribe
    `[no disponible]`. Las secciones 11–13 son la excepción: pertenecen a
    `problem-solution-fit` y se omiten mientras ese análisis no exista.
-5. No escribir un bloque `chart` a mano: la matriz la dibuja la plantilla desde los pains.
+5. No escribir un bloque `chart` a mano: la matriz la dibuja la plantilla desde los problemas.
 
 ## Contexto del flujo (entrada)
 
@@ -195,6 +213,6 @@ Toda skill cierra con un JSON de salida con esta estructura (autocontenida; no r
   template oficial), qué secciones son de esta skill y cuáles de `problem-solution-fit`,
   esquema del bloque `persona` y lectura de la matriz de cuadrantes.
 - `../problem-solution-fit/references/analisis-psf.md` — dónde nace la evaluación de los
-  pains (secciones 11–13) y cómo se devuelve a esta ficha. **Opcional:** si esa skill no
+  problemas (secciones 11–13) y cómo se devuelve a esta ficha. **Opcional:** si esa skill no
   está disponible, la regla se cumple igual omitiendo las secciones 11–13.
 - Contrato JSON: ver «Contrato JSON (salida)» arriba (autocontenido; `../../CONTRATO_JSON.md` es la versión canónica si existe).

@@ -18,7 +18,7 @@ autoritativo está en `pasos.json`; estos son los casos que más confunden:
 | Agente Señales débiles | `1.Investigacion/senales-debiles` |
 | Agente Dimensionador Estratégico de Ideas de Negocio | `3.Ideacion/dimensionador-estrategico` |
 | Agente Entrevista de empatía | `2.Descubrimiento/entrevistas-empatia` |
-| Agente HMW | `3.Ideacion/how-might-we` |
+| Agente How Might We | `3.Ideacion/how-might-we` |
 | Agente Caressing the client | `3.Ideacion/caressing-client` |
 | Agente A Day In The Life | `2.Descubrimiento/day-in-the-life` |
 | Agente Encuesta Kano | `2.Descubrimiento/encuesta-kano` |
@@ -192,27 +192,27 @@ Definir:
 > - **html_4** → Agente Persona Profile + decisión "¿Hay datos reales de entrevistas / encuestas?"
 >   - Sí: Generación de profiles con data real
 >   - No: Generación de profiles a base de supuestos
-> - **html_5** → Agente Problem Solution Fit + decisión "Elección de protopersona"
+> - **html_5** → Agente Problem Solution Fit + decisión "Elección de la ficha de persona"
 >   - Por problema más grande
 >   - Por mayor tamaño en mercado
-> - **html_6** → Agente Journey Builder (nodo de paso hacia Agente HMW)
+> - **html_6** → Agente Journey Builder (nodo de paso hacia Agente How Might We)
 
 ### Puntos de decisión
 
 - **¿Hay datos reales de entrevistas / encuestas?**
   - Sí → Generación de profiles con data real
   - No → Generación de profiles a base de supuestos
-- **Elección de protopersona**
+- **Elección de la ficha de persona**
   - Por problema más grande
   - Por mayor tamaño en mercado
-- **Ambición estratégica** *(se despliega desde Agente HMW, ver HTML 7)*
+- **Ambición estratégica** *(se despliega desde Agente How Might We, ver HTML 7)*
 - **Apalancamiento** *(se despliega desde Ambición estratégica, ver HTML 7)*
 
 ### Agentes
 
 #### Agente Persona Profile — html_4
 
-> Desarrolla protopersonas con atributos detallados, integrando Job To Be Done (JTBD) con Momentos Vitales para estrategias y nuevos productos.
+> Desarrolla fichas de persona con atributos detallados, integrando el trabajo que quiere hacer (Job To Be Done) con Momentos Vitales para estrategias y nuevos productos.
 
 Definir:
 
@@ -242,9 +242,9 @@ Definir:
 - Enfoque
 - Formato o terminología
 
-#### Agente HMW — html_7 (inicio)
+#### Agente How Might We — html_7 (inicio)
 
-> Agente especializado en guiar a equipos en la generación de preguntas "How Might We" (HMW) que desbloqueen soluciones innovadoras.
+> Agente especializado en guiar a equipos en la generación de preguntas "How Might We" que desbloqueen soluciones innovadoras.
 
 Definir:
 
@@ -258,7 +258,7 @@ Definir:
 
 > Esta sección se divide en 4 HTMLs:
 >
-> - **html_7** → Agente HMW + árbol de "Ambición estratégica" → "Apalancamiento" → "Selección de agentes de ideación"
+> - **html_7** → Agente How Might We + árbol de "Ambición estratégica" → "Apalancamiento" → "Selección de agentes de ideación"
 >   - Ambición estratégica: Optimizar Negocio Actual | Crecer Negocio Actual | Expandir Negocio | Crear Nuevos Negocios | Reinventar el Futuro
 >   - Apalancamiento (según ambición): Reducir Costos, Productividad, Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado, Ampliar mercado, Nuevos casos de uso, Ecosistema, Nuevo producto, Nuevo modelo de negocio, Disrupción, Nuevas categorías, IA
 > - **html_8** → Agentes de ideación en paralelo (Ideación, Caressing the client, Referral Builder) + decisión "Selección de ideas"
@@ -289,7 +289,7 @@ Definir:
 Definir:
 
 - Producto / servicio
-- JTBD principal
+- El trabajo que quiere hacer (Job To Be Done) principal
 - Mercado/categoría y geografía
 - N° de modelos por tabla
 
@@ -299,7 +299,7 @@ Definir:
 
 Definir:
 
-- HMW a resolver
+- El reto creativo (How Might We) a resolver
 - Contexto y restricciones
 - Número de ideas
 
@@ -387,7 +387,7 @@ Definir:
 
 - Producto
 - Audiencia
-- JTBD
+- El trabajo que quiere hacer (Job To Be Done)
 - Tono
 - Plataformas
 - Modo...
@@ -435,9 +435,9 @@ Definir:
 | html_2  | Decision - Entrevistas                | Agente Entrevista de empatía → ¿Ejecución? → Simular o no → Selección de agentes   |
 | html_3  | 2. Descubrimiento                     | Selección de agentes → 4 agentes descubrimiento en paralelo                         |
 | html_4  | Persona Profile                       | Agente Persona Profile → ¿Hay datos reales?                                         |
-| html_5  | Problem-Solution Fit                  | Agente Problem Solution Fit → Elección de protopersona                              |
+| html_5  | Problem-Solution Fit                  | Agente Problem Solution Fit → Elección de la ficha de persona                              |
 | html_6  | Journey Builder                       | Agente Journey Builder (nodo de paso)                                               |
-| html_7  | HMW + Ambición estratégica            | Agente HMW → Árbol Ambición estratégica → Apalancamiento → Selección de ideación   |
+| html_7  | El reto creativo (How Might We) + Ambición estratégica | Agente How Might We → Árbol Ambición estratégica → Apalancamiento → Selección de ideación |
 | html_8  | Agentes de ideación                   | Ideación, Caressing the client, Referral Builder → Selección de ideas               |
 | html_9  | Dimensionador                         | Agente Dimensionador Estratégico de Ideas de Negocio                                |
 | html_10 | Business Model Navigator              | Agente Business Model Navigator                                                     |
@@ -450,6 +450,6 @@ Definir:
 - **¿Ejecución de entrevistas?** → Sí: Respuestas e insights reales / No: Simulación de respuestas e insights
 - **Simular o no** → Sub-decisión cuando no se ejecutan entrevistas reales
 - **¿Hay datos reales de entrevistas / encuestas?** → Sí: Generación de profiles con data real / No: Generación de profiles a base de supuestos
-- **Elección de protopersona** → Por problema más grande / Por mayor tamaño en mercado
+- **Elección de la ficha de persona** → Por problema más grande / Por mayor tamaño en mercado
 - **Ambición estratégica** → Optimizar / Crecer / Expandir / Crear Nuevos Negocios / Reinventar el Futuro
 - **Apalancamiento** → Reducir Costos, Productividad, Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado, Ampliar mercado, Nuevos casos de uso, Ecosistema, Nuevo producto, Nuevo modelo de negocio, Disrupción, Nuevas categorías, IA

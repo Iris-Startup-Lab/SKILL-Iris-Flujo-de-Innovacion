@@ -30,6 +30,8 @@ pasos.json                      # FUENTE ÚNICA del flujo: 11 pasos, decisiones,
                                 # sub-skills, predecesores y qué se puede omitir
 scripts/estado_flujo.py         # Máquina de estados: crea/actualiza flujo_estado.json,
                                 # construye el contexto que viaja a cada HTML y regenera STATE.md
+scripts/generar_indice.py       # Genera index.html: tablero de navegación que enlaza
+                                # los reportes del proyecto (se abre en el navegador)
 flujo_estado.json               # Estado del proyecto en curso (lo escribe solo el script)
 STATE.md                        # Vista humana GENERADA del estado — no editar a mano
 README.md                       # Tutorial de uso y modelos recomendados por herramienta
@@ -288,6 +290,7 @@ El tono de los textos debe ser:
 | ¿Cuál es el prompt original de una skill? | `Documentos_prompts_base_md/<fase>/<archivo>.md` |
 | ¿Cómo valido scripts? | Activar `skills_env` y `python -m py_compile <script>` |
 | ¿Cuánto cuesta el recorrido en tokens y en dinero? | `python scripts/medir_tokens.py [--proyecto <dir>] [--modelo "<modelo>"]`; precios en `scripts/precios_modelos.json` y `--precios` |
+| ¿Cómo navegar entre los reportes de un proyecto? | `python scripts/generar_indice.py --estado <dir>/flujo_estado.json` → `index.html` (abrir en navegador) |
 | ¿Cómo sincronizar reglas con Claude Code/Desktop? | `.\actualizar_claude.ps1` (o `./actualizar_claude.sh`) genera `CLAUDE.md` a demanda |
 
 ---

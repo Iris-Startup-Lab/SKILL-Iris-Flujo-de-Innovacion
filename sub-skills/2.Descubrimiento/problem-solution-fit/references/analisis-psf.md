@@ -1,12 +1,12 @@
 # Análisis Problem-Solution Fit — estructura vinculante
 
-Estructura de salida de `problem-solution-fit`. Un item por protopersona analizada (o uno
-solo si el análisis es agregado). El orden y los nombres de las secciones no se cambian:
+Estructura de salida de `problem-solution-fit`. Un item por ficha de persona analizada (o
+uno solo si el análisis es agregado). El orden y los nombres de las secciones no se cambian:
 es el formato con el que el equipo compara problemas y decide qué atacar.
 
 ## Qué produce este análisis (y qué no)
 
-Este paso es el dueño de la **evaluación de los pains**. La protopersona (`html_4`,
+Este paso es el dueño de la **evaluación de los problemas**. La ficha de persona (`html_4`,
 `persona-profile`) entrega quién es y qué le duele; aquí se responde cuánto le duele,
 cómo lo resuelve hoy, cuánto le cuesta y si la solución propuesta encaja.
 
@@ -91,7 +91,7 @@ Un item por análisis dentro de `secciones[].items[]`. El frente de la tarjeta (
 | `problemas[].frecuencia` | no | `Alta/Media/Baja` o conteo (`9/12`) |
 | `problemas[].importancia` | avisa si falta | 1 a 5 · sin ella el problema no entra en la matriz |
 | `problemas[].satisfaccion` | avisa si falta | 1 a 5 · sin ella el problema no entra en la matriz |
-| `problemas[].costo_tiempo` | avisa si falta | Solo de citas explícitas · `[ESTIMACIÓN]` o `N/D` |
+| `problemas[].costo_tiempo` | avisa si falta | Solo de citas explícitas · `[ESTIMACIÓN]` o `[no disponible]` |
 | `problemas[].costo_dinero` | avisa si falta | Ídem |
 | `problemas[].solucion_actual` | avisa si falta | Cómo lo resuelve hoy |
 | `problemas[].cubre` | avisa si falta | `si` / `parcial` / `no` — otro valor es error |
@@ -107,7 +107,7 @@ El validador (`_plantilla_html/scripts/validar_report_data.py`) **falla** si fal
 ## Integridad de datos
 
 - **Costos solo de citas explícitas.** Si se infiere, `[ESTIMACIÓN]`; si no se mencionó,
-  `N/D`. Nunca una cifra inventada.
+  `[no disponible]`. Nunca una cifra inventada.
 - **Sin datos reales no hay análisis real.** Pide los datos o etiqueta todo el reporte como
   `SIMULADO` (en `base`, en `advertencias` y en los `tags` del item).
 - Si `importancia` y `satisfaccion` no se pudieron derivar de la evidencia, déjalas fuera:
@@ -116,7 +116,7 @@ El validador (`_plantilla_html/scripts/validar_report_data.py`) **falla** si fal
 ## Devolver las secciones 11–13 a la ficha de persona
 
 El análisis es también lo que completa la ficha de `persona-profile`. Si se regenera esa
-ficha después de este paso, cada pain puede llevar la evaluación mapeada así:
+ficha después de este paso, cada problema puede llevar la evaluación mapeada así:
 
 | Este análisis | Ficha de persona (`persona.pains[]`) |
 | --- | --- |

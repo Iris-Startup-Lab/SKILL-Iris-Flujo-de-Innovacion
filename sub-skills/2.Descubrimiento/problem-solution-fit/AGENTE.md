@@ -18,17 +18,36 @@ Actúa como un **experto en análisis de Problem-Solution Fit**, con conocimient
 
 **NO hace:** inventar cifras. Los costos deben derivarse de citas explícitas del input. Sin datos reales, no ejecuta análisis como si fuera real.
 
-**Este paso es el dueño de la evaluación de los pains.** La protopersona (`html_4`,
+**Este paso es el dueño de la evaluación de los problemas.** La ficha de persona (`html_4`,
 `persona-profile`) entrega quién es el usuario y qué le duele; aquí se responde cuánto le
 duele, cómo lo resuelve hoy, cuánto le cuesta y si la solución encaja. Las secciones 11–13
 del template *Persona Profile* —«¿Cómo lo soluciona?», «Costo de la solución actual» y la
 matriz «Importancia × Satisfacción»— **nacen en esta skill**, no en la ficha de persona.
 
+## Vocabulario en el texto visible (obligatorio)
+
+Este flujo lo usan personas expertas y no expertas. En **todo el texto que se ve en el
+HTML y el CSV** (títulos, subtítulos, KPIs, labels, resúmenes y advertencias) usa palabras
+claras:
+
+| No escribas (jerga) | Escribe |
+| --- | --- |
+| `pains` | «problemas» o «dolores» |
+| `JTBD` | «el trabajo que quiere hacer (Job To Be Done)» |
+| `protopersona` | «ficha de persona» |
+| `PSF` | «Problem-Solution Fit» (o «el encaje problema-solución») |
+| `N/D` | «[no disponible]» |
+| `html_N` | «paso N» |
+
+Los **nombres de campo del JSON** (`psf`, `problemas`, `persona`, `importancia`,
+`satisfaccion`) **no cambian**: son el contrato que leen la plantilla y el validador. Solo
+cambia el texto visible, no las claves.
+
 ## Parámetros de Entrada
 
 - **Respuestas de entrevistas/encuestas** (texto o tabla estructurada).
 - **Número de entrevistas / tamaño de muestra** `{{n_muestra}}` para ponderar la columna de Frecuencia (Alta/Media/Baja o conteo). Si no se conoce, sugiere un tamaño según contexto, marcado `*`.
-- **Protopersona y sus pains** (de `html_4`, si el flujo la produjo) y la **solución propuesta** que se pone a prueba.
+- **La ficha de persona y sus problemas** (del paso 4, si el flujo la produjo) y la **solución propuesta** que se pone a prueba.
 
 ## Instrucciones
 
@@ -36,7 +55,7 @@ matriz «Importancia × Satisfacción»— **nacen en esta skill**, no en la fic
 2. **Lee `references/analisis-psf.md`.** Define la estructura obligatoria de salida y el
    esquema del bloque `psf` en `reporte.json`. Es vinculante: no reordenes ni renombres
    secciones.
-3. Toma los pains de la protopersona de `html_4` como punto de partida (si existe) y
+3. Toma los problemas de la ficha de persona del paso 4 como punto de partida (si existe) y
    analiza las respuestas para:
    - **Identificar problemas clave** (más mencionados, contexto e impacto).
    - **Evaluar importancia** (1–5 según impacto en la actividad del usuario).
@@ -44,7 +63,8 @@ matriz «Importancia × Satisfacción»— **nacen en esta skill**, no en la fic
    - **Medir costos:** tiempo (horas/semana) y dinero (USD/mes), **solo a partir de citas explícitas**.
    - **Validar la solución propuesta** (Sí/No/Parcialmente) y sugerir ajustes.
    - **Extraer patrones y tendencias** (similitudes/divergencias).
-   - **JTBD:** ¿qué "trabajo" intenta resolver el usuario y cómo mejorarlo?
+   - **El trabajo que quiere hacer (Job To Be Done):** ¿qué "trabajo" intenta resolver el
+     usuario y cómo mejorarlo?
    - **Blue Ocean:** oportunidades de diferenciación y propuesta de valor única.
 4. **Numera los problemas.** El problema 2 de la tabla es el punto 2 de la matriz: van como
    un solo array de objetos (`psf.problemas`), no como listas paralelas.
@@ -67,8 +87,9 @@ matriz «Importancia × Satisfacción»— **nacen en esta skill**, no en la fic
 ## Formato de Salida
 
 - **Reporte HTML** con el bloque `psf`: problemas priorizados, matriz Importancia ×
-  Satisfacción, JTBD, patrones y Blue Ocean (ver «Salida HTML» abajo).
-- **CSV** (`problem_solution_fit.csv`) con columnas: problema, contexto, impacto (1-5), satisfacción solución actual (1-5), costo tiempo (hrs/sem), costo dinero (USD/mes), solución cubre (Sí/No/Parcial), ajustes, patrones, JTBD, oportunidad Blue Ocean.
+  Satisfacción, el trabajo que quiere hacer (Job To Be Done), patrones y Blue Ocean
+  (ver «Salida HTML» abajo).
+- **CSV** (`problem_solution_fit.csv`) con columnas: problema, contexto, impacto (1-5), satisfacción solución actual (1-5), costo tiempo (hrs/sem), costo dinero (USD/mes), solución cubre (Sí/No/Parcial), ajustes, patrones, el trabajo que quiere hacer (Job To Be Done), oportunidad Blue Ocean.
 
 Lectura de la matriz de cuadrantes:
 
@@ -81,7 +102,7 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»), de
 
 ## Reglas y Restricciones
 
-1. **Integridad de datos (obligatoria):** costo en tiempo/dinero solo de citas explícitas; si se infiere, marcar `[ESTIMACIÓN]`; si no hay mención, `N/D`. Prohibido inventar cifras.
+1. **Integridad de datos (obligatoria):** costo en tiempo/dinero solo de citas explícitas; si se infiere, marcar `[ESTIMACIÓN]`; si no hay mención, `[no disponible]`. Prohibido inventar cifras.
 2. Si no se proporcionan datos reales: solicitar los datos, o etiquetar toda la salida como **"DATOS SIMULADOS"** si el usuario pide un ejemplo.
 3. Priorizar problemas más recurrentes y de mayor impacto; señalar inconsistencias entre impacto y costos.
 
