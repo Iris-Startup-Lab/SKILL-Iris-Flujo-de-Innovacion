@@ -1,7 +1,9 @@
 # To-do — 21/08/2026
 
-**Lo primero que hay que retomar: el pendiente 0** (revisión del flujo general). El script y
-`pasos.json` ya exigen el flujo corregido; la documentación todavía describe el anterior.
+**Lo primero que hay que retomar: el pendiente 0.** La revisión del flujo general está
+**escrita completa** —código, `pasos.json` y los 14 documentos— y **sin probar más allá de lo
+que se comprobó al escribirla**. La próxima sesión es de pruebas y depuración, nada más: la
+lista exacta de qué falta correr está en el pendiente 0.
 
 **Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente
@@ -34,94 +36,72 @@ Nada está commiteado: los commits los lleva el usuario.
 
 ---
 
-### 0. Revisión del flujo general — EN CURSO, interrumpido el 21/08
+### 0. Revisión del flujo general — escrita completa, PENDIENTE DE PRUEBAS
 
 Objetivo: que el agente macro **no pueda** saltarse el flujo, no solo que esté escrito que no
 debe. El flujo descrito por el usuario (los 11 pasos con sus sub-opciones) se comparó contra
-`pasos.json` y aparecieron 8 huecos reales; los de estructura ya están corregidos y con barreras
-en el script. Lo que falta es propagarlo a la documentación y probarlo de punta a punta.
+`pasos.json`, aparecieron 8 huecos reales y están corregidos, con barreras en el script y toda
+la documentación alineada.
 
-**Ya hecho y verificado** (detalle en «Hecho el 21/08/2026 — §8 y §9»): `pasos.json`
-reestructurado y `scripts/estado_flujo.py` con las dos barreras nuevas + comando `verificar`.
+**Lo escrito está en «Hecho el 21/08/2026» §8, §9 y §10.** Lo que queda es **probarlo**: nada
+de lo de abajo se ha ejecutado todavía, salvo lo que se comprobó al escribirlo (compilación,
+JSON válido, coherencia `pasos.json` ↔ Mermaid, y los 5 casos de bloqueo del script).
 
-**Falta, en este orden:**
+> Riesgo asumido a propósito: se escribió todo de una vez y se prueba después. Es probable que
+> aparezcan fallos en las rutas menos recorridas —`opciones_desde`, `solo_si`, las propuestas
+> con `--forzar`—, porque son las que no se ejercitaron al escribirlas.
 
-1. **Terminar las pruebas del script.** Probado: bloqueo por decisión sin registrar, opción
-   inventada, nodo inventado, opción válida con otra tipografía (acepta y guarda el texto
-   canónico), dos opciones en un nodo `unica`, nodo `multiple` con `minimo`, herencia de la
-   marca de simulación y filtrado de simuladores por agente elegido. **Sin probar todavía:**
-   - `opciones_desde` en el paso 7: que `Apalancamiento` resuelva solo las palancas de la
-     ambición elegida y rechace una palanca de otra ambición.
-   - `solo_si` estructurado en el paso 11: que «Entrega de la landing page» y «Origen de la
-     página a analizar» aparezcan **solo** si se eligió su agente, y que no bloqueen el cierre
-     cuando no aplican.
-   - `permite_propuestas` en el paso 7: que una ambición propuesta por el agente se rechace sin
-     `--forzar` y con `--forzar` quede marcada como propuesta en `STATE.md` y en el histórico.
-   - `verificar` sobre un proyecto completo (debe salir sin hallazgos) y sobre uno cerrado con
-     `--forzar` (debe salir con exit 2 y nombrar el hueco).
+#### 0.1 Pruebas del script que faltan
 
-2. **`SKILL.md` — cuatro cosas que el flujo nuevo exige y el documento todavía no dice:**
-   - **La puerta entre pasos.** El usuario pidió un «¿quieres seguir con todo el proceso?»
-     explícito entre paso y paso. Hoy el ciclo ofrece ejecutar u omitir, pero no **parar**:
-     hay que añadir «pausar aquí» como tercera salida (el estado queda guardado y el proyecto
-     se retoma después) y decirlo al cerrar cada paso.
-   - **Preguntar antes de ejecutar en los pasos 3, 8 y 11.** Son los tres pasos con varios
-     agentes. La regla es: preguntar si quiere todos o algunos, con un mínimo de uno, **antes**
-     de ejecutar nada. Ya está en `pasos.json` (`minimo`, `ofrecer_todos`); falta la instrucción
-     en el ciclo del paso.
-   - **La contradicción de las propuestas del agente.** «Human-in-the-loop» dice hoy: opciones
-     de `pasos.json` «sin reescribirlas ni añadir opciones nuevas». El usuario pidió lo
-     contrario para el paso 7: el agente **puede** proponer ambiciones extra, marcadas como
-     propuesta y sin quitar las 5 oficiales. Hay que reescribir esa regla: prohibido quitar,
-     renombrar, fusionar o reordenar; permitido **añadir** solo donde `pasos.json` lo declare
-     con `permite_propuestas`, y registrándolo con `--forzar`.
-   - **Los comandos nuevos.** `--opcion` repetido para los nodos `multiple`, la barrera de
-     `completar` y `verificar` al final del flujo.
+Con un proyecto de prueba en el scratchpad (`init --estado <tmp>/flujo_estado.json`):
 
-3. **`AGENTS.md` (y su copia `CLAUDE.md`) §6.** Los «tres invariantes» son cuatro: falta
-   *las decisiones del usuario se registran o el paso no cierra*. Y §8 necesita la fila de
-   `verificar`.
+| Qué probar | Qué debe pasar |
+| --- | --- |
+| `Apalancamiento` tras elegir «Crecer Negocio Actual» | `mostrar` resuelve **solo** sus 5 palancas; registrar «Reducir Costos» (de otra ambición) se rechaza con exit 2 |
+| `Apalancamiento` **antes** de elegir la ambición | No hay catálogo que resolver: no debe reventar ni aceptar cualquier cosa en silencio |
+| Sub-decisiones del paso 11 | «Entrega de la landing page» y «Origen de la página a analizar» aparecen **solo** si se eligió su agente, y no bloquean el cierre cuando no aplican |
+| Propuesta del agente en «Ambición estratégica» | Sin `--forzar` se rechaza; con `--forzar` se registra, sale «propuesta del agente» en `STATE.md` y en el HTML, y `verificar` la reporta |
+| Propuesta en un nodo **sin** `permite_propuestas` | Se rechaza con el mensaje de «no inventes opciones»; con `--forzar` queda como FUERA del catálogo |
+| `verificar` sobre un recorrido bien hecho | Exit 0, «sin hallazgos» |
+| `verificar` sobre un paso cerrado con `--forzar` | Exit 2 nombrando el hueco |
+| `completar` con el `minimo` incumplido | Bloquea y sugiere omitir el paso en vez de cerrarlo sin decisión |
 
-4. **Las vistas derivadas de `pasos.json`.** `flujo_agentes.md` y `flujo_mermaid.md` describen
-   el flujo viejo: la selección de agentes de descubrimiento colgando del paso 2, la de ideación
-   colgando del paso 7, el nodo «Simular o no» que ya no existe y el paso 11 sin sus dos
-   sub-decisiones. Están declaradas como vistas de `pasos.json`, así que hoy mienten.
-   `README.md` necesita el comando `verificar` en su tabla.
+#### 0.2 Recorrido de punta a punta
 
-5. **Las sub-skills que tocan los nodos movidos.**
-   - `3.Ideacion/how-might-we/references/matriz-ambicion-palancas.md`: la palanca se llama ahora
-     **«Inteligencia artificial»**, no «IA» (regla de no abreviar), y el glosario nuevo de
-     `pasos.json` explica «Ecosistema» y las otras seis palancas que no se entienden solas.
-     Hay que alinear la referencia con el catálogo.
-   - `4.Prototipado/landing-page`: tiene que leer «Entrega de la landing page» y respetar las dos
-     salidas (HTML demo o solo el guion para una herramienta externa). Hoy no distingue.
-   - `4.Prototipado/landing-ux-analyzer`: tiene que exigir el material antes de arrancar (enlace
-     público, archivo HTML, capturas o la landing recién generada) y decir qué **no** evalúa en
-     cada caso.
-   - `2.Descubrimiento/entrevistas-empatia` y las 4 de descubrimiento: revisar si su `AGENTE.md`
-     menciona los nodos que se movieron o el desaparecido «Simular o no».
+Un proyecto nuevo por los 11 pasos con las barreras puestas, usando
+`ejemplos_para_testear.md` (sus comandos ya están alineados con los nodos nuevos y
+**verificados contra `pasos.json`** con un comprobador: 0 nodos u opciones inexistentes).
+Tiene que pasar por los tres pasos de selección múltiple y por las dos sub-decisiones del
+paso 11, y cerrar con `verificar` sin hallazgos.
 
-6. **Compatibilidad de los proyectos ya recorridos.** `output/ecopack-circular` y
-   `output/huertos-urbanos-mx` tienen decisiones registradas con nombres de nodo que ya no
-   existen («Simular o no», «Selección de agentes», «Elección de protopersona»). `verificar` los
-   marcará como decisiones que el flujo ignora — **correcto y esperado**, son recorridos de
-   prueba anteriores al cambio. Decidir si se re-corren o se dejan como histórico; no editarlos
-   a mano.
+**Lo que hay que juzgar con ojo crítico en ese recorrido:** si las barreras **estorban**. En un
+flujo bien hecho no debería salir ni un aviso. Si aparecen, el umbral está mal puesto, no el
+usuario.
 
-7. **Estreno de punta a punta con las barreras puestas.** El recorrido de «EcoPack Circular» es
-   anterior a este cambio, así que no probó ninguna barrera. Hace falta un proyecto nuevo que
-   pase por los 11 pasos, con los tres pasos de selección múltiple y las dos sub-decisiones del
-   paso 11, y que cierre con `verificar` sin hallazgos. Es también la prueba de que las barreras
-   **no estorban** en un recorrido bien hecho: si aparecen avisos en un flujo correcto, el umbral
-   está mal puesto.
+#### 0.3 Render en el navegador
 
-8. **Reempaquetar el ZIP** al final, con los guardias de siempre (un solo `SKILL.md`, 0 barras
-   invertidas, rutas seguras).
+Dos cosas nuevas que solo se pueden ver abriendo un HTML:
 
-9. **Revisar el render del histórico en el HTML.** Los reportes pintan `flujo.decisiones`. Una
-   decisión múltiple ahora llega como «A + B» (igual que antes, compatible) pero una propuesta
-   del agente lleva `propuesta_agente: true` y el HTML no lo distingue de una opción oficial.
-   Decidir si se marca en el reporte —debería, es la única opción que no salió del catálogo.
+- La marca «(propuesta del agente)» en el bloque de decisiones del contexto (pendiente 9 del
+  ciclo anterior, ahora ya implementada).
+- Que una decisión múltiple («A + B») no rompa el ancho de la caja del contexto.
+
+Va junto con el pendiente 6 (ver un reporte simulado en el navegador), que sigue abierto.
+
+#### 0.4 Compatibilidad de los proyectos ya recorridos — decisión del usuario
+
+`output/ecopack-circular` y `output/huertos-urbanos-mx` tienen decisiones registradas con
+nombres de nodo que ya no existen («Simular o no», «Selección de agentes», «Elección de
+protopersona»). `verificar` los marcará como decisiones que el flujo ignora: **correcto y
+esperado**, son recorridos anteriores al cambio. Decidir si se re-corren o se dejan como
+histórico. No editarlos a mano.
+
+#### 0.5 Regenerar `CLAUDE.md` y reempaquetar
+
+- `CLAUDE.md` es copia de `AGENTS.md`, y `AGENTS.md` cambió (§6 y §8). **Lo regenera el
+  usuario**, no el agente: `.\actualizar_claude.ps1`.
+- El ZIP se reempaqueta **al final**, cuando las pruebas pasen, con los guardias de siempre
+  (un solo `SKILL.md`, 0 barras invertidas, rutas seguras).
 
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
@@ -322,11 +302,84 @@ paso 11, propuestas con `--forzar`, `verificar` sobre un proyecto completo).
 `cmd_verificar`, `cmd_decision` reescrito, `cmd_mostrar` ampliado, `detectar_simulacion` y
 `render_state_md` retocados, CLI con `--opcion` repetible y `--forzar` en `decision`).
 
-**Sin tocar todavía** (es el pendiente 0): `SKILL.md`, `AGENTS.md`/`CLAUDE.md`,
-`flujo_agentes.md`, `flujo_mermaid.md`, `README.md` y las sub-skills afectadas. **El repo está
-en un estado intermedio:** el script y `pasos.json` ya exigen el flujo nuevo, pero la
-documentación describe el viejo. Es coherente para ejecutar —las barreras guían con sus propios
-mensajes— e incoherente para leer.
+### 10. Propagación a la documentación y a las sub-skills
+
+Cerrado el estado intermedio: el flujo nuevo está ahora en los 14 documentos que lo describen o
+lo ejecutan, no solo en el script.
+
+**`SKILL.md`** — cuatro cosas nuevas y una contradicción resuelta:
+
+- **Las «tres reglas» son cuatro:** se añadió *cada decisión del paso la registra el usuario, o
+  el paso no cierra*, con la nota de que las reglas 1 y 3 las comprueba el script y que
+  `--forzar` deja rastro.
+- **Paso 8 del ciclo, «Preguntar si sigue»:** cerrar un paso no autoriza el siguiente. Y el
+  punto 3 pasó de tres opciones a cuatro, con **«Parar aquí por ahora»** — que no es omitir.
+  Nueva sección **«Pausar el proyecto»**: parar deja el paso pendiente y no declara ningún hueco;
+  omitir sí. Con la excepción escrita: si el usuario pide encadenar pasos sin preguntar, se
+  encadena, pero las **decisiones** de cada paso se siguen preguntando.
+- **Punto 4 reescrito:** `mostrar` marca cada nodo PENDIENTE / RESPONDIDA / no aplica y esa es la
+  agenda del paso. Documentados `minimo`, `ofrecer_todos`, `glosario`, `solo_si`,
+  `opciones_desde`, `auto_si` y el `--opcion` repetido. Y la regla explícita: **preguntar antes
+  de ejecutar** en los pasos 3, 8 y 11.
+- **«Cuándo puedes proponer una opción nueva»** (sección nueva). Human-in-the-loop decía «sin
+  añadir opciones nuevas» y el usuario pidió lo contrario para el paso 7. La regla ya no se
+  contradice: **prohibido quitar, renombrar, fusionar o reordenar** las declaradas; **permitido
+  añadir** donde el nodo trae `permite_propuestas`, marcado como propuesta, con justificación y
+  registrado con `--forzar`. Aparte, `requiere_propuesta` (paso 5): la opción es oficial y lo que
+  se propone es su contenido.
+- `verificar` al cerrar el flujo, y en la tabla de referencias.
+
+**`AGENTS.md`** — §6 con los cuatro invariantes y el porqué de que el tercero viva en el script;
+la lista de «Además» con pausar ≠ omitir, preguntar antes de ejecutar y la regla de propuestas;
+fila de `verificar` y de `convenciones_decisiones` en §8. **`CLAUDE.md` no se tocó**: es copia
+de `AGENTS.md` y la regenera el usuario (pendiente 0.5).
+
+**Las vistas de `pasos.json`, que decían el flujo viejo:**
+
+- **`flujo_mermaid.md`:** fuera `N34` («Simular o no»); `N31` renombrado a «Selección de agentes
+  de descubrimiento» y movido al subgrafo del paso 3; nuevos `N37` (origen de las respuestas),
+  `N38` (entrega de la landing) y `N39` (origen de la página); tres ramas en `N35`; arista
+  punteada para la propuesta del agente; «IA» → «Inteligencia artificial». Los `nodo_mermaid` de
+  `pasos.json` se reajustaron en 5 pasos. **Comprobado:** 39 declarados = 39 definidos, sin
+  huérfanos y sin aristas que citen un nodo inexistente.
+- **`flujo_agentes.md`:** puntos de decisión de los pasos 2, 3, 7, 8 y 11 reescritos; tabla final
+  con **los 13 nodos** del flujo, su tipo y sus opciones; nota de por qué se unificaron los dos
+  nodos del paso 2; y las cuatro preguntas que exige la palanca de Inteligencia artificial.
+- **`README.md`:** sección «Comprobar que se respetó el flujo» con las dos barreras y
+  `verificar`; `mostrar` documentado con sus marcas nuevas.
+- **`PLAN_MEDICION_TOKENS.md`:** las decisiones del plan de medición movidas a su paso correcto.
+
+**Las sub-skills afectadas:**
+
+- **`how-might-we/references/matriz-ambicion-palancas.md`** reescrita: «Inteligencia artificial»
+  en vez de «IA», las 7 palancas que no se entienden solas con su explicación, la regla de
+  propuestas (añadir sí, quitar no) y las cuatro preguntas obligatorias de la palanca de IA.
+- **`landing-page/AGENTE.md`:** sección **«Modo de entrega»** — demo construida (`landing_demo.html`,
+  autocontenido) o solo el guion para una herramienta externa, sin generar código. El alcance ya
+  no dice «no construye la página»: dice que no la **publica**.
+- **`landing-ux-analyzer/AGENTE.md`:** las cuatro formas de recibir la página con **qué se puede
+  auditar y qué queda fuera en cada una** (un archivo HTML no da render; una captura no da
+  estados interactivos). Paso 0: sin material no se arranca.
+- **`SIMULACION.md`** y el **`SIMULADOR.md`** de entrevistas: fuera la referencia al nodo
+  «Simular o no»; añadido que en el paso 3 la decisión viene por `auto_si` y que los simuladores
+  a usar son los de los agentes elegidos.
+- **`_plantilla_html/templates/reporte_base.html`:** una decisión con `fuera_de_catalogo` se
+  pinta «(propuesta del agente)» en el contexto — era el pendiente 9 del ciclo anterior.
+  Documentado en `_plantilla_html/README.md`, junto al campo `opciones` de las decisiones
+  múltiples.
+- **`ejemplos_para_testear.md`:** los 9 comandos con nodos viejos corregidos, los `multiple` con
+  `--opcion` repetido, y añadidas las decisiones del paso 3 y la sub-decisión de la landing.
+- **`mindmanager_converter.py`:** **no** se cambió su mapeo, a propósito — sus claves son los
+  nombres del mapa mental original y cambiarlas rompería el conversor contra su propia entrada.
+  Lleva un aviso en la cabecera explicándolo.
+
+**Verificado en esta ronda:** `py_compile` de los 4 scripts tocados; `pasos.json` válido (11
+pasos, 13 nodos); coherencia `pasos.json` ↔ Mermaid en los tres sentidos; `node --check` del JS
+de la plantilla; y un comprobador que extrae **todos** los comandos `decision` de los `.md` del
+repo y los valida con las funciones reales del script: **0 nodos u opciones inexistentes** (el
+único aviso es un `html_N` de plantilla en el `STATE.md` generado).
+
+**No verificado:** todo lo del pendiente 0. Nada de esto se ha ejecutado como flujo.
 
 ### 7. Simulación completa de prueba — «EcoPack Circular»
 

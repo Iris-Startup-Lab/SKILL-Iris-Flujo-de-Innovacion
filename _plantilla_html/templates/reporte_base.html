@@ -521,11 +521,20 @@ window.REPORT_DATA = __REPORT_DATA__;
         ([k,v]) => '<li><span class="k">'+k+':</span> <span>'+v+'</span></li>').join('')));
     }
 
-    // 2. Decisiones ya tomadas
+    // 2. Decisiones ya tomadas. Una opción propuesta por el agente (fuera del catálogo
+    // del flujo) se marca: es la única del histórico que no salió de `pasos.json`, y
+    // quien lea el reporte tiene que poder distinguirla de una oficial.
     const decs = flujo.decisiones||[];
     body.appendChild(caja('Decisiones tomadas', decs.length
-      ? decs.map(d => '<li><span class="id">'+esc(pasoLbl(d.paso))+'</span><span><span class="k">'
-          + esc(d.nodo)+'</span> → '+esc(d.opcion)+'</span></li>').join('')
+      ? decs.map(d => {
+          const fuera = (d.fuera_de_catalogo||[]).filter(Boolean);
+          const marca = fuera.length
+            ? ' <em title="Opción propuesta por el agente: no forma parte del catálogo '
+              + 'original del flujo">(propuesta del agente: '+esc(fuera.join(', '))+')</em>'
+            : '';
+          return '<li><span class="id">'+esc(pasoLbl(d.paso))+'</span><span><span class="k">'
+            + esc(d.nodo)+'</span> → '+esc(d.opcion)+marca+'</span></li>';
+        }).join('')
       : null, 'Sin decisiones registradas todavía.'));
 
     // 3. Lo que ya sabemos (pasos completados previos)

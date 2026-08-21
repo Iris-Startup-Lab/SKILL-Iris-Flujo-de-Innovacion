@@ -211,7 +211,7 @@ un `SKILL.md`, y releen el ZIP escrito para comprobar que ninguna entrada lleva 
 
 ## 6. Flujo de la macro-skill (orquestación)
 
-Tres invariantes, detallados en `SKILL.md`:
+Cuatro invariantes, detallados en `SKILL.md`:
 
 1. **`pasos.json` manda.** Nunca deduzcas qué sub-skill toca ni el nombre de su carpeta:
    está escrito ahí, acentos incluidos. Ningún otro documento define el flujo — `flujo_agentes.md`
@@ -219,8 +219,17 @@ Tres invariantes, detallados en `SKILL.md`:
 2. **El estado se cambia con `scripts/estado_flujo.py`,** nunca editando `flujo_estado.json`
    ni `STATE.md` a mano. `mostrar` da el briefing del paso (histórico, decisiones ya tomadas,
    omisiones y su impacto); `completar` / `omitir` / `decision` lo actualizan.
-3. **Todo HTML lleva el contexto del flujo,** inyectado por el generador con `--estado` y
+3. **Cada decisión del paso la registra el usuario, o el paso no cierra.** No es una regla de
+   estilo: la comprueba el script. `decision` rechaza un nodo o una opción que no estén en
+   `pasos.json` y exige el `minimo` de los nodos `multiple`; `completar` se niega a cerrar un
+   paso con nodos de decisión sin responder. `--forzar` es el único escape y deja rastro.
+4. **Todo HTML lleva el contexto del flujo,** inyectado por el generador con `--estado` y
    `--paso`. Si falta, el generador falla a propósito.
+
+**Por qué la regla 3 está en el script y no solo aquí:** el fallo más común de la orquestación
+era ejecutar las sub-skills eligiendo por el usuario y cerrar el paso como si él hubiera
+decidido. Un documento no puede impedirlo; una barrera sí. `verificar` audita después lo que
+las barreras dejaron pasar con `--forzar`.
 
 **Herencia entre pasos:** al cerrar un paso se registran su `--resumen` (una línea) y sus
 `--datos` (el `reporte.json`). Los dos viajan en `flujo.ruta[]` al paso siguiente: el
@@ -231,7 +240,16 @@ que la skill siguiente hereda en lugar de reconstruirlos. Detalle en
 Además:
 
 - La macro invoca sub-skills **leyendo** `sub-skills/<fase>/<skill>/AGENTE.md` por ruta (no depende de registro global).
-- **Human-in-the-loop:** se detiene en cada nodo de decisión y espera confirmación.
+- **Human-in-the-loop:** se detiene en cada nodo de decisión y espera confirmación. Y también
+  entre pasos: cerrar un paso no autoriza el siguiente (`SKILL.md` § «Preguntar si sigue»).
+- **Pausar ≠ omitir.** Parar deja el paso pendiente y el proyecto se retoma tal cual; omitir
+  declara un hueco que se hereda a todos los reportes siguientes.
+- **Preguntar antes de ejecutar.** Los pasos 3, 8 y 11 tienen varios agentes y su primer nodo es
+  cuáles se ejecutan (`minimo: 1`). Ejecutarlos todos sin preguntar es el error clásico.
+- **Propuestas del agente:** prohibido quitar, renombrar, fusionar o reordenar las opciones
+  declaradas; permitido **añadir** solo donde el nodo trae `permite_propuestas` (hoy, la Ambición
+  estratégica del paso 7), marcadas como propuesta y registradas con `--forzar`. Qué significa
+  cada campo de un nodo está en `pasos.json` → `convenciones_decisiones`.
 - **Omisión:** el usuario puede omitir pasos. Los marcados `omitible: false` en `pasos.json`
   requieren `--forzar` y quedan registrados como omisión forzada. El `si_omitido` del paso
   ausente se hereda a los siguientes: lo que falte se sustituye por supuestos marcados `*`
@@ -278,6 +296,8 @@ El tono de los textos debe ser:
 | ¿Qué sub-skill invoca el paso N y qué decisiones tiene? | `pasos.json` (fuente única) |
 | ¿Cuáles son los dos recorridos y qué pasos lleva cada uno? | `python scripts/estado_flujo.py rutas` |
 | ¿En qué paso va el proyecto y qué se decidió? | `python scripts/estado_flujo.py mostrar` |
+| ¿Se respetó el flujo? ¿Qué se cerró sin preguntar? | `python scripts/estado_flujo.py verificar` |
+| ¿Qué significa cada campo de un nodo de decisión? | `pasos.json` → `convenciones_decisiones` |
 | ¿Qué comandos hay para mover el estado? | `python scripts/estado_flujo.py --help` |
 | ¿Qué hace cada agente del flujo? | `flujo_agentes.md` |
 | ¿Cómo se conectan los agentes? | `flujo_mermaid.md` |

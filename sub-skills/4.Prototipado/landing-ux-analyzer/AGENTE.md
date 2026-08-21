@@ -1,6 +1,6 @@
 ---
 name: landing-ux-analyzer
-description: Audita la UX/UI de una landing page (jerarquía visual, tipografía, contraste WCAG 2.2 AA, white space, touch targets, responsividad) generando una lista priorizada de hallazgos y quick wins. Usar cuando el usuario quiera identificar áreas de mejora de UX/UI en una landing, a partir de URL o capturas.
+description: Audita la UX/UI de una landing page (jerarquía visual, tipografía, contraste WCAG 2.2 AA, white space, touch targets, responsividad) generando una lista priorizada de hallazgos y quick wins. Usar cuando el usuario quiera identificar áreas de mejora de UX/UI en una landing que ya existe, a partir de un enlace público, un archivo HTML, capturas de pantalla o la landing generada en el mismo paso del flujo.
 category: Prototipado
 ---
 
@@ -14,18 +14,31 @@ Actúa como un **consultor experto en diseño UI/UX y auditor de accesibilidad d
 
 ## Alcance
 
-**SÍ hace:** auditar performance visual, UX, accesibilidad y responsividad a partir de URL o capturas.
+**SÍ hace:** auditar performance visual, UX, accesibilidad y responsividad de una página **que ya existe**.
 
-**NO hace:** inventar apreciaciones visuales sin render. Sin capturas/URL, marca hallazgos como "No verificables / requieren render".
+**NO hace:** inventar apreciaciones visuales sin render. Sin material, marca los hallazgos como "No verificables / requieren render" — y si no hay material de ninguna de las cuatro formas de abajo, no hay auditoría: no la simules.
+
+## De dónde sale la página (pregúntalo antes de empezar)
+
+El paso 11 del flujo trae esta decisión en el nodo «Origen de la página a analizar». Si trabajas
+la skill suelta, pregúntala igual. Cuatro formas válidas, y **cada una tiene su límite: dilo al
+entregar**, porque cambia qué parte de la auditoría es verificable.
+
+| Origen | Qué se puede auditar | Qué queda fuera |
+| --- | --- | --- |
+| **Un enlace público** | Todo, con el render real | Nada, salvo que la página esté detrás de un acceso restringido o un muro de cookies: entonces no se puede leer y hay que pedir capturas |
+| **Un archivo HTML** | Estructura, jerarquía del contenido, textos, semántica y accesibilidad del marcado | El render real: espaciado, contraste efectivo y comportamiento responsivo se juzgan del código, no de lo que se ve |
+| **Capturas de pantalla** | Lo que se ve: jerarquía visual, tipografía, contraste, espaciado, tamaño de los botones | Lo que quede fuera del recorte, los estados interactivos (hover, foco, error) y todo lo que exija scroll no capturado. Pide desktop **y** móvil |
+| **La landing recién generada en este paso** | Todo, sobre el archivo | Es la revisión de la propia propuesta, no de una página en producción: no tiene tráfico real ni datos de comportamiento, así que los hallazgos son de diseño, no de rendimiento |
 
 ## Parámetros de Entrada
 
-- **URL renderizable o capturas** (desktop **y** móvil) `{{insumos}}`.
+- **El material de la página** `{{insumos}}`: enlace público, archivo HTML, capturas (desktop **y** móvil) o la landing generada en este mismo paso.
 - **Objetivo de negocio de la landing** `{{objetivo}}` (branding/awareness · conversión/lead-gen · venta directa).
 
 ## Instrucciones
 
-1. **Paso 0 (obligatorio):** confirma capturas desktop y móvil (o URL) y el objetivo de negocio. Si falta algo, solicítalo y advierte qué quedará "No verificable / requiere render".
+1. **Paso 0 (obligatorio):** confirma **de qué forma llega la página** (una de las cuatro) y el objetivo de negocio. Si falta el material, solicítalo y no arranques; si llega incompleto (solo desktop, captura recortada), advierte qué quedará "No verificable / requiere render" antes de auditar, no después.
 2. Secuencialmente: (1) jerarquía visual y estructura; (2) consistencia tipográfica; (3) colores y WCAG 2.2 AA; (4) white space; (5) botones y touch targets; (6) responsividad desktop/móvil; (7) lista de hallazgos priorizada por impacto en el objetivo (críticos/moderados/menores, con impacto y esfuerzo); (8) checklist de auditoría (heurísticas, accesibilidad, best practices); (9) quick wins y sugerencias estratégicas.
 
 ## Formato de Salida

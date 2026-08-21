@@ -162,7 +162,13 @@ documenta aquí solo para saber qué se renderiza:
         "motivo": "Ya tiene 12 entrevistas hechas", "impacto": "persona-profile usa supuestos *" },
       { "id": "html_4", "titulo": "Persona Profile", "estado": "actual" }
     ],
-    "decisiones": [{ "paso": "html_1", "nodo": "¿Cómo quieres iniciar?", "opcion": "Estado actual" }],
+    "decisiones": [
+      { "paso": "html_1", "nodo": "¿Cómo quieres iniciar?", "opcion": "Estado actual",
+        "opciones": ["Estado actual"] },
+      { "paso": "html_3", "nodo": "Selección de agentes de descubrimiento",
+        "opcion": "Encuesta Kano + Discovery Survey",
+        "opciones": ["Encuesta Kano", "Discovery Survey"] }
+    ],
     "omitidos": [{ "id": "html_2", "titulo": "…", "motivo": "…", "impacto": "…", "forzada": false }],
     "simulacion": { "activo": true, "desde": "html_2",
                     "nodo": "¿Ejecución de entrevistas?",
@@ -179,6 +185,11 @@ Se renderiza como:
 - **«De dónde viene este reporte»**: el proyecto, las decisiones tomadas, lo que ya se
   sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
   quien lea el reporte sepa qué le falta.
+  - Cada decisión trae `opcion` (texto plano, varias unidas con ` + `) y `opciones` (la lista,
+    en los nodos de elección múltiple). El bloque lo escribe `estado_flujo.py`, nunca la skill.
+  - Si una decisión lleva `fuera_de_catalogo`, la opción **la propuso el agente** y no forma
+    parte del catálogo del flujo: el reporte la marca «(propuesta del agente)». Es la única
+    entrada del histórico que no salió de `pasos.json`, y por eso se distingue.
 - **«En resumen»**: `meta.resumen` y la fila de veredictos al frente, antes del contexto,
   para que la conclusión se lea en los primeros segundos.
 - **«Siguiente paso»** (`flujo.siguiente_paso`, lo calcula el generador): el cierre del

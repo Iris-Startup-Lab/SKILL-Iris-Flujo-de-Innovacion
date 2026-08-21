@@ -30,9 +30,9 @@ la curva de saturación y los conteos calculados.
 ## Cuándo se activa
 
 Cuando el usuario decide simular en el **paso 2 del flujo** («Decisión — Entrevistas»), nodo
-«¿Ejecución de entrevistas?» → *No — simulación de respuestas e insights*, y luego
-«Simular o no» → *Simular respuestas*. Esa decisión enciende la marca de simulación en todo el
-proyecto.
+«¿Ejecución de entrevistas?» → *No — simulación de respuestas e insights*. Es una sola decisión y
+enciende la marca de simulación en todo el proyecto: desde ahí, todos los reportes salen marcados
+como datos simulados sin que nadie tenga que pedirlo.
 
 Antes de simular, **la skill padre ya tiene que haber diseñado la guía**: el simulador
 responde preguntas, no las inventa. Si no hay guía, primero se ejecuta

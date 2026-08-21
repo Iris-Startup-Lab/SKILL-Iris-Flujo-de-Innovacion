@@ -334,7 +334,7 @@ acompañamiento» · audiencia «Familias urbanas 28-45, CDMX».
 | `html_4` ¿Hay datos reales? | No — supuestos (la mínima la fuerza por `auto_si`; en la completa se elige igual para que los reportes sean comparables) |
 | `html_7` Ambición estratégica | Crecer Negocio Actual |
 | `html_7` Apalancamiento | Nuevos clientes |
-| `html_7` Selección de agentes de ideación | Ideación |
+| `html_8` Selección de agentes de ideación | Ideación |
 | `html_8` Selección de ideas | La idea mejor rankeada |
 | `html_11` Selección de agente para validar | Simple Landing Page |
 
@@ -343,7 +343,8 @@ acompañamiento» · audiencia «Familias urbanas 28-45, CDMX».
 | Paso | Decisión |
 | --- | --- |
 | `html_2` ¿Ejecución de entrevistas? | No — simulación (mantiene datos simulados, comparable con la mínima) |
-| `html_2` Selección de agentes | Los 4 (day-in-the-life, encuesta-kano, discovery-survey, expo-quest) |
+| `html_3` Selección de agentes de descubrimiento | Los 4 (day-in-the-life, encuesta-kano, discovery-survey, expo-quest) |
+| `html_3` Origen de las respuestas de descubrimiento | Simular (viene dado por `auto_si` desde `html_2`) |
 | `html_5` Elección de la ficha de persona | Por problema más grande |
 
 La estrategia de herencia es **predecesores declarados** (la ya decidida en `SKILL.md` §5) para

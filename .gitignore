@@ -39,3 +39,4 @@ output/
 .npm/
 .yarn/
 .gemini/
+temp/

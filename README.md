@@ -116,7 +116,29 @@ python scripts/estado_flujo.py mostrar
 ```
 
 Devuelve el paso actual, el histórico de sus predecesores, las decisiones ya tomadas
-(que no se vuelven a preguntar) y las sub-skills que toca invocar.
+(que no se vuelven a preguntar) y las sub-skills que toca invocar. Cada nodo de decisión
+sale marcado como **PENDIENTE**, **RESPONDIDA** o **no aplica**, y las sub-skills como
+`[ELEGIDA por el usuario]` o `(no elegida)`.
+
+### Comprobar que se respetó el flujo
+
+El flujo no se cumple por buena voluntad del agente: está comprobado por el script.
+
+- `decision` **rechaza** un nodo o una opción que no estén en `pasos.json`, y exige el mínimo
+  de opciones de los nodos de elección múltiple.
+- `completar` **se niega** a cerrar un paso con decisiones del usuario sin registrar.
+- `--forzar` es el único escape en los dos casos, y deja rastro en el histórico.
+
+Para auditar un proyecto entero —al terminar o cuando algo no cuadre:
+
+```bash
+python scripts/estado_flujo.py verificar --estado <carpeta>/flujo_estado.json
+```
+
+Responde qué se cerró sin preguntar lo que había que preguntar: pasos cerrados sin su
+decisión, sin resumen, sin datos o sin entrega; omisiones sin motivo; predecesores saltados
+con `--forzar`; y decisiones que no corresponden a ningún nodo del flujo. Devuelve 0 si no
+hay nada y 2 con la lista si lo hay, así que sirve como comprobación automática.
 
 ### Modelo recomendado por herramienta
 

@@ -4,6 +4,14 @@ Converts MindManager HTML export to:
   - Mermaid flowchart (.md)
   - Markdown outline (.md)
 Uses explicit relationship edges from the mind map XML.
+
+AVISO: las claves de `NODE_PHASE` son los nombres de nodo del **mapa mental original**, no los
+del flujo actual. El flujo evolucionó desde entonces —«Simular o no» se fusionó con
+«¿Ejecución de entrevistas?», «Selección de agentes» se movió al paso 3 y se renombró,
+«Elección de protopersona» pasó a «Elección de la ficha de persona»— y esas claves se dejan
+como están **a propósito**: si se cambian, el conversor deja de reconocer su propia entrada.
+La fuente de verdad del flujo vigente es `pasos.json`; este script solo reconstruye el mapa
+del que se partió.
 """
 
 import re, base64, zipfile, io

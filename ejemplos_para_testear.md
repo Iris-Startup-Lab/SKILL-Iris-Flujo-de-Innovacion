@@ -28,7 +28,7 @@ conda activate skills_env
 | **Tipo de Ruta** | **Ruta Completa** (11 pasos) | **Ruta Mínima Express** (5 pasos) | **Ruta Exploratoria / Híbrida** (con omisiones y pivote) |
 | **Punto de Partida** | Estado actual (`benchmark-mercado`) | Opiniones / Foros (`discussion-forums` + `search-trend-analysis`) | Futuros / Prospectiva (`foresight`) |
 | **Evidencia de Campo** | Datos reales (Entrevistas + Kano + Day in the life) | Supuestos calculados (*) (Omisión formal) | Simulación de insights (`SIMULADO` + Expo Quest) |
-| **Enfoque de Ideación** | Nuevo producto + Referral Builder | Optimización / Productividad | Reinventar el Futuro / IA + Caressing client |
+| **Enfoque de Ideación** | Nuevo producto + Referral Builder | Optimización / Productividad | Reinventar el Futuro / Disrupción + Caressing client |
 | **Validación Final** | `landing-page` + `online-ads` | `feature-stub` + `email-campaign` | `explainer-video` + `popup-store` |
 
 ---
@@ -88,11 +88,9 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
    ```bash
    python scripts/estado_flujo.py decision --paso html_2 \
        --nodo "¿Ejecución de entrevistas?" --opcion "Sí — respuestas e insights reales"
-   python scripts/estado_flujo.py decision --paso html_2 \
-       --nodo "Selección de agentes" --opcion "A Day In The Life"
-   python scripts/estado_flujo.py decision --paso html_2 \
-       --nodo "Selección de agentes" --opcion "Encuesta Kano"
    ```
+   La selección de los agentes de descubrimiento ya no cuelga de este paso: se pregunta en el
+   paso 3, que es donde se ejecutan.
 3. **Sub-skill invocada:** [2.Descubrimiento/entrevistas-empatia](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/entrevistas-empatia/AGENTE.md)
 4. **Generación de HTML y Cierre:**
    ```bash
@@ -111,10 +109,21 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
    python scripts/estado_flujo.py mostrar --paso html_3
    python scripts/estado_flujo.py iniciar --paso html_3
    ```
-2. **Sub-skills invocadas en paralelo:**
+2. **Decisiones** (se preguntan **antes** de ejecutar los agentes; el nodo de selección exige
+   al menos uno y se registra en un solo comando con `--opcion` repetido):
+   ```bash
+   python scripts/estado_flujo.py decision --paso html_3 \
+       --nodo "Selección de agentes de descubrimiento" \
+       --opcion "A Day In The Life" --opcion "Encuesta Kano"
+   python scripts/estado_flujo.py decision --paso html_3 \
+       --nodo "Origen de las respuestas de descubrimiento" \
+       --opcion "Datos reales aportados por el usuario"
+   ```
+3. **Sub-skills invocadas en paralelo** (solo las elegidas: `mostrar` marca las demás como
+   «no elegida: no la ejecutes»):
    - [2.Descubrimiento/day-in-the-life](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/day-in-the-life/AGENTE.md)
    - [2.Descubrimiento/encuesta-kano](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/encuesta-kano/AGENTE.md)
-3. **Generación de HTML y Cierre:**
+4. **Generación de HTML y Cierre:**
    ```bash
    python _plantilla_html/scripts/generar_html.py --data reporte_html_3.json --estado flujo_estado.json --paso html_3 -o html_3.html
    python scripts/estado_flujo.py completar --paso html_3 \
@@ -158,7 +167,7 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
 2. **Decisión:**
    ```bash
    python scripts/estado_flujo.py decision --paso html_5 \
-       --nodo "Elección de protopersona" --opcion "Por problema más grande"
+       --nodo "Elección de la ficha de persona" --opcion "Por problema más grande"
    ```
 3. **Sub-skill invocada:** [2.Descubrimiento/problem-solution-fit](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/problem-solution-fit/AGENTE.md)
 4. **Generación de HTML y Cierre:**
@@ -203,10 +212,9 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
        --nodo "Ambición estratégica" --opcion "Crear Nuevos Negocios"
    python scripts/estado_flujo.py decision --paso html_7 \
        --nodo "Apalancamiento" --opcion "Nuevo modelo de negocio"
-   python scripts/estado_flujo.py decision --paso html_7 \
-       --nodo "Selección de agentes de ideación" --opcion "Ideación"
-   python scripts/estado_flujo.py decision --paso html_7 \
-       --nodo "Selección de agentes de ideación" --opcion "Referral Builder"
+   python scripts/estado_flujo.py decision --paso html_8 \
+       --nodo "Selección de agentes de ideación" \
+       --opcion "Ideación" --opcion "Referral Builder"
    ```
 3. **Sub-skill invocada:** [3.Ideacion/how-might-we](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/3.Ideacion/how-might-we/AGENTE.md)
    - *HMW central:* "¿Cómo podríamos garantizar a Rodrigo una alimentación funcional personalizada sin que dedique más de 5 minutos a la semana a planear y cocinar?"
@@ -293,9 +301,11 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
 2. **Decisión:**
    ```bash
    python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Simple Landing Page"
+       --nodo "Selección de agente para validar" \
+       --opcion "Simple Landing Page" --opcion "Online Ads"
    python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Online Ads"
+       --nodo "Entrega de la landing page" \
+       --opcion "La landing page como demo, construida con el contexto del flujo"
    ```
 3. **Sub-skills invocadas en paralelo:**
    - [4.Prototipado/landing-page](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/4.Prototipado/landing-page/AGENTE.md)
@@ -396,7 +406,7 @@ python scripts/estado_flujo.py init --proyecto "CobranzaIA B2B" \
        --nodo "Ambición estratégica" --opcion "Optimizar Negocio Actual"
    python scripts/estado_flujo.py decision --paso html_7 \
        --nodo "Apalancamiento" --opcion "Productividad"
-   python scripts/estado_flujo.py decision --paso html_7 \
+   python scripts/estado_flujo.py decision --paso html_8 \
        --nodo "Selección de agentes de ideación" --opcion "Ideación"
    ```
 3. **Sub-skill invocada:** [3.Ideacion/how-might-we](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/3.Ideacion/how-might-we/AGENTE.md)
@@ -444,9 +454,8 @@ python scripts/estado_flujo.py init --proyecto "CobranzaIA B2B" \
 2. **Decisión:**
    ```bash
    python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Feature Stub"
-   python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Email Campaign"
+       --nodo "Selección de agente para validar" \
+       --opcion "Feature Stub" --opcion "Email Campaign"
    ```
 3. **Sub-skills invocadas en paralelo:**
    - [5.Validacion/feature-stub](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/5.Validacion/feature-stub/AGENTE.md)
@@ -517,10 +526,11 @@ python scripts/estado_flujo.py init --proyecto "EcoPack Circular" \
    ```bash
    python scripts/estado_flujo.py decision --paso html_2 \
        --nodo "¿Ejecución de entrevistas?" --opcion "No — simulación de respuestas e insights"
-   python scripts/estado_flujo.py decision --paso html_2 \
-       --nodo "Simular o no" --opcion "Simular respuestas"
-   python scripts/estado_flujo.py decision --paso html_2 \
-       --nodo "Selección de agentes" --opcion "Expo Quest"
+   python scripts/estado_flujo.py decision --paso html_3 \
+       --nodo "Selección de agentes de descubrimiento" --opcion "Expo Quest"
+   python scripts/estado_flujo.py decision --paso html_3 \
+       --nodo "Origen de las respuestas de descubrimiento" \
+       --opcion "Simular las respuestas con los simuladores del flujo"
    ```
 3. **Sub-skill invocada:** [2.Descubrimiento/entrevistas-empatia](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/entrevistas-empatia/AGENTE.md)
 4. **Generación de HTML y Cierre:**
@@ -586,7 +596,7 @@ python scripts/estado_flujo.py init --proyecto "EcoPack Circular" \
 2. **Decisión:**
    ```bash
    python scripts/estado_flujo.py decision --paso html_5 \
-       --nodo "Elección de protopersona" --opcion "Por mayor tamaño en mercado"
+       --nodo "Elección de la ficha de persona" --opcion "Por mayor tamaño en mercado"
    ```
 3. **Sub-skill invocada:** [2.Descubrimiento/problem-solution-fit](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/2.Descubrimiento/problem-solution-fit/AGENTE.md)
 4. **Generación de HTML y Cierre:**
@@ -622,10 +632,9 @@ python scripts/estado_flujo.py omitir --paso html_6 \
        --nodo "Ambición estratégica" --opcion "Reinventar el Futuro"
    python scripts/estado_flujo.py decision --paso html_7 \
        --nodo "Apalancamiento" --opcion "Disrupción"
-   python scripts/estado_flujo.py decision --paso html_7 \
-       --nodo "Selección de agentes de ideación" --opcion "Ideación"
-   python scripts/estado_flujo.py decision --paso html_7 \
-       --nodo "Selección de agentes de ideación" --opcion "Caressing the client"
+   python scripts/estado_flujo.py decision --paso html_8 \
+       --nodo "Selección de agentes de ideación" \
+       --opcion "Ideación" --opcion "Caressing the client"
    ```
 3. **Sub-skill invocada:** [3.Ideacion/how-might-we](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/3.Ideacion/how-might-we/AGENTE.md)
    - *HMW formulado:* "¿Cómo podríamos crear empaques para cosméticos que desaparezcan instantáneamente al contacto con agua tibia sin comprometer la protección del producto durante el envío?"
@@ -700,9 +709,8 @@ python scripts/estado_flujo.py omitir --paso html_10 \
 2. **Decisión:**
    ```bash
    python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Explainer Video"
-   python scripts/estado_flujo.py decision --paso html_11 \
-       --nodo "Selección de agente para validar" --opcion "Pop-Up Store"
+       --nodo "Selección de agente para validar" \
+       --opcion "Explainer Video" --opcion "Pop-Up Store"
    ```
 3. **Sub-skills invocadas en paralelo:**
    - [5.Validacion/explainer-video](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/5.Validacion/explainer-video/AGENTE.md)

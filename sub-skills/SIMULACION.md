@@ -150,6 +150,12 @@ python scripts/estado_flujo.py completar --paso html_2 \
 Qué simulador corresponde a cada paso está en `pasos.json`, campo `simuladores` del paso — no
 se deduce del nombre de la carpeta.
 
+**En el paso 3 la decisión ya viene dada.** Su nodo «Origen de las respuestas de descubrimiento»
+tiene `auto_si`: si en el paso 2 se eligió simular, la opción está decidida por el propio flujo.
+Infórmasela al usuario en vez de volver a preguntarla —y regístrala igual, porque el paso no
+cierra sin ella. Los simuladores que toca usar son los de los agentes que el usuario **eligió**
+en «Selección de agentes de descubrimiento»: `mostrar` ya los lista filtrados, no los cuatro.
+
 ## 6. Los cinco simuladores
 
 | Simulador | Dentro de | Instrumento | CSV |

@@ -100,18 +100,23 @@ Definir:
 
 ## Decision - Entrevistas — HTML_OUTPUT: html_2
 
-> HTML 2 muestra el Agente Entrevista de empatía conectado a la decisión "¿Ejecución de entrevistas?".
-> Rama **Sí** (respuestas e insights reales) y rama **No** (simulación de respuestas e insights → Simular o no).
-> Ambas ramas convergen en "Selección de agentes" que dispara el bloque de Descubrimiento.
+> HTML 2 muestra el Agente Entrevista de empatía conectado a la decisión "¿Ejecución de entrevistas?",
+> el único nodo del paso. Las tres ramas convergen en el paso 3, que es donde se elige qué agentes
+> de descubrimiento se ejecutan.
 
 ### Puntos de decisión
 
-- **¿Ejecución de entrevistas?**
-  - Sí → Respuestas e insights reales → Selección de agentes
-  - No → Simulación de respuestas e insights → Simular o no → Selección de agentes
-- **Simular o no**
-- **Selección de agentes**
+- **¿Ejecución de entrevistas?** — elección única, tres opciones excluyentes:
+  - **Sí — respuestas e insights reales:** el usuario aporta las entrevistas.
+  - **No — simulación de respuestas e insights:** las fabrica el simulador; marca todos los
+    reportes posteriores como datos simulados.
+  - **No — solo el guion, sin respuestas todavía:** se entrega el guion listo para usar.
 
+> **Antes había dos nodos aquí y se contradecían.** «¿Ejecución de entrevistas? = No» y después
+> «Simular o no» permitían elegir «No — simulación» y a continuación «No simular». Se unificaron
+> en un solo nodo de tres opciones. La selección de los 4 agentes de descubrimiento, que también
+> colgaba de este paso, vive ahora en el paso 3: se pregunta donde se ejecuta.
+>
 > La rama de simulación tiene skills propias: cada agente de Descubrimiento lleva dentro un
 > **simulador** (`sub-skills/<fase>/<skill>/simulador/SIMULADOR.md`) que fabrica el CSV de
 > datos sintéticos que después analiza el agente normal. Las rutas están en el campo
@@ -136,8 +141,17 @@ Definir:
 
 ## 2. Descubrimiento — HTML_OUTPUT: html_3
 
-> HTML 3 muestra la decisión "Selección de agentes" desplegando en paralelo los 4 agentes de descubrimiento.
-> Todos convergen hacia abajo para alimentar la siguiente etapa de Persona Profile.
+> HTML 3 muestra la decisión "Selección de agentes de descubrimiento" desplegando en paralelo los
+> agentes elegidos. Todos convergen hacia abajo para alimentar la siguiente etapa de Persona Profile.
+
+### Puntos de decisión
+
+- **Selección de agentes de descubrimiento** — elección múltiple, **mínimo 1**, con «todos» como
+  atajo. Se pregunta **antes** de ejecutar nada: los agentes que no se eligen no se ejecutan. Si
+  el usuario no quiere ninguno, lo que corresponde es omitir el paso, no cerrarlo sin decisión.
+- **Origen de las respuestas de descubrimiento** — datos reales aportados por el usuario, o
+  simulados con los simuladores del flujo. Si en el paso 2 ya se eligió simular, esta decisión
+  viene dada (`auto_si`): se informa al usuario, no se le vuelve a preguntar.
 
 ### Agentes
 
@@ -258,17 +272,28 @@ Definir:
 
 > Esta sección se divide en 4 HTMLs:
 >
-> - **html_7** → Agente How Might We + árbol de "Ambición estratégica" → "Apalancamiento" → "Selección de agentes de ideación"
+> - **html_7** → Agente How Might We + árbol de "Ambición estratégica" → "Apalancamiento"
 >   - Ambición estratégica: Optimizar Negocio Actual | Crecer Negocio Actual | Expandir Negocio | Crear Nuevos Negocios | Reinventar el Futuro
->   - Apalancamiento (según ambición): Reducir Costos, Productividad, Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado, Ampliar mercado, Nuevos casos de uso, Ecosistema, Nuevo producto, Nuevo modelo de negocio, Disrupción, Nuevas categorías, IA
-> - **html_8** → Agentes de ideación en paralelo (Ideación, Caressing the client, Referral Builder) + decisión "Selección de ideas"
+>   - Apalancamiento (según ambición): Reducir Costos, Productividad, Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado, Ampliar mercado, Nuevos casos de uso, Ecosistema, Nuevo producto, Nuevo modelo de negocio, Disrupción, Nuevas categorías, Inteligencia artificial
+> - **html_8** → decisión "Selección de agentes de ideación" + los agentes elegidos en paralelo (Ideación, Caressing the client, Referral Builder) + decisión "Selección de ideas"
 > - **html_9** → Agente Dimensionador Estratégico de Ideas de Negocio
 > - **html_10** → Agente Business Model Navigator
 
 ### Puntos de decisión
 
-- **Selección de agentes de ideación**
-- **Selección de ideas**
+- **Ambición estratégica** (html_7) — elección única. Se muestran **siempre las 5**, con su texto
+  y en su orden. Es el único nodo del flujo con `permite_propuestas`: el agente puede **añadir**
+  una ambición propia al final, marcada como propuesta suya y registrada con `--forzar`. Quitar,
+  renombrar, fusionar o reordenar las 5 oficiales está prohibido.
+- **Apalancamiento** (html_7) — elección única entre **solo las palancas de la ambición elegida**
+  (`opciones_desde`), nunca las 17 juntas. Siete de ellas llevan glosario en `pasos.json` porque
+  no se entienden solas: Recuperación, Participación de mercado, Ecosistema, Nuevos casos de uso,
+  Disrupción, Nuevas categorías e Inteligencia artificial.
+- **Selección de agentes de ideación** (html_8) — elección múltiple, **mínimo 1**, con «todos»
+  como atajo. Se pregunta antes de ejecutar. Antes colgaba de html_7; se movió al paso donde los
+  agentes corren.
+- **Selección de ideas** (html_8) — elección múltiple, mínimo 1. Las opciones son las ideas que
+  produjo el propio paso, así que no están en `pasos.json`.
 
 ### Árbol de Ambición estratégica y Apalancamiento — html_7
 
@@ -278,7 +303,12 @@ Definir:
 | Crecer Negocio Actual    | Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado |
 | Expandir Negocio         | Ampliar mercado, Nuevos casos de uso, Ecosistema                     |
 | Crear Nuevos Negocios    | Nuevo producto, Nuevo modelo de negocio                              |
-| Reinventar el Futuro     | Disrupción, Nuevas categorías, IA                                    |
+| Reinventar el Futuro     | Disrupción, Nuevas categorías, Inteligencia artificial               |
+
+**«Inteligencia artificial» no es una etiqueta, es una palanca con requisitos.** Al elegirla hay
+que responder cuatro cosas: qué decisión concreta automatiza o mejora, con qué datos se alimenta,
+qué pasa cuando se equivoca y por qué esa capacidad es difícil de copiar. Sin esas cuatro
+respuestas la palanca real es otra, con una etiqueta de moda encima.
 
 ### Agentes
 
@@ -336,12 +366,24 @@ Definir:
 
 ## 4. Prototipado y Validacion — HTML_OUTPUT: html_11
 
-> HTML 11 muestra la decisión "Selección de agente para validar" desplegando en paralelo los 7 agentes de prototipado y validación.
+> HTML 11 muestra la decisión "Selección de agente para validar" desplegando en paralelo los
+> agentes elegidos de los 7 de prototipado y validación.
 > Todos los agentes reciben entrada desde Agente Business Model Navigator.
 
 ### Puntos de decisión
 
-- **Selección de agente para validar**
+- **Selección de agente para validar** — elección múltiple, **mínimo 1**, con «todos» como atajo.
+  Se pregunta antes de ejecutar. Si el paso 10 recomendó un experimento, se dice al presentar las
+  opciones, pero la elección sigue siendo del usuario.
+- **Entrega de la landing page** — condicional (`solo_si` incluye *Simple Landing Page*). Dos
+  salidas distintas: la página construida como demo con el contexto del flujo, o solo el guion
+  —titular, textos, estructura, llamada a la acción y qué medir— para armarla en una herramienta
+  externa (Webflow, Framer, WordPress, Unbounce…). En el segundo caso **no se genera código**.
+- **Origen de la página a analizar** — condicional (`solo_si` incluye *Landing Page UX Analyzer*).
+  Este agente analiza algo que ya existe, así que el material va **antes** de arrancar: un enlace
+  público, un archivo HTML, capturas de pantalla o la landing recién generada en este mismo paso.
+  Cada forma tiene su límite y hay que decirlo: una página tras un acceso restringido no se puede
+  leer, y lo que quede fuera de una captura no se evalúa.
 
 ### Agentes
 
@@ -429,27 +471,41 @@ Definir:
 
 ## Mapa de HTMLs de salida
 
-| HTML | Sección del flujo                        | Contenido principal                                                                 |
-|------|------------------------------------------|-------------------------------------------------------------------------------------|
-| html_1  | Inicio + 1. Investigación             | Decisión inicio → 4 agentes investigación (Benchmark, Foresight, Señales débiles, Discussion Forums → Search Trend Analysis) |
-| html_2  | Decision - Entrevistas                | Agente Entrevista de empatía → ¿Ejecución? → Simular o no → Selección de agentes   |
-| html_3  | 2. Descubrimiento                     | Selección de agentes → 4 agentes descubrimiento en paralelo                         |
-| html_4  | Persona Profile                       | Agente Persona Profile → ¿Hay datos reales?                                         |
-| html_5  | Problem-Solution Fit                  | Agente Problem Solution Fit → Elección de la ficha de persona                              |
-| html_6  | Journey Builder                       | Agente Journey Builder (nodo de paso)                                               |
-| html_7  | El reto creativo (How Might We) + Ambición estratégica | Agente How Might We → Árbol Ambición estratégica → Apalancamiento → Selección de ideación |
-| html_8  | Agentes de ideación                   | Ideación, Caressing the client, Referral Builder → Selección de ideas               |
-| html_9  | Dimensionador                         | Agente Dimensionador Estratégico de Ideas de Negocio                                |
-| html_10 | Business Model Navigator              | Agente Business Model Navigator                                                     |
-| html_11 | 4. Prototipado y Validación           | Selección de agente para validar → 7 agentes en paralelo                            |
+| HTML | Sección del flujo | Contenido principal |
+| --- | --- | --- |
+| html_1 | Inicio + 1. Investigación | Decisión inicio → 4 agentes investigación (Benchmark, Foresight, Señales débiles, Discussion Forums → Search Trend Analysis) |
+| html_2 | Decision - Entrevistas | Agente Entrevista de empatía → ¿Ejecución de entrevistas? (reales / simuladas / solo el guion) |
+| html_3 | 2. Descubrimiento | Selección de agentes de descubrimiento (mínimo 1) → origen de las respuestas → los elegidos en paralelo |
+| html_4 | Persona Profile | Agente Persona Profile → ¿Hay datos reales? |
+| html_5 | Problem-Solution Fit | Agente Problem Solution Fit → Elección de la ficha de persona (3 criterios) |
+| html_6 | Journey Builder | Agente Journey Builder (nodo de paso) |
+| html_7 | El reto creativo (How Might We) + Ambición estratégica | Agente How Might We → Árbol Ambición estratégica → Apalancamiento (solo las palancas de la ambición elegida) |
+| html_8 | Agentes de ideación | Selección de agentes de ideación (mínimo 1) → los elegidos en paralelo → Selección de ideas |
+| html_9 | Dimensionador | Agente Dimensionador Estratégico de Ideas de Negocio |
+| html_10 | Business Model Navigator | Agente Business Model Navigator |
+| html_11 | 4. Prototipado y Validación | Selección de agente para validar (mínimo 1) → los elegidos en paralelo, + 2 sub-decisiones si se eligió landing page o su analizador |
 
 ---
 
 ## Nodos de referencia (contexto de decisiones del flujo)
 
-- **¿Ejecución de entrevistas?** → Sí: Respuestas e insights reales / No: Simulación de respuestas e insights
-- **Simular o no** → Sub-decisión cuando no se ejecutan entrevistas reales
-- **¿Hay datos reales de entrevistas / encuestas?** → Sí: Generación de profiles con data real / No: Generación de profiles a base de supuestos
-- **Elección de la ficha de persona** → Por problema más grande / Por mayor tamaño en mercado
-- **Ambición estratégica** → Optimizar / Crecer / Expandir / Crear Nuevos Negocios / Reinventar el Futuro
-- **Apalancamiento** → Reducir Costos, Productividad, Nuevos clientes, Mayor frecuencia, Mayor ticket, Recuperación, Participación de mercado, Ampliar mercado, Nuevos casos de uso, Ecosistema, Nuevo producto, Nuevo modelo de negocio, Disrupción, Nuevas categorías, IA
+Los 13 nodos del flujo, por paso. El texto exacto y sus opciones están en `pasos.json`; lo que
+significa cada campo de un nodo, en su bloque `convenciones_decisiones`.
+
+| Paso | Nodo | Tipo | Opciones |
+| --- | --- | --- | --- |
+| html_1 | ¿Cómo quieres iniciar? | única | Estado actual / Futuros / Señales débiles de usuarios actuales / Opiniones y comentarios |
+| html_2 | ¿Ejecución de entrevistas? | única | Sí, reales / No, simulación (marca SIMULADO) / No, solo el guion |
+| html_3 | Selección de agentes de descubrimiento | múltiple, mín. 1 | A Day In The Life / Encuesta Kano / Discovery Survey / Expo Quest |
+| html_3 | Origen de las respuestas de descubrimiento | única, `auto_si` | Datos reales del usuario / Simular con los simuladores del flujo |
+| html_4 | ¿Hay datos reales de entrevistas / encuestas? | única, `auto_si` | Sí, con data real / No, a base de supuestos |
+| html_5 | Elección de la ficha de persona | única | Por problema más grande / Por mayor tamaño en mercado / Por otro criterio que recomiende el agente |
+| html_7 | Ambición estratégica | única, admite propuestas | Optimizar / Crecer / Expandir / Crear Nuevos Negocios / Reinventar el Futuro |
+| html_7 | Apalancamiento | única, `opciones_desde` | Solo las palancas de la ambición elegida |
+| html_8 | Selección de agentes de ideación | múltiple, mín. 1 | Ideación / Caressing the client / Referral Builder |
+| html_8 | Selección de ideas | múltiple, mín. 1 | Las ideas que produjo el paso |
+| html_11 | Selección de agente para validar | múltiple, mín. 1 | Simple Landing Page / Landing Page UX Analyzer / Online Ads / Email Campaign / Explainer Video / Pop-Up Store / Feature Stub |
+| html_11 | Entrega de la landing page | única, `solo_si` | La landing como demo / Solo los pasos para una herramienta externa |
+| html_11 | Origen de la página a analizar | única, `solo_si` | Enlace público / Archivo HTML / Capturas de pantalla / La landing recién generada |
+
+Los pasos 6, 9 y 10 no tienen nodos de decisión: se ejecutan o se omiten.

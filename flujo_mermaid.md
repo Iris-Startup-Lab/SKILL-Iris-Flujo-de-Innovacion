@@ -18,11 +18,11 @@ graph TD
     end
     subgraph Decision___Entrevistas["Decision - Entrevistas | HTML_OUTPUT: html_2"]
         N9["Agente Entrevista de empatía"]
-        N31{"Selección de agentes"}
-        N34{"Simular o no"}
         N35{"¿Ejecución de entrevistas?"}
     end
     subgraph 2__Descubrimiento["2. Descubrimiento | HTML_OUTPUT: html_3"]
+        N31{"Selección de agentes de descubrimiento"}
+        N37{"Origen de las respuestas de descubrimiento"}
         N0["Agente A Day In The Life"]
         N5["Agente Discovery Survey"]
         N8["Agente Encuesta Kano"]
@@ -56,6 +56,8 @@ graph TD
         N20["Agente Pop-Up Store"]
         N25["Agente Simple Landing Page"]
         N30{"Selección de agente para validar"}
+        N38{"Entrega de la landing page"}
+        N39{"Origen de la página a analizar"}
     end
 
     %% HTML 1: Inicio → Investigación
@@ -71,15 +73,17 @@ graph TD
     N24 --> N9
     N23 --> N9
     N9 --> N35
-    N35 -->|"Sí — Respuestas e insights reales"| N31
-    N35 -->|"No — Simulación de respuestas e insights"| N34
-    N34 --> N31
+    N35 -->|"Sí — respuestas e insights reales"| N31
+    N35 -->|"No — simulación de respuestas e insights (marca SIMULADO)"| N31
+    N35 -->|"No — solo el guion, sin respuestas todavía"| N31
 
-    %% HTML 3: Selección → Descubrimiento
-    N31 --> N0
-    N31 --> N11
-    N31 --> N8
-    N31 --> N5
+    %% HTML 3: Selección de agentes (mínimo 1) → origen de las respuestas → Descubrimiento
+    N31 -->|"al menos 1 de los 4"| N37
+    N37 -->|"Datos reales aportados por el usuario"| N0
+    N37 -->|"Simular (auto si en html_2 se eligió simular)"| N0
+    N37 --> N11
+    N37 --> N8
+    N37 --> N5
 
     %% HTML 4: Descubrimiento → Persona Profile → ¿Hay datos reales?
     N0 --> N19
@@ -94,23 +98,27 @@ graph TD
     N21 --> N29
     N29 -->|"Por problema más grande"| N16
     N29 -->|"Por mayor tamaño en mercado"| N16
+    N29 -->|"Por otro criterio que recomiende el agente"| N16
 
     %% HTML 6: Journey Builder
     N16 --> N14
 
-    %% HTML 7: El reto creativo (How Might We) → Ambición estratégica → Apalancamiento → Selección ideación
+    %% HTML 7: El reto creativo (How Might We) → Ambición estratégica → Apalancamiento
+    %% Las 5 ambiciones se muestran siempre. El agente puede AÑADIR una propuesta
+    %% (permite_propuestas), nunca quitar ni reordenar las oficiales.
     N14 --> N26
     N26 -->|"Optimizar Negocio Actual"| N27
     N26 -->|"Crecer Negocio Actual"| N27
     N26 -->|"Expandir Negocio"| N27
     N26 -->|"Crear Nuevos Negocios"| N27
     N26 -->|"Reinventar el Futuro"| N27
+    N26 -.->|"propuesta del agente (requiere --forzar)"| N27
     N27 -->|"Reducir Costos / Productividad"| N32
     N27 -->|"Nuevos clientes / Mayor frecuencia / Mayor ticket / Recuperación"| N32
     N27 -->|"Participación de mercado / Ampliar mercado / Nuevos casos de uso / Ecosistema"| N32
-    N27 -->|"Nuevo producto / Nuevo modelo de negocio / Disrupción / Nuevas categorías / IA"| N32
+    N27 -->|"Nuevo producto / Nuevo modelo de negocio / Disrupción / Nuevas categorías / Inteligencia artificial"| N32
 
-    %% HTML 8: Selección ideación → Agentes ideación → Selección de ideas
+    %% HTML 8: Selección de agentes de ideación (mínimo 1) → Agentes → Selección de ideas
     N32 --> N15
     N32 --> N3
     N32 --> N22
@@ -124,10 +132,14 @@ graph TD
     %% HTML 10: Business Model Navigator
     N4 --> N2
 
-    %% HTML 11: Business Model Navigator → Selección de agente → Prototipado
+    %% HTML 11: Business Model Navigator → Selección de agente (mínimo 1) → Prototipado
+    %% Dos sub-decisiones condicionales: solo aparecen si se eligió su agente.
     N2 --> N30
-    N30 --> N25
-    N30 --> N17
+    N30 -->|"Simple Landing Page"| N38
+    N38 -->|"La landing como demo, con el contexto del flujo"| N25
+    N38 -->|"Solo los pasos para construirla en una herramienta externa"| N25
+    N30 -->|"Landing Page UX Analyzer"| N39
+    N39 -->|"Enlace público / archivo HTML / capturas / la landing recién generada"| N17
     N30 --> N18
     N30 --> N7
     N30 --> N10

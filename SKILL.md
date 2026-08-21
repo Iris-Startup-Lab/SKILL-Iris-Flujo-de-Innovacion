@@ -11,11 +11,17 @@ creacion_date: "2026-08-12"
 Orquesta 11 pasos y 26 sub-skills, de la investigación a la validación, deteniéndose
 en cada decisión para que la dirija el usuario.
 
-## Las tres reglas que no se rompen
+## Las cuatro reglas que no se rompen
 
 1. **`pasos.json` manda.** Nunca deduzcas qué sub-skill toca ni cómo se llama su carpeta: está escrito ahí. Ningún otro documento define el flujo.
 2. **El estado se cambia con el script, no a mano.** `scripts/estado_flujo.py` es el único que edita `flujo_estado.json` y regenera `STATE.md`.
-3. **Todo HTML lleva el contexto del flujo.** Se genera con `--estado` y `--paso`, que inyectan el contexto solos. Si falta, el generador falla a propósito.
+3. **Cada decisión del paso la registra el usuario, o el paso no cierra.** Si un paso pregunta algo, ese algo no lo eliges tú. El script lo hace cumplir: `decision` rechaza una opción que no esté en el catálogo y `completar` se niega a cerrar un paso con nodos sin responder.
+4. **Todo HTML lleva el contexto del flujo.** Se genera con `--estado` y `--paso`, que inyectan el contexto solos. Si falta, el generador falla a propósito.
+
+> Las reglas 1 y 3 no dependen de tu memoria: están comprobadas por el script. Si un comando
+> devuelve «Regla del flujo: …», el mensaje dice exactamente qué falta — léelo y corrígelo, no
+> insistas con `--forzar`. `--forzar` existe para los casos que el usuario pide a conciencia, y
+> cada uso queda anotado en el histórico y sale en `verificar`.
 
 ## Regla dependiendo de la herramienta
 
@@ -136,7 +142,7 @@ flujo con ese texto.
 
 ## El ciclo de un paso
 
-Repite estos 7 pasos hasta que el flujo esté completo. No improvises el orden.
+Repite estos 8 pasos hasta que el flujo esté completo. No improvises el orden.
 
 ### 1. Leer el paso
 
@@ -157,12 +163,14 @@ En 2–3 líneas: dónde está, qué se decidió antes y qué va a pasar ahora.
 Abre nombrando el paso, nunca con su `html_N`: «**Paso 4 de 11 — Persona Profile**». Ver
 «Cómo nombrar las cosas ante el usuario».
 
-### 3. Ofrecer ejecutar u omitir
+### 3. Ofrecer ejecutar, omitir o parar
 
-Presenta siempre tres opciones:
+Presenta siempre cuatro opciones:
 
 - **Ejecutar** — sigue al paso 4.
 - **Omitir** — ve a «Omitir un paso».
+- **Parar aquí por ahora** — ve a «Pausar el proyecto». No es lo mismo que omitir: el paso
+  queda pendiente, no descartado.
 - **¿Por qué importa?** — lee el `objetivo` del paso y su `si_omitido`, y vuelve a preguntar.
 
 Al describir qué pasa si se omite, traduce el `si_omitido`: sin nombres de carpeta y con el
@@ -170,19 +178,45 @@ efecto explicado en una frase, no con un `*` suelto entre paréntesis.
 
 ### 4. Resolver las decisiones del paso
 
-Para cada nodo de decisión que devolvió `mostrar`:
+`mostrar` marca cada nodo como **PENDIENTE**, **RESPONDIDA → «x»** o **no aplica por ahora**, y
+cierra con una línea `BARRERA` si queda algo sin registrar. Esa lista es la agenda del paso: no
+la deduzcas ni la amplíes.
 
-1. Presenta las opciones **exactas** de `pasos.json`, con opciones clickeables si la
-   herramienta las tiene; si no, lista numerada.
-2. Respeta `solo_si` (decisiones condicionales), `opciones_desde` (ej. las palancas
-   dependen de la ambición elegida: muestra solo las suyas) y `auto_si` (si se cumple
-   la condición, informa al usuario de la opción forzada en vez de preguntar).
-3. Registra cada elección:
+Para cada nodo **PENDIENTE**:
+
+1. Presenta las opciones **exactas** de `pasos.json`, con su `efecto` en lenguaje de usuario y
+   con opciones clickeables si la herramienta las tiene; si no, lista numerada. Si el nodo trae
+   `glosario`, explica esos términos **al presentarlos**, sin esperar a que pregunten.
+2. Respeta los campos del nodo:
+   - `minimo` — cuántas opciones hay que elegir como mínimo. Si el usuario no quiere ninguna,
+     lo que corresponde es **omitir el paso** con su motivo, no cerrarlo sin decisión.
+   - `ofrecer_todos` — ofrece «todos» como atajo, además de la lista.
+   - `solo_si` — decisiones condicionales: solo aparecen si se cumple la condición.
+   - `opciones_desde` — las opciones salen del nodo previo (las palancas de la ambición elegida)
+     o del contenido que produjo el paso (las ideas del paso 8). Muestra solo esas.
+   - `auto_si` — la decisión ya la tomó el flujo: **infórmasela** al usuario en vez de
+     preguntarla, y regístrala igual.
+3. Registra cada elección. En un nodo `multiple` se repite `--opcion`, una vez por elección:
 
 ```bash
 python scripts/estado_flujo.py decision --paso html_5 \
     --nodo "Elección de la ficha de persona" --opcion "Por problema más grande"
+
+python scripts/estado_flujo.py decision --paso html_3 \
+    --nodo "Selección de agentes de descubrimiento" \
+    --opcion "Encuesta Kano" --opcion "Discovery Survey"
 ```
+
+El script valida lo que registras contra `pasos.json`: un nodo que no existe, una opción que no
+está en el catálogo, dos opciones en un nodo de elección única o menos opciones que el `minimo`
+se rechazan con el mensaje de qué era válido. Si eso pasa, es que la pregunta se hizo mal:
+vuelve a `mostrar` y preséntala como está escrita.
+
+**Pregunta antes de ejecutar, siempre.** Los pasos 3, 8 y 11 tienen varios agentes y su primer
+nodo es justamente cuáles se ejecutan. Nunca los ejecutes todos «para ahorrar tiempo» ni elijas
+por el usuario: hay que preguntar si quiere todos o algunos, con un mínimo de uno, **antes** de
+invocar nada. Después de registrar la elección, `mostrar` marca cada sub-skill como
+`[ELEGIDA por el usuario]` o `(no elegida: no la ejecutes)`. Respeta esa marca.
 
 ### 5. Invocar las sub-skills
 
@@ -206,10 +240,12 @@ gestores admiten un solo `SKILL.md` por paquete y ese es el de esta macro.)
 
 ### 5.1 Simular las entrevistas o encuestas
 
-En el paso 2 el usuario decide si ejecuta las entrevistas con usuarios reales o las **simula**.
-Si elige simular (opciones «No — simulación de respuestas e insights» y «Simular respuestas»),
-entra en juego un **simulador**: una sub-sub-skill que vive dentro de la sub-skill que
-normalmente analizaría esos datos.
+En el paso 2 el usuario decide, en un solo nodo, de dónde salen las respuestas: entrevistas
+reales, respuestas **simuladas** o solo el guion sin respuestas. Si elige simular (opción
+«No — simulación de respuestas e insights»), entra en juego un **simulador**: una sub-sub-skill
+que vive dentro de la sub-skill que normalmente analizaría esos datos. En el paso 3 la decisión
+se hereda: el nodo «Origen de las respuestas de descubrimiento» tiene `auto_si`, así que se
+informa, no se vuelve a preguntar.
 
 El orden no cambia el resto del flujo, porque el simulador **solo fabrica el dato de entrada**:
 
@@ -270,8 +306,11 @@ python scripts/estado_flujo.py completar --paso html_5 \
 es el índice y `--datos` (el `reporte.json` del paso) son los datos estructurados que se
 podrán leer en vez de reteclearlos. Si omites cualquiera de los dos, el script avisa.
 
-Entrega el HTML al usuario, di cuál es el siguiente paso y vuelve al punto 1. Anuncia el
-cierre por el nombre del paso y su posición, no por el nombre del archivo:
+Si el script se niega («hay decisiones del usuario sin registrar»), no es un error del script:
+es que el paso se ejecutó sin preguntar algo que le tocaba al usuario. Pregúntalo, regístralo y
+vuelve a cerrar.
+
+Anuncia el cierre por el nombre del paso y su posición, no por el nombre del archivo:
 
 - **Mal:** «Paso html_1 completado.»
 - **Bien:** «Paso 1 de 11 completado — Inicio + Investigación. Tu reporte está en
@@ -279,6 +318,21 @@ cierre por el nombre del paso y su posición, no por el nombre del archivo:
 
 > Si el paso ya tiene su HTML en disco (por ejemplo al retomar un proyecto), pregunta
 > antes: **regenerar** o **continuar al siguiente**. Nunca sobreescribas en silencio.
+
+### 8. Preguntar si sigue
+
+Entrega el HTML y **pregunta antes de arrancar el siguiente paso**. Cerrar un paso no autoriza
+el siguiente: el usuario decide cuánto recorrido quiere hacer hoy.
+
+- **Seguir** — vuelve al punto 1 con el paso siguiente.
+- **Parar aquí por ahora** — ve a «Pausar el proyecto».
+- **Saltarse el siguiente** — ve a «Omitir un paso».
+
+No enlaces varios pasos seguidos sin esta pregunta, ni siquiera cuando el usuario dijo al
+principio que quería el recorrido completo: la ruta se eligió al arrancar, pero la energía y el
+tiempo se deciden paso a paso. La única excepción es que el usuario pida explícitamente
+encadenar («no me preguntes entre pasos, hazlos todos») — y entonces sigues preguntando las
+**decisiones** de cada paso, que son otra cosa: eso no se puede delegar.
 
 ---
 
@@ -303,6 +357,31 @@ Reglas:
 3. **Nunca omitas por tu cuenta.** Solo cuando el usuario lo pida.
 
 ---
+
+## Pausar el proyecto
+
+Parar no es omitir. El paso queda **pendiente** y el proyecto se retoma donde estaba, con todo
+el histórico intacto. No hace falta ningún comando: el estado ya está guardado en
+`flujo_estado.json` después de cada `decision` y cada `completar`.
+
+Cuando el usuario quiera parar:
+
+1. **No omitas los pasos que quedan.** Omitir declara un hueco en todos los reportes
+   siguientes; pausar no declara nada, porque nada se ha descartado.
+2. Dile dónde queda y cómo volver, con esta forma exacta:
+   - qué pasos están cerrados y qué reportes tiene ya en disco;
+   - cuál es el siguiente paso, por su nombre y posición;
+   - que para retomarlo basta con invocar la skill y decir que quiere continuar el proyecto por
+     su nombre: lo primero que hace el flujo es leer el estado.
+3. Si hay al menos un paso cerrado, genera el tablero de navegación para que el trabajo hecho
+   no quede en archivos sueltos:
+
+```bash
+python scripts/generar_indice.py --estado <dir>/flujo_estado.json   # index.html
+```
+
+Si el usuario pausa y en la misma sesión decide seguir, continúa sin ceremonia: no repitas el
+briefing completo del proyecto.
 
 ## Empezar desde un paso intermedio
 
@@ -331,10 +410,34 @@ el material y no saber que hace falta pedírselo.
 ## Human-in-the-loop
 
 - **Detente en cada diamante.** No auto-avances por un nodo de decisión.
-- **Opciones textuales de `pasos.json`**, sin reescribirlas ni añadir opciones nuevas.
+- **Opciones textuales de `pasos.json`**, sin reescribirlas. Ver «Cuándo puedes proponer una
+  opción nueva» justo abajo: la regla no es «nunca añadir», es «nunca quitar».
 - **Confirma los parámetros** de cada sub-skill antes de invocarla.
 - **Registra todo** con `estado_flujo.py`: lo que no queda en el estado, no llega al
   siguiente paso ni al HTML.
+
+### Cuándo puedes proponer una opción nueva
+
+Distingue dos cosas que se confunden con facilidad:
+
+- **Prohibido, siempre:** quitar, renombrar, fusionar, reordenar o resumir las opciones
+  declaradas. Si `pasos.json` lista 5 ambiciones estratégicas, se muestran las 5, con su texto,
+  en su orden. Mostrar 3 «porque las otras no aplican» es decidir por el usuario.
+- **Permitido donde el nodo lo declare:** **añadir** una opción propia al final, cuando el nodo
+  trae `permite_propuestas` (hoy, la Ambición estratégica del paso 7). Tres condiciones:
+  1. Se presenta **después** de las oficiales y marcada como tal: «propuesta mía, no forma parte
+     del catálogo original del flujo».
+  2. Va con una línea que explique por qué encaja en **este** proyecto. Una propuesta sin
+     justificación es ruido.
+  3. Si el usuario la elige, se registra con `--forzar` y queda anotada como propuesta en el
+     histórico, en `STATE.md` y en las `advertencias` del reporte.
+
+Hay además nodos con una opción del tipo «otro criterio que recomiende el agente»
+(`requiere_propuesta`, en el paso 5). Ahí la opción **sí** es oficial; lo que propones es su
+contenido, y el usuario tiene que aprobarlo antes de seguir.
+
+En cualquier otro nodo, una opción fuera del catálogo es un error: el script la rechaza y el
+mensaje lista las válidas.
 
 ---
 
@@ -419,8 +522,10 @@ la interpretación, no las cifras. **Y explícale al usuario qué quiere decir c
 | Para | Mira |
 | --- | --- |
 | Definición del flujo (fuente única) | `pasos.json` |
+| Qué significa cada campo de un nodo de decisión | `pasos.json` → `convenciones_decisiones` |
 | Los dos recorridos con el nombre de cada paso | `scripts/estado_flujo.py rutas` |
 | Máquina de estados y comandos | `scripts/estado_flujo.py` (`--help`) |
+| ¿Se respetó el flujo en este proyecto? | `scripts/estado_flujo.py verificar` |
 | Grafo visual | `flujo_mermaid.md` |
 | Descripción de cada agente | `flujo_agentes.md` |
 | Contrato JSON entre skills | `sub-skills/CONTRATO_JSON.md` |
@@ -438,8 +543,21 @@ la interpretación, no las cifras. **Y explícale al usuario qué quiere decir c
 
 ## ¿Qué hacer al final de todo el flujo?
 
-Tras cerrar el último paso (Prototipado y Validación), genera el **tablero de
-navegación** y mide el coste del recorrido:
+Tras cerrar el último paso (Prototipado y Validación), **comprueba que el recorrido respetó el
+flujo**, genera el **tablero de navegación** y mide el coste:
+
+```bash
+python scripts/estado_flujo.py verificar --estado <dir>/flujo_estado.json
+```
+
+Audita el proyecto contra `pasos.json` y responde una sola pregunta: qué se cerró sin preguntar
+lo que había que preguntar. Devuelve 0 si no hay nada y 2 con la lista si lo hay: pasos cerrados
+sin su decisión, sin resumen, sin datos o sin entrega; omisiones sin motivo; predecesores
+saltados con `--forzar`; decisiones que no corresponden a ningún nodo del flujo.
+
+Si aparecen hallazgos, **dilos al usuario en lenguaje claro** en vez de esconderlos: son huecos
+reales en la trazabilidad del proyecto. Y no los arregles editando el estado a mano — se corrigen
+registrando la decisión que falta o volviendo a cerrar el paso con lo que le falte.
 
 ```bash
 python scripts/generar_indice.py --estado <dir>/flujo_estado.json   # index.html
