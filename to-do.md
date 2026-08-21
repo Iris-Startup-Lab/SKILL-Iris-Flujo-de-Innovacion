@@ -1,4 +1,7 @@
-# To-do — 19/08/2026
+# To-do — 21/08/2026
+
+**Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
+Esto solo lo actualiza la persona no el agente
 
 **Nuevo el 19/08:** las 5 skills simuladoras de entrevistas se integraron al flujo como
 **sub-sub-skills** (`<skill>/simulador/SIMULADOR.md`), con estadística calculada por script y la
@@ -17,7 +20,7 @@ propósito: renombrarlos costaba decenas de referencias y resultó innecesario.
 > **Antes de dar algo por hecho, compruébalo en el código.** La fuente de verdad es el repo,
 > no este tracker.
 
-Entorno para cualquier prueba (AGENTS.md §2):
+Entorno para cualquier prueba (AGENTS.md y/o CLAUDE.md §2):
 
 ```powershell
 & "E:\Users\1167486\AppData\Local\anaconda3\Scripts\conda.exe" shell.powershell hook | Out-String | Invoke-Expression

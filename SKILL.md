@@ -381,9 +381,38 @@ python scripts/medir_tokens.py --proyecto <dir>             # añade E2/E4/S1 de
 proyecto (por ejemplo `output/<proyecto>`; si el estado vive en la raíz del repo, usa
 `.`). La primera variante funciona siempre, con o sin proyecto.
 
+### Estimar el costo en dinero
+
+Con el modelo que se usó en la sesión (pregúntaselo al usuario si no lo sabes), añade
+`--modelo` para obtener el costo por paso y el total:
+
+```bash
+python scripts/medir_tokens.py --proyecto <dir> --modelo "Claude Sonnet"
+```
+
+Los precios viven en `scripts/precios_modelos.json` (fuente oficial + fecha). Para
+verlos o refrescarlos:
+
+```bash
+python scripts/medir_tokens.py --precios                  # catálogo completo
+python scripts/medir_tokens.py --precios --actualizar     # comprobar fuentes online
+```
+
+Si los precios superan su umbral de caducidad (`validez_dias`, 90 por defecto), el
+script lo avisa y comprueba solo la accesibilidad de las fuentes; **no** reescribe
+las cifras automáticamente. El refresco de precios es manual: relee la fuente oficial
+y edita `precios_modelos.json`, nunca estimes de memoria.
+
+Si el modelo **no está** en el catálogo, dilo tal cual: «no tengo precios oficiales
+para este modelo todavía; se irán añadiendo conforme avance la skill». No inventes el
+precio ni lo estimes de memoria: se añade a `precios_modelos.json` cuando se tenga la
+fuente. Si está pero sin precio verificado (ej. `Gemini 3.1 Pro`), avisa de que falta
+confirmar el precio en su fuente y no des una cifra.
+
 No vuelques la tabla cruda. Resume en dos o tres líneas lo que importa: cuánto costó de
-entrada y de salida el recorrido, y la diferencia entre ruta completa y mínima. Traduce
-la notación interna (di «tokens de entrada» y «tokens de salida», no «E1» o «S1»).
+entrada y de salida el recorrido, el costo estimado en dinero (si hay precio) y la
+diferencia entre ruta completa y mínima. Traduce la notación interna (di «tokens de
+entrada» y «tokens de salida», no «E1» o «S1»).
 
 Si además estás en Claude Code (Cowork), ejecuta la skill nativa `/explain-usage` para
 el uso real de la sesión; en un chat simple esa funcionalidad no existe y se omite.

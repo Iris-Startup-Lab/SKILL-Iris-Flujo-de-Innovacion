@@ -287,6 +287,7 @@ El tono de los textos debe ser:
 | ¿Dónde veo ejemplos de diseño? | `sub-skills_sample_outputs/` |
 | ¿Cuál es el prompt original de una skill? | `Documentos_prompts_base_md/<fase>/<archivo>.md` |
 | ¿Cómo valido scripts? | Activar `skills_env` y `python -m py_compile <script>` |
+| ¿Cuánto cuesta el recorrido en tokens y en dinero? | `python scripts/medir_tokens.py [--proyecto <dir>] [--modelo "<modelo>"]`; precios en `scripts/precios_modelos.json` y `--precios` |
 | ¿Cómo sincronizar reglas con Claude Code/Desktop? | `.\actualizar_claude.ps1` (o `./actualizar_claude.sh`) genera `CLAUDE.md` a demanda |
 
 ---

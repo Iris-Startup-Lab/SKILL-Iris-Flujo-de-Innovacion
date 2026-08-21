@@ -17,6 +17,9 @@ Uso:
     python scripts/medir_tokens.py --proyecto output/<proyecto>   # + E2/E4/S1 reales
     python scripts/medir_tokens.py --decisiones decisiones.json    # skills elegidas
     python scripts/medir_tokens.py --csv medicion.csv       # salida CSV
+    python scripts/medir_tokens.py --modelo "Claude Sonnet" # + costo estimado por paso
+    python scripts/medir_tokens.py --precios                # catálogo de precios
+    python scripts/medir_tokens.py --precios --actualizar   # comprobar fuentes online
 """
 
 import argparse
@@ -25,6 +28,9 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+from datetime import date
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +42,8 @@ E1_FILES = [
     "_plantilla_html/README.md",
     "sub-skills/CONTRATO_JSON.md",
 ]
+
+PRECIOS_JSON = REPO_ROOT / "scripts" / "precios_modelos.json"
 
 ### Comenzando el modelo de encoding (adecuado para Claude)
 ENCODING_DEFAULT = "cl100k_base"
@@ -59,6 +67,56 @@ def cargar_pasos():
     if not ruta.is_file():
         raise FileNotFoundError(f"No encuentro {ruta}")
     return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def cargar_precios():
+    """Lee el catálogo de precios (scripts/precios_modelos.json).
+
+    Es el fichero curado a mano: cada modelo lleva su precio por 1M tokens de
+    entrada y salida, la fuente oficial y la fecha. Devuelve el dict completo o
+    un dict vacío si aún no existe.
+    """
+    if not PRECIOS_JSON.is_file():
+        return {}
+    try:
+        return json.loads(PRECIOS_JSON.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+
+
+def buscar_modelo(precios, nombre):
+    """Busca un modelo en el catálogo por nombre o modelo_api, sin distinguir
+    mayúsculas ni acentos. Devuelve el dict del modelo o None si no está."""
+    nombre = nombre or ""
+    if not nombre:
+        return None
+    clave = nombre.strip().lower()
+    for m in precios.get("modelos", []):
+        candidatos = [m.get("nombre", ""), m.get("modelo_api", "") or ""]
+        if any(clave in c.lower() for c in candidatos if c):
+            return m
+    return None
+
+
+def fetch_url(url, timeout=15):
+    """Descarga una URL con urllib (stdlib). Devuelve (estado, descripción).
+
+    Solo se usa para *visualizar* si la fuente sigue viva, no para parsear el
+    precio: el HTML de estas páginas cambia y parsearlo es frágil. El precio de
+    verdad vive en precios_modelos.json, curado a mano contra la fuente.
+    """
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "Mozilla/5.0 (compatible; IRIS-cost-check)"}
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status, "accesible"
+    except urllib.error.HTTPError as exc:
+        return exc.code, f"error HTTP {exc.code}"
+    except urllib.error.URLError as exc:
+        return None, f"no accesible ({exc.reason})"
+    except Exception as exc:  # pragma: no cover - red o SSL raros
+        return None, f"no accesible ({exc})"
 
 
 def medir_e1(enc):
@@ -196,6 +254,138 @@ def rutas(pasos, nombre):
     return list(pasos["pasos"])
 
 
+def dias_desde_actualizacion(precios):
+    """Días transcurridos desde `actualizado` (YYYY-MM-DD) hasta hoy.
+
+    Devuelve None si la fecha falta o no se puede interpretar: en ese caso no se
+    emite aviso de caducidad (no se puede afirmar que esté viejo).
+    """
+    raw = (precios or {}).get("actualizado")
+    if not raw:
+        return None
+    try:
+        actualizado = date.fromisoformat(str(raw))
+    except ValueError:
+        return None
+    return (date.today() - actualizado).days
+
+
+def umbral_dias(precios):
+    return (precios or {}).get("validez_dias", 90)
+
+
+def advertencia_caducidad(precios):
+    """Texto de aviso si los precios superan el umbral de caducidad; None si están
+    al día (o si no se puede calcular la antigüedad)."""
+    dias = dias_desde_actualizacion(precios)
+    if dias is None:
+        return None
+    umbral = umbral_dias(precios)
+    if dias <= umbral:
+        return None
+    return (f"AVISO: los precios tienen {dias} días (umbral {umbral}). "
+            f"Verifícalos en la fuente oficial antes de usarlos para presupuesto.")
+
+
+def comprobar_fuentes(precios):
+    """Chequea online si las fuentes del catálogo siguen accesibles.
+
+    Devuelve la lista de (proveedor, descripción, url) lista para imprimir.
+    """
+    filas = []
+    urls = {}
+    for m in (precios or {}).get("modelos", []):
+        url = m.get("url")
+        if url:
+            urls.setdefault(url, m.get("proveedor", "?"))
+    for url, prov in urls.items():
+        _, desc = fetch_url(url)
+        filas.append((prov, desc, url))
+    return filas
+
+
+def imprimir_precios(precios, actualizar=False):
+    """Muestra el catálogo de precios y comprueba online si las fuentes siguen
+    accesibles. El chequeo corre con --actualizar o, automáticamente, cuando los
+    precios superan el umbral de caducidad (aviso + fetch de accesibilidad)."""
+    modelos = precios.get("modelos", []) if precios else []
+    if not modelos:
+        print("No hay catálogo de precios todavía (scripts/precios_modelos.json).")
+        print("Se irán añadiendo modelos conforme avance la skill.")
+        return
+    aviso = advertencia_caducidad(precios)
+    print(f"## Precios de modelos (USD por 1M tokens) — actualizado {precios.get('actualizado', '?')}")
+    if precios.get("nota"):
+        print(f"  {precios['nota']}")
+    if aviso:
+        print(f"  {aviso}")
+    print()
+    for m in modelos:
+        entrada, salida = m.get("entrada"), m.get("salida")
+        if entrada is None or salida is None:
+            precio = "sin precio oficial verificado"
+        else:
+            precio = f"${entrada:.2f} / ${salida:.2f}"
+        api = f"  [{m['modelo_api']}]" if m.get("modelo_api") else ""
+        nota = f"  ({m['nota']})" if m.get("nota") else ""
+        print(f"  {m['nombre']:<16} {m['proveedor']:<9} entrada/salida: {precio}{api}{nota}")
+        print(f"      fuente: {m.get('url', '')}")
+    print()
+    if actualizar or aviso:
+        print("## Comprobación de fuentes (online)")
+        for prov, desc, url in comprobar_fuentes(precios):
+            print(f"  [{prov}] {desc} · {url}")
+    else:
+        print("(pasa --actualizar junto a --precios para comprobar online si las fuentes siguen accesibles)")
+
+
+def costo_por_paso(pid, por_id, filas_proyecto, precio_entrada, precio_salida):
+    """Tokens de entrada (E2+E3+E4) y salida (S1) de un paso, y su costo en USD."""
+    e3 = por_id[pid][3]
+    e2 = e4 = s1 = 0
+    if filas_proyecto:
+        pf = next((f for f in filas_proyecto if f["id"] == pid), None)
+        if pf:
+            e2 = pf.get("E2") or 0
+            e4 = pf.get("E4_declarados") or 0
+            s1 = pf.get("S1") or 0
+    entrada = e2 + e3 + e4
+    salida = s1
+    costo = (entrada / 1e6) * precio_entrada + (salida / 1e6) * precio_salida
+    return entrada, salida, costo
+
+
+def imprimir_costo(modelo, pasos, por_id, filas_proyecto, total_e1, nombres_ruta, aviso=None):
+    pe, ps = modelo["entrada"], modelo["salida"]
+    print(f"## Costo estimado — {modelo['nombre']} ({modelo['proveedor']})")
+    print(f"  ${pe:.2f} / 1M entrada · ${ps:.2f} / 1M salida   (fuente: {modelo.get('url', '')})")
+    print("  Estimación de lista, sin descuentos enterprise ni impuestos.")
+    if aviso:
+        print(f"  {aviso}")
+        url = modelo.get("url", "")
+        if url:
+            _, desc = fetch_url(url)
+            print(f"  Fuente: {desc} · {url}")
+    print()
+    for ruta in nombres_ruta:
+        pasos_ruta = rutas(pasos, ruta)
+        print(f"### Ruta {ruta}")
+        total_ruta = 0.0
+        for p in pasos_ruta:
+            pid = p["id"]
+            entrada, salida, costo = costo_por_paso(pid, por_id, filas_proyecto, pe, ps)
+            total_ruta += costo
+            if filas_proyecto:
+                det = f"entrada {entrada:,} tok · salida {salida:,} tok"
+            else:
+                det = f"entrada {entrada:,} tok (sin --proyecto no se mide salida)"
+            print(f"  {pid} {p['titulo']:<38} ${costo:>8.4f}   {det}")
+        e1_costo = (total_e1 / 1e6) * pe
+        print(f"  {'TOTAL ' + ruta:<38} ${total_ruta:>8.4f}")
+        print(f"  {'+ arranque fijo (E1)':<38} ${e1_costo:>8.4f}")
+        print(f"  {'= TOTAL con arranque':<38} ${total_ruta + e1_costo:>8.4f}\n")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Nivel 1 de medición de tokens del flujo IRIS.")
     ap.add_argument("--proyecto", default=None, help="Directorio del proyecto (flujo_estado.json + reporte_*.json)")
@@ -203,7 +393,20 @@ def main(argv=None):
     ap.add_argument("--decisiones", default=None, help="JSON {paso: [skills]} para resolver los nodos de decisión")
     ap.add_argument("--encoding", default=ENCODING_DEFAULT)
     ap.add_argument("--csv", default=None, help="Escribe la tabla en CSV")
+    ap.add_argument("--modelo", default=None,
+                    help="Modelo para estimar el costo (ej. 'Claude Sonnet', 'DeepSeek V4 Flash'). "
+                         "Si no está en el catálogo se avisa y no se estima.")
+    ap.add_argument("--precios", action="store_true",
+                    help="Lista el catálogo de precios (scripts/precios_modelos.json) y sale.")
+    ap.add_argument("--actualizar", action="store_true",
+                    help="Con --precios: comprueba online si las fuentes de precios siguen accesibles.")
     args = ap.parse_args(argv)
+
+    precios = cargar_precios()
+
+    if args.precios:
+        imprimir_precios(precios, args.actualizar)
+        return 0
 
     pasos = cargar_pasos()
     decisiones = {}
@@ -275,6 +478,22 @@ def main(argv=None):
             w.writeheader()
             w.writerows(filas_csv)
         print(f"CSV escrito en {args.csv}")
+
+    if args.modelo:
+        modelo = buscar_modelo(precios, args.modelo)
+        if not modelo:
+            print(f"\n## Costo: «{args.modelo}» no está en el catálogo de precios.")
+            print("  No hay precios oficiales para este modelo todavía; se irán añadiendo conforme avance la skill.")
+            conocidos = [m["nombre"] for m in precios.get("modelos", [])]
+            if conocidos:
+                print("  Modelos con precio en el catálogo:", ", ".join(conocidos))
+        elif modelo.get("entrada") is None or modelo.get("salida") is None:
+            print(f"\n## Costo: {modelo['nombre']} ({modelo['proveedor']})")
+            print(f"  Precio oficial aún por verificar en la fuente: {modelo.get('url')}")
+            print("  No se puede estimar el costo sin precio verificado.")
+        else:
+            imprimir_costo(modelo, pasos, por_id, filas_proyecto, total_e1, nombres_ruta,
+                           aviso=advertencia_caducidad(precios))
     return 0
 
 

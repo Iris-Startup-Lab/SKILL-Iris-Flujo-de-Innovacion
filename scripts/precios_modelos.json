@@ -1,0 +1,90 @@
+{
+  "actualizado": "2026-08-21",
+  "validez_dias": 90,
+  "unidad": "USD por 1M tokens",
+  "moneda": "USD",
+  "nota": "Precios de lista de la API (sin descuentos enterprise, sin impuestos). DeepSeek usa el rango off-peak (cache miss): el pico cuesta el doble. Los precios cambian: revisa la fuente en `url` y actualiza este archivo. Si un modelo tiene `entrada`/`salida` en null es que aún no hay precio oficial verificado.",
+  "modelos": [
+    {
+      "nombre": "DeepSeek V4 Flash",
+      "proveedor": "DeepSeek",
+      "modelo_api": "deepseek-v4-flash",
+      "entrada": 0.22,
+      "salida": 0.66,
+      "nota": "off-peak, cache miss (peak ×2)",
+      "url": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    {
+      "nombre": "DeepSeek V4 Pro",
+      "proveedor": "DeepSeek",
+      "modelo_api": "deepseek-v4-pro",
+      "entrada": 0.66,
+      "salida": 1.98,
+      "nota": "off-peak, cache miss (peak ×2)",
+      "url": "https://api-docs.deepseek.com/quick_start/pricing/"
+    },
+    {
+      "nombre": "Claude Sonnet",
+      "proveedor": "Anthropic",
+      "modelo_api": "claude-sonnet-5",
+      "entrada": 2.0,
+      "salida": 10.0,
+      "nota": "precio estándar",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    {
+      "nombre": "Claude Opus",
+      "proveedor": "Anthropic",
+      "modelo_api": "claude-opus-5",
+      "entrada": 5.0,
+      "salida": 25.0,
+      "nota": "precio estándar",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    {
+      "nombre": "Claude Haiku",
+      "proveedor": "Anthropic",
+      "modelo_api": "claude-haiku-4.5",
+      "entrada": 1.0,
+      "salida": 5.0,
+      "nota": "precio estándar",
+      "url": "https://platform.claude.com/docs/en/about-claude/pricing"
+    },
+    {
+      "nombre": "Gemini 3.1 Pro",
+      "proveedor": "Google",
+      "modelo_api": null,
+      "entrada": null,
+      "salida": null,
+      "nota": "precio aún por verificar en la fuente",
+      "url": "https://ai.google.dev/gemini-api/docs/pricing?hl=es-419"
+    },
+    {
+      "nombre": "GPT Terra",
+      "proveedor": "OpenAI",
+      "modelo_api": "gpt-5.6-terra",
+      "entrada": 2.0,
+      "salida": 12.0,
+      "nota": "short context input/output",
+      "url": "https://developers.openai.com/api/docs/pricing"
+    },
+    {
+      "nombre": "GPT Sol",
+      "proveedor": "OpenAI",
+      "modelo_api": "gpt-5.6-sol",
+      "entrada": 5.0,
+      "salida": 30.0,
+      "nota": "short context input/output",
+      "url": "https://developers.openai.com/api/docs/pricing"
+    },
+    {
+      "nombre": "GPT Luna",
+      "proveedor": "OpenAI",
+      "modelo_api": "gpt-5.6-luna",
+      "entrada": 0.2,
+      "salida": 1.2,
+      "nota": "short context input/output",
+      "url": "https://developers.openai.com/api/docs/pricing"
+    }
+  ]
+}
