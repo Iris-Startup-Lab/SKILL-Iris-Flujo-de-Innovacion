@@ -25,6 +25,7 @@ ejecutarse en cualquier gestor de skills (Kimi Code, Antigravity, Claude Desktop
 | `sub-skills_sample_outputs/` | Muestras de salida HTML por skill (para revisar el diseño). |
 | `Documentos_prompts_base_md/` | Los 24 prompts originales (fuente de cada skill). |
 | `PLAN_MEDICION_TOKENS.md` | Plan para medir el consumo de tokens por paso y sub-skill, y comparar la ruta completa contra la mínima. |
+| `actualizar_claude.ps1` / `CLAUDE.md` | Script de sincronización a demanda y clon de `AGENTS.md` para entornos Claude Code / Claude Desktop. |
 
 ## Fases del flujo
 
@@ -106,6 +107,22 @@ Devuelve el paso actual, el histórico de sus predecesores, las decisiones ya to
 | **Antigravity** | Gemini 3.1 Pro | — |
 | **OpenCode** | DeepSeek V4 Flash | — |
 | **ChatGPT Desktop** | GPT Terra | — |
+
+### Sincronización para Claude Code / Claude Desktop (CLAUDE.md)
+
+Para utilizar este repositorio en entornos como **Claude Code** o **Claude Desktop** que leen `CLAUDE.md`, las directrices del proyecto residen en `AGENTS.md` y se clonan a demanda para mantener la compatibilidad sin inconsistencias.
+
+Para actualizar `CLAUDE.md` a partir de `AGENTS.md`:
+
+```powershell
+.\actualizar_claude.ps1
+```
+
+O en Linux / macOS:
+
+```bash
+./actualizar_claude.sh
+```
 
 ## Salidas HTML (diseño IRIS)
 
@@ -200,4 +217,4 @@ python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -
 #   logo embebido: 122 KB (base64) · copia local de la sub-skill
 ```
 
-**Qué se incluye por defecto:** `SKILL.md`, `pasos.json`, `scripts/`, `STATE.md`, `AGENTS.md`, `README.md`, `flujo_agentes.md`, `flujo_mermaid.md`, `sub-skills/`, `_plantilla_html/`, `Designs_files/`, `imagenes_iconos_etc/`, `Documentos_prompts_base_md/`. **Se excluyen:** `__pycache__`/`*.pyc`, el mapa visual grande, notebooks y archivos de desarrollo.
+**Qué se incluye por defecto:** `SKILL.md`, `pasos.json`, `scripts/`, `STATE.md`, `AGENTS.md`, `CLAUDE.md`, `actualizar_claude.ps1`, `README.md`, `flujo_agentes.md`, `flujo_mermaid.md`, `sub-skills/`, `_plantilla_html/`, `Designs_files/`, `imagenes_iconos_etc/`, `Documentos_prompts_base_md/`. **Se excluyen:** `__pycache__`/`*.pyc`, el mapa visual grande, notebooks y archivos de desarrollo.

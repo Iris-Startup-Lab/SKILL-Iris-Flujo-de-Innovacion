@@ -131,7 +131,9 @@ if ($SubSkill) {
         "flujo_mermaid.md",
         "PLAN_CONVERSION_SKILLS.md",
         "PLAN_MEDICION_TOKENS.md",
-        "_template_generador_skill.py"
+        "_template_generador_skill.py",
+        "CLAUDE.md",
+        "actualizar_claude.ps1"
     )
 
     $folders = @(
