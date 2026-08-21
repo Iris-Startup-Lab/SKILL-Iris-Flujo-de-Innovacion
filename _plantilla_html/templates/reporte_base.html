@@ -25,7 +25,7 @@
   a{color:var(--purple-600)}
 
   /* ---------- Header ---------- */
-  header.site{background:linear-gradient(135deg,var(--purple-900) 0%,var(--purple-700) 62%,#4A2F7A 100%);color:#fff;padding:28px clamp(20px,4vw,56px) 34px;position:relative;overflow:hidden}
+  header.site{background:linear-gradient(135deg,var(--purple-900) 0%,var(--purple-700) 62%,#4A2F7A 100%);color:#fff;padding:28px clamp(20px,4vw,56px) 34px;position:relative;overflow:hidden;overflow:clip}
   header.site::after{content:"";position:absolute;top:-140px;right:-140px;width:420px;height:420px;background:radial-gradient(circle,rgba(232,185,62,.16),transparent 65%);pointer-events:none}
   .header-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;position:relative;z-index:1}
   .logo-chip{background:#fff;border-radius:12px;padding:8px 14px;box-shadow:var(--shadow-md);display:inline-flex;align-items:center}
@@ -121,6 +121,8 @@
   .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:.18s}
   .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--purple-200)}
   .card.expanded{border-color:var(--purple-600);box-shadow:var(--shadow-md)}
+  .card.no-detail{cursor:default}
+  .card.no-detail:hover{transform:none;box-shadow:none;border-color:var(--line)}
   .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .card-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple-600);background:var(--purple-100);padding:4px 10px;border-radius:999px}
   .card h3{font-family:'Sora',sans-serif;font-size:1.02rem;font-weight:700}
@@ -440,9 +442,21 @@ window.REPORT_DATA = __REPORT_DATA__;
       if(esActual) el.setAttribute('aria-current','step');
       railEl.appendChild(el);
     });
+    // Centra el paso actual sin tocar el header: `scrollIntoView({inline:'center'})`
+    // también desplaza el header (overflow:hidden lo vuelve contenedor de scroll),
+    // lo que cortaba el logo y el título en los pasos finales (html_9 en adelante).
     const activo = railEl.querySelector('.flow-step.actual');
-    if(activo && activo.scrollIntoView){
-      activo.scrollIntoView({block:'nearest', inline:'center'});
+    if(activo){
+      const centrar = () => {
+        const maxScroll = Math.max(0, railEl.scrollWidth - railEl.clientWidth);
+        const objetivo = activo.offsetLeft - (railEl.clientWidth - activo.offsetWidth) / 2;
+        railEl.scrollLeft = Math.min(Math.max(0, objetivo), maxScroll);
+      };
+      centrar();
+      // Re-centra cuando cargan Sora/Inter: su ancho cambia el offset del paso.
+      if(document.fonts && document.fonts.ready){
+        document.fonts.ready.then(centrar);
+      }
     }
 
     // Encabezado del bloque de contexto
@@ -685,25 +699,46 @@ window.REPORT_DATA = __REPORT_DATA__;
     renderNotas();
   }
 
+  function tieneDetalle(it){
+    if(it.persona && Object.keys(it.persona).length) return true;
+    if(it.psf && Object.keys(it.psf).length) return true;
+    if((it.body||[]).length) return true;
+    if(chartDeItem(it)) return true;
+    return false;
+  }
+
   function buildCard(it){
     const card = document.createElement('div'); card.className='card';
     const tagsHtml = (it.tags||[]).slice(0,3).map(t=>'<span class="pill">'+esc(t)+'</span>').join('');
     let verdictHtml='';
     if(it.veredicto) verdictHtml = '<span class="verdict '+esc(it.veredicto)+'" title="'+esc(verdictTitle(it.veredicto))+'">'+esc(VERDICT_LABEL[it.veredicto]||it.veredicto)+'</span>';
+    const expandible = tieneDetalle(it);
+    if(!expandible) card.classList.add('no-detail');
     card.innerHTML =
       '<div class="card-top">'+(it.tags&&it.tags.length?'<span class="card-tag">'+esc(it.tags[0])+'</span>':'<span></span>')+verdictHtml+'</div>'+
       '<h3>'+esc(it.titulo)+'</h3>'+
       (it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+
       '<div class="card-foot">'+tagsHtml+(typeof it.score==='number'?'<span class="pill">Score '+it.score+'</span>':'')+'</div>'+
-      '<div class="expand-hint">Ver detalle <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>';
+      (expandible?'<div class="expand-hint">Ver detalle <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>':'');
+    if(!expandible) return card;
     card.addEventListener('click', e => {
       const expanded = card.classList.contains('expanded');
       // collapse all in this grid
       const grid = card.parentElement;
       grid.querySelectorAll('.card.expanded').forEach(c=>{c.classList.remove('expanded'); const d=c._detail; if(d){d.remove(); c._detail=null;} if(c._chart){c._chart.destroy(); c._chart=null;} });
-      if(!expanded){ card.classList.add('expanded'); const det = buildDetail(it); card._detail = det; grid.appendChild(det); renderCharts(det, it, card); }
+      if(!expanded){ card.classList.add('expanded'); const det = buildDetail(it); card._detail = det; insertarDetalle(grid, card, det); renderCharts(det, it, card); }
     });
     return card;
+  }
+
+  // Coloca el panel de detalle justo debajo de la fila de la tarjeta elegida (tras el
+  // último card de esa fila), no al fondo de toda la grilla: así, con más de una fila,
+  // el detalle no se ve "abajo de todas" sino pegado a la tarjeta seleccionada.
+  function insertarDetalle(grid, card, det){
+    const cards = Array.from(grid.children).filter(el => el.classList.contains('card'));
+    const fila = cards.filter(c => c.offsetTop === card.offsetTop);
+    const ultimo = fila[fila.length - 1] || card;
+    ultimo.insertAdjacentElement('afterend', det);
   }
 
   function buildDetail(it){

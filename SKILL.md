@@ -366,9 +366,25 @@ la interpretación, no las cifras. **Y explícale al usuario qué quiere decir c
   (reglas en `AGENTS.md` §7).
 - **Modelo recomendado por herramienta:** ver `README.md`.
 
-## ¿Que hacer al final de todo el flujo?
+## ¿Qué hacer al final de todo el flujo?
 
-Si estás en la herramienta Claude o usando el modelo del mismo nombre
-ejecuta la skill nativa /explain-usage para que el usuario entienda
-cuanto ha usado, eso solo si se está usando Claude Cowork, si es un chat simple, no es necesario un resumen de la sesión porque no existe esta funcionalidad.
+Tras cerrar el último paso (Prototipado y Validación), mide el coste del recorrido y
+preséntaselo al usuario. El medidor es `scripts/medir_tokens.py` y se ejecuta desde la
+raíz del repositorio:
+
+```bash
+python scripts/medir_tokens.py                              # E1 + E3, ruta completa y mínima
+python scripts/medir_tokens.py --proyecto <dir>             # añade E2/E4/S1 del proyecto real
+```
+
+`<dir>` es la carpeta que guarda `flujo_estado.json` y los `reporte_*.json` del
+proyecto (por ejemplo `output/<proyecto>`; si el estado vive en la raíz del repo, usa
+`.`). La primera variante funciona siempre, con o sin proyecto.
+
+No vuelques la tabla cruda. Resume en dos o tres líneas lo que importa: cuánto costó de
+entrada y de salida el recorrido, y la diferencia entre ruta completa y mínima. Traduce
+la notación interna (di «tokens de entrada» y «tokens de salida», no «E1» o «S1»).
+
+Si además estás en Claude Code (Cowork), ejecuta la skill nativa `/explain-usage` para
+el uso real de la sesión; en un chat simple esa funcionalidad no existe y se omite.
 Finalmente, agradece al usuario por el trabajo realizado.

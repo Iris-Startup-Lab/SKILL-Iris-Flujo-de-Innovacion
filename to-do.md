@@ -28,15 +28,6 @@ Nada está commiteado: los commits los lleva el usuario.
 
 ---
 
-## Abierto
-
-> **Revisado el 17/08/2026** contra el estado real del repo. Queda un pendiente: el nivel 2 de
-> la medición de tokens. El de `senales-debiles` se cerró (modularización ya existía), el de
-> herencia quedó decidido en `SKILL.md`, y el de markdownlint se cerró con un `.markdownlint.json`.
->
-> **19/08/2026:** los simuladores añaden cuatro pendientes (5 a 8), todos de validación con uso
-> real o de decisión del usuario. La implementación quedó probada; lo que falta es estrenarla.
-
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
 El **nivel 1 está hecho** (17/08): `tiktoken` instalado en `skills_env`, `scripts/medir_tokens.py`

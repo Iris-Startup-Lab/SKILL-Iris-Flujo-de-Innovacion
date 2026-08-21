@@ -22,6 +22,7 @@ Uso:
 import argparse
 import csv
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -121,7 +122,8 @@ def medir_mostrar(paso_id, proyecto, enc):
         sys.executable, str(REPO_ROOT / "scripts" / "estado_flujo.py"),
         "mostrar", "--paso", paso_id, "--estado", str(estado),
     ]
-    salida = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8")
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    salida = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", env=env)
     if salida.returncode != 0:
         return None
     return len(salida.stdout), tokenizar(salida.stdout, enc)
