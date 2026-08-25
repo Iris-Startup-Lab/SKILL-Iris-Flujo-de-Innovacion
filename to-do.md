@@ -5,14 +5,18 @@ las 8 pruebas del script, el recorrido completo de los 11 pasos y la medición d
 Salieron **5 bugs reales**, los 5 arreglados y vueltos a probar (detalle en «Hecho el
 24/08/2026»). **La macro está lista para que la usen personas.**
 
-Lo que queda son **decisiones tuyas**, no trabajo pendiente de código:
+**Decidido el 24/08:** el ZIP ya está empaquetado, y los proyectos de `output/` **se quedan como
+material de revisión futura** — no se re-corren ni se borran, aunque `verificar` marque sus
+decisiones antiguas como nodos que el flujo ya no reconoce (es lo esperado: son anteriores al
+cambio).
 
-1. Regenerar `CLAUDE.md` con `.\actualizar_claude.ps1` — `AGENTS.md` cambió (§6 y §8).
-2. Reempaquetar el ZIP cuando quieras publicar.
-3. Qué hacer con los dos proyectos de `output/` recorridos antes del cambio (pendiente 0.4)
-   y con `skills_simuladoras_de_entrevistas/` (pendiente 5).
-4. El nivel 2 de la medición de tokens (pendiente 1) y estrenar un simulador de punta a punta
-   (pendiente 8): las dos necesitan una sesión real de uso, no se automatizan.
+**Las pruebas las harán colegas con casos reales de negocio**, no con recorridos sintéticos. Eso
+cierra por la vía útil los pendientes 1 y 8: el nivel 2 de la medición de tokens y el estreno de
+un simulador de punta a punta saldrán de ese uso real, que es la única fuente que dice si los
+umbrales de los avisos ayudan o estorban.
+
+Lo único que sigue siendo tuyo: regenerar `CLAUDE.md` con `.\actualizar_claude.ps1` cuando
+`AGENTS.md` cambie, y decidir qué hacer con `skills_simuladoras_de_entrevistas/` (pendiente 5).
 
 **Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente
@@ -55,19 +59,18 @@ Lo escrito está en «Hecho el 21/08/2026» §8, §9 y §10. **Lo probado, en «
 
 Solo quedan las cuatro cosas que dependen del usuario:
 
-#### 0.4 Los dos proyectos ya recorridos — decisión del usuario
+#### 0.4 Los dos proyectos ya recorridos — resuelto: se quedan
 
-`output/ecopack-circular` y `output/huertos-urbanos-mx` tienen decisiones con nombres de nodo que
-ya no existen («Simular o no», «Selección de agentes», «Elección de protopersona»). `verificar`
-los marcará como decisiones que el flujo ignora: **correcto y esperado**, son anteriores al
-cambio. Decidir si se re-corren o se dejan como histórico. No editarlos a mano.
+`output/ecopack-circular` y `output/huertos-urbanos-mx` **se conservan como material de revisión
+futura.** No se re-corren ni se borran. Sus decisiones usan nombres de nodo que ya no existen
+(«Simular o no», «Selección de agentes», «Elección de protopersona»), así que `verificar` las
+marcará como decisiones que el flujo ignora: **es lo esperado**, no un fallo que haya que
+arreglar. Tampoco se editan a mano.
 
-#### 0.5 Regenerar `CLAUDE.md` y reempaquetar
+#### 0.5 Empaquetado — hecho
 
-- `CLAUDE.md` es copia de `AGENTS.md`, y `AGENTS.md` cambió (§6 y §8). **Lo regenera el
-  usuario**, no el agente: `.\actualizar_claude.ps1`.
-- El ZIP se reempaqueta cuando se quiera publicar, con los guardias de siempre (un solo
-  `SKILL.md`, 0 barras invertidas, rutas seguras).
+El ZIP se empaquetó el 24/08. `CLAUDE.md` se regenera con `.\actualizar_claude.ps1` cada vez que
+cambie `AGENTS.md`, y **eso lo hace la persona, no el agente**.
 
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
