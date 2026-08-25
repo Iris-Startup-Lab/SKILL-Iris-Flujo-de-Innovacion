@@ -1,9 +1,18 @@
-# To-do — 21/08/2026
+# To-do — 24/08/2026
 
-**Lo primero que hay que retomar: el pendiente 0.** La revisión del flujo general está
-**escrita completa** —código, `pasos.json` y los 14 documentos— y **sin probar más allá de lo
-que se comprobó al escribirla**. La próxima sesión es de pruebas y depuración, nada más: la
-lista exacta de qué falta correr está en el pendiente 0.
+**La revisión del flujo general está escrita y probada.** El pendiente 0 se cerró el 24/08:
+las 8 pruebas del script, el recorrido completo de los 11 pasos y la medición del render.
+Salieron **5 bugs reales**, los 5 arreglados y vueltos a probar (detalle en «Hecho el
+24/08/2026»). **La macro está lista para que la usen personas.**
+
+Lo que queda son **decisiones tuyas**, no trabajo pendiente de código:
+
+1. Regenerar `CLAUDE.md` con `.\actualizar_claude.ps1` — `AGENTS.md` cambió (§6 y §8).
+2. Reempaquetar el ZIP cuando quieras publicar.
+3. Qué hacer con los dos proyectos de `output/` recorridos antes del cambio (pendiente 0.4)
+   y con `skills_simuladoras_de_entrevistas/` (pendiente 5).
+4. El nivel 2 de la medición de tokens (pendiente 1) y estrenar un simulador de punta a punta
+   (pendiente 8): las dos necesitan una sesión real de uso, no se automatizan.
 
 **Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente
@@ -36,72 +45,29 @@ Nada está commiteado: los commits los lleva el usuario.
 
 ---
 
-### 0. Revisión del flujo general — escrita completa, PENDIENTE DE PRUEBAS
+### 0. Revisión del flujo general — cerrada el 24/08 (5 bugs encontrados y arreglados)
 
-Objetivo: que el agente macro **no pueda** saltarse el flujo, no solo que esté escrito que no
-debe. El flujo descrito por el usuario (los 11 pasos con sus sub-opciones) se comparó contra
-`pasos.json`, aparecieron 8 huecos reales y están corregidos, con barreras en el script y toda
-la documentación alineada.
+Objetivo cumplido: el agente macro **no puede** saltarse el flujo, no solo está escrito que no
+debe. El flujo descrito por el usuario se comparó contra `pasos.json`, aparecieron 8 huecos, se
+corrigieron con barreras en el script y se propagó a los 14 documentos que lo describen.
 
-**Lo escrito está en «Hecho el 21/08/2026» §8, §9 y §10.** Lo que queda es **probarlo**: nada
-de lo de abajo se ha ejecutado todavía, salvo lo que se comprobó al escribirlo (compilación,
-JSON válido, coherencia `pasos.json` ↔ Mermaid, y los 5 casos de bloqueo del script).
+Lo escrito está en «Hecho el 21/08/2026» §8, §9 y §10. **Lo probado, en «Hecho el 24/08/2026».**
 
-> Riesgo asumido a propósito: se escribió todo de una vez y se prueba después. Es probable que
-> aparezcan fallos en las rutas menos recorridas —`opciones_desde`, `solo_si`, las propuestas
-> con `--forzar`—, porque son las que no se ejercitaron al escribirlas.
+Solo quedan las cuatro cosas que dependen del usuario:
 
-#### 0.1 Pruebas del script que faltan
+#### 0.4 Los dos proyectos ya recorridos — decisión del usuario
 
-Con un proyecto de prueba en el scratchpad (`init --estado <tmp>/flujo_estado.json`):
-
-| Qué probar | Qué debe pasar |
-| --- | --- |
-| `Apalancamiento` tras elegir «Crecer Negocio Actual» | `mostrar` resuelve **solo** sus 5 palancas; registrar «Reducir Costos» (de otra ambición) se rechaza con exit 2 |
-| `Apalancamiento` **antes** de elegir la ambición | No hay catálogo que resolver: no debe reventar ni aceptar cualquier cosa en silencio |
-| Sub-decisiones del paso 11 | «Entrega de la landing page» y «Origen de la página a analizar» aparecen **solo** si se eligió su agente, y no bloquean el cierre cuando no aplican |
-| Propuesta del agente en «Ambición estratégica» | Sin `--forzar` se rechaza; con `--forzar` se registra, sale «propuesta del agente» en `STATE.md` y en el HTML, y `verificar` la reporta |
-| Propuesta en un nodo **sin** `permite_propuestas` | Se rechaza con el mensaje de «no inventes opciones»; con `--forzar` queda como FUERA del catálogo |
-| `verificar` sobre un recorrido bien hecho | Exit 0, «sin hallazgos» |
-| `verificar` sobre un paso cerrado con `--forzar` | Exit 2 nombrando el hueco |
-| `completar` con el `minimo` incumplido | Bloquea y sugiere omitir el paso en vez de cerrarlo sin decisión |
-
-#### 0.2 Recorrido de punta a punta
-
-Un proyecto nuevo por los 11 pasos con las barreras puestas, usando
-`ejemplos_para_testear.md` (sus comandos ya están alineados con los nodos nuevos y
-**verificados contra `pasos.json`** con un comprobador: 0 nodos u opciones inexistentes).
-Tiene que pasar por los tres pasos de selección múltiple y por las dos sub-decisiones del
-paso 11, y cerrar con `verificar` sin hallazgos.
-
-**Lo que hay que juzgar con ojo crítico en ese recorrido:** si las barreras **estorban**. En un
-flujo bien hecho no debería salir ni un aviso. Si aparecen, el umbral está mal puesto, no el
-usuario.
-
-#### 0.3 Render en el navegador
-
-Dos cosas nuevas que solo se pueden ver abriendo un HTML:
-
-- La marca «(propuesta del agente)» en el bloque de decisiones del contexto (pendiente 9 del
-  ciclo anterior, ahora ya implementada).
-- Que una decisión múltiple («A + B») no rompa el ancho de la caja del contexto.
-
-Va junto con el pendiente 6 (ver un reporte simulado en el navegador), que sigue abierto.
-
-#### 0.4 Compatibilidad de los proyectos ya recorridos — decisión del usuario
-
-`output/ecopack-circular` y `output/huertos-urbanos-mx` tienen decisiones registradas con
-nombres de nodo que ya no existen («Simular o no», «Selección de agentes», «Elección de
-protopersona»). `verificar` los marcará como decisiones que el flujo ignora: **correcto y
-esperado**, son recorridos anteriores al cambio. Decidir si se re-corren o se dejan como
-histórico. No editarlos a mano.
+`output/ecopack-circular` y `output/huertos-urbanos-mx` tienen decisiones con nombres de nodo que
+ya no existen («Simular o no», «Selección de agentes», «Elección de protopersona»). `verificar`
+los marcará como decisiones que el flujo ignora: **correcto y esperado**, son anteriores al
+cambio. Decidir si se re-corren o se dejan como histórico. No editarlos a mano.
 
 #### 0.5 Regenerar `CLAUDE.md` y reempaquetar
 
 - `CLAUDE.md` es copia de `AGENTS.md`, y `AGENTS.md` cambió (§6 y §8). **Lo regenera el
   usuario**, no el agente: `.\actualizar_claude.ps1`.
-- El ZIP se reempaqueta **al final**, cuando las pruebas pasen, con los guardias de siempre
-  (un solo `SKILL.md`, 0 barras invertidas, rutas seguras).
+- El ZIP se reempaqueta cuando se quiera publicar, con los guardias de siempre (un solo
+  `SKILL.md`, 0 barras invertidas, rutas seguras).
 
 ### 1. Terminar la medición de tokens — falta el nivel 2
 
@@ -143,21 +109,17 @@ No la borré: es material del usuario y borrar no es reversible. Cuando confirme
 integración le sirve, se elimina —o se deja como archivo histórico, pero entonces conviene un
 `README.md` dentro que diga «superado por `sub-skills/2.Descubrimiento/*/simulador/`».
 
-### 6. Ver un reporte simulado en el navegador
+### 6. Ver un reporte simulado en el navegador — cerrado el 24/08 (hecho)
 
-La marca SIMULADO se verificó en el **markup** del HTML generado (distintivo en cabecera, caja
-ámbar del contexto, línea del pie, advertencia automática) y el script inline de la plantilla
-pasa `node --check`. Lo que no se hizo es **abrirlo en un navegador** para ver que el distintivo
-dorado no se pisa con el de la skill ni rompe la cabecera en móvil.
+Renderizado en Chrome headless: sin errores de JS, el distintivo dorado no se pisa con el de la
+skill, y a 320/360/390/480 px el documento no desborda. De aquí salieron dos bugs de render, los
+dos arreglados (ver «Hecho el 24/08/2026» §3).
 
-Está a un comando: generar cualquier reporte con un `flujo_estado.json` que tenga la decisión de
-simular registrada, y abrirlo.
+### 7. Guardar una muestra de diseño del reporte simulado — cerrado el 24/08 (hecho)
 
-### 7. Guardar una muestra de diseño del reporte simulado
-
-`sub-skills_sample_outputs/` es «¿dónde veo ejemplos de diseño?» (AGENTS.md §8) y no tiene
-ninguna salida con la marca de simulación. Conviene guardar una: es el único caso del repo donde
-la plantilla añade elementos por su cuenta, y sin muestra nadie sabe cómo se ve.
+En `sub-skills_sample_outputs/3.Ideacion/how-might-we/`: el HTML, el `STATE.md` del proyecto que
+lo generó y un `LEEME.md` con la tabla de qué marca pone la plantilla y dónde mirarla. La carpeta
+está en `.gitignore` —son muestras locales—, así que no viaja en el repositorio.
 
 ### 8. Estrenar un simulador en un proyecto real
 
@@ -172,6 +134,100 @@ estorban**. Están calibrados a ojo (n<20, Q+R>10%, saturación en 2 sesiones si
 uso real es lo único que dice si el umbral es el correcto.
 
 ---
+
+## Hecho el 24/08/2026
+
+Sesión de pruebas del pendiente 0. Se ejecutó todo lo que estaba escrito sin probar, y
+aparecieron **5 bugs reales**. Los 5 están arreglados y vueltos a probar.
+
+### 1. Los tres bugs de las barreras del script
+
+**a) Una decisión que dependía de otra se podía responder antes, aceptando cualquier texto.**
+El nodo «Apalancamiento» saca sus opciones de la ambición elegida (`opciones_desde`). Si nadie
+había registrado la ambición, no había catálogo contra el que comprobar nada y el script
+aceptaba lo que le llegara —`--opcion "Cualquier cosa inventada"` entraba con exit 0—. Era
+justo el agujero por el que se cuela una opción inventada.
+**Arreglo:** `origen_sin_responder()`. Si el catálogo depende de otro nodo sin responder, se
+bloquea y se dice cuál hay que preguntar primero. Un `opciones_desde` sin punto («las ideas
+generadas en este paso») no depende de nadie: ahí el texto libre sigue siendo correcto.
+
+**b) Las sub-decisiones condicionales se podían registrar antes de saber si aplicaban.**
+«Entrega de la landing page» solo aplica si se eligió *Simple Landing Page*, pero `cmd_decision`
+no miraba el `solo_si`: se podía registrar antes de elegir el agente, y quedaba en el histórico
+una decisión de un nodo que el usuario quizá nunca debió ver.
+**Arreglo:** se comprueba `nodo_aplica()` antes de escribir, distinguiendo los dos casos —el
+nodo fuente aún sin responder, o respondido con un valor que no cumple la condición—.
+
+**c) Una respuesta se quedaba obsoleta en silencio.** Si registrabas la palanca «Mayor ticket»
+(de *Crecer Negocio Actual*) y **después** cambiabas la ambición a *Expandir Negocio*, la
+palanca ya no pertenecía a la ambición vigente. En su momento fue válida, así que nada lo
+detectaba.
+**Arreglo:** `verificar` compara el orden de registro. Si la dependiente se registró antes que
+su fuente, lo dice: «se registró ANTES que X, que cambió después». Cubre además los casos de
+fuente sin responder y de fuente resuelta con una opción fuera de catálogo.
+
+**Afinado, no bug:** una propuesta legítima (nodo con `permite_propuestas`) y una opción fuera
+del catálogo ya no se anotan igual. `propuesta_agente` solo se marca cuando el nodo las admite;
+`STATE.md`, el HTML y `verificar` usan la etiqueta que corresponde. Y si **todo** lo elegido
+está fuera del catálogo, no se repite el nombre detrás de la opción.
+
+### 2. Lo que las pruebas confirmaron que sí funcionaba
+
+- **Recorrido completo:** 11 pasos, 13 decisiones, `verificar` con exit 0 y sin hallazgos. Las
+  cuatro barreras bloquearon donde debían: cerrar sin decisiones, palanca antes de la ambición,
+  sub-decisión antes de su condición, y opción de otra ambición.
+- **Catálogo:** una opción inventada, un nodo inventado, dos opciones en un nodo de elección
+  única y una palanca de otra ambición se rechazan con exit 2 y la lista de lo válido.
+- **Tipografía tolerante:** «¿Como quieres iniciar?» sin tilde y «senales debiles…» en
+  minúsculas se aceptan y se guardan con el texto canónico de `pasos.json`.
+- **Ruta mínima:** omite 6 pasos de entrada y sus nodos no bloquean (un paso omitido no pasa
+  por la barrera de decisiones).
+- **Herencia del `auto_si`:** elegir simular en el paso 2 deja decidido el origen de las
+  respuestas del paso 3, y `mostrar` lista solo los simuladores de los agentes elegidos.
+
+### 3. Los dos bugs de render (y un diagnóstico mío que estaba mal)
+
+**a) Tarjetas desbordando a 320 px.** `.grid` y `.dec-grid` usaban
+`minmax(295px,1fr)`: en una pantalla de 320 px el track mínimo era más ancho que el espacio
+disponible y las tarjetas sobresalían 14 px, dejando toda la página con scroll horizontal.
+**Arreglo:** `minmax(min(295px,100%),1fr)`. Medido después: 0 desbordes a 320 y 360 px.
+
+**b) La cabecera se recortaba en silencio.** `.header-top` es un flex sin `flex-wrap`, y el
+`header` lleva `overflow:clip`. En pantalla estrecha, el logo + la etiqueta de la skill + el
+distintivo de datos simulados + el botón no caben en una línea y los últimos **desaparecían**
+recortados, sin dejar rastro. **Arreglo:** `flex-wrap:wrap`, y bajan a una segunda línea.
+
+**El diagnóstico que estaba mal, y por qué importa:** las primeras capturas «de móvil» las hice
+con `--window-size=390`, y de ahí concluí que la página desbordaba a 390 px. Era falso: Chrome
+headless en Windows **no baja de ~485 px de viewport** y estaba recortando una imagen de 390 px
+sobre un render de 485. La conclusión correcta salió al medir con una sonda que fuerza el ancho
+por CSS y compara los rectángulos contra el objetivo: a 390 px `scrollWidth == 390`, sin
+desborde. El `flex-wrap` sigue siendo un arreglo válido, pero por el recorte, no por el scroll.
+**Una captura recortada no es una medición.**
+
+### 4. Afinado del validador
+
+`fuentes` y `advertencias` son listas de **texto plano**; la plantilla las pinta con `esc()`, así
+que un objeto salía como `[object Object]` sin que nadie se enterase. El validador solo decía
+«entrada vacía», que despista porque el problema es el tipo. Ahora es un ERROR que nombra el
+tipo y dice qué se espera.
+
+### 5. Herramientas de prueba (en el scratchpad, no en el repo)
+
+- `recorrido.py` — recorre los 11 pasos comprobando que cada comando devuelve el exit esperado.
+- `sonda_ancho.py` + `probar_anchos.ps1` — inyectan la sonda de desbordes y la corren a varios
+  anchos. Es lo único que da una respuesta fiable sobre el render estrecho.
+- `comprobar_nodos.py` — extrae **todos** los comandos `decision` de los `.md` del repo y los
+  valida con las funciones reales del script. 0 nodos u opciones inexistentes.
+
+### 6. Regresión final
+
+`py_compile` de los 6 scripts · `node --check` del JS de la plantilla · coherencia
+`pasos.json` ↔ Mermaid (39 nodos declarados = 39 definidos, sin huérfanos ni aristas rotas) ·
+11 pasos y 13 nodos de decisión · recorrido completo con `verificar` en 0 · los reportes
+`html_4` y `html_5` del proyecto ecopack regenerados con la plantilla nueva y medidos sin
+desborde a 320 y 390 px (el `html_4` incluye tablas de persona con `min-width:640px`, que siguen
+conteniéndose en su propio contenedor con scroll).
 
 ## Hecho el 21/08/2026
 

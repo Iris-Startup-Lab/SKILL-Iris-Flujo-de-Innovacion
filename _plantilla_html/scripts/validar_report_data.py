@@ -162,7 +162,15 @@ def validar(data, exigir_flujo=True):
                 h.append(Hallazgo("ERROR", campo, "debe ser una lista de textos"))
             else:
                 for i, s in enumerate(val):
-                    if not _texto(s):
+                    if isinstance(s, (dict, list)):
+                        # La plantilla las pinta con `esc(s)`: un objeto saldría como
+                        # «[object Object]» sin que nadie se enterase. Decir «vacía»
+                        # despistaba, porque el problema es el tipo, no la falta de texto.
+                        h.append(Hallazgo(
+                            "ERROR", f"{campo}[{i}]",
+                            f"es un {type(s).__name__}, y aquí van textos planos: "
+                            f"escribe la frase completa en una sola cadena"))
+                    elif not _texto(s):
                         h.append(Hallazgo("WARN", f"{campo}[{i}]", "entrada vacía"))
 
     # ----------------------------------------------------------------- flujo

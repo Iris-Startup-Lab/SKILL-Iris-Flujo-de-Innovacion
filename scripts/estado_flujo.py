@@ -229,6 +229,26 @@ def opciones_declaradas(nodo, estado, pasos, paso_id):
     return valores or None
 
 
+def origen_sin_responder(nodo, estado, paso_id):
+    """Si el catálogo del nodo sale de OTRO nodo que aún no se respondió, devuelve su nombre.
+
+    `opciones_desde: "Ambición estratégica.palancas"` significa que las opciones válidas
+    dependen de una decisión previa. Registrar ese nodo antes es elegir una palanca sin
+    saber de qué ambición: no hay catálogo contra el que comprobar nada, y aceptarlo
+    en silencio es justo el agujero por el que se cuela una opción inventada.
+
+    Un `opciones_desde` sin punto («las ideas generadas en este paso») no depende de
+    ningún nodo: ahí el texto libre es lo correcto y esto devuelve None.
+    """
+    origen = str(nodo.get("opciones_desde") or "")
+    if "." not in origen:
+        return None
+    nodo_origen = origen.split(".", 1)[0]
+    if decision_registrada(estado, paso_id, nodo_origen) is None:
+        return nodo_origen
+    return None
+
+
 def nodo_aplica(nodo, estado, paso_id):
     """¿Hay que preguntar este nodo en este proyecto?
 
@@ -631,6 +651,39 @@ def cmd_decision(args):
             f"`mostrar --paso {args.paso}`."
         )
 
+    # Un nodo condicional no se responde hasta saber si aplica. Registrarlo antes deja
+    # en el histórico una decisión de un nodo que quizá el usuario nunca debió ver.
+    if nodo and isinstance(nodo.get("solo_si"), dict):
+        aplica, _ = nodo_aplica(nodo, estado, args.paso)
+        if not aplica and not args.forzar:
+            cond = nodo["solo_si"]
+            fuente = cond.get("nodo", "")
+            previa = next((d for d in estado.get("decisiones", [])
+                           if _norm(d.get("nodo")) == _norm(fuente)), None)
+            requisito = (f"= «{cond['opcion']}»" if cond.get("opcion")
+                         else f"incluya «{cond.get('incluye')}»")
+            if previa is None:
+                motivo = (f"«{fuente}» todavía no se ha registrado, así que no se sabe si "
+                          f"este nodo aplica.\n  Pregunta «{fuente}» primero")
+            else:
+                motivo = (f"este nodo solo aplica si «{fuente}» {requisito}, y quedó "
+                          f"registrado como «{previa.get('opcion')}».\n"
+                          f"  No hay que preguntárselo al usuario")
+            raise ReglaDelFlujo(
+                f"«{nombre_nodo}» es una decisión condicional: {motivo}."
+            )
+
+    # Un nodo cuyo catálogo depende de otro no se puede responder antes que él.
+    pendiente = origen_sin_responder(nodo, estado, args.paso) if nodo else None
+    if pendiente and not args.forzar:
+        raise ReglaDelFlujo(
+            f"«{nombre_nodo}» no se puede responder todavía: sus opciones salen de "
+            f"«{pendiente}», que sigue sin registrar.\n"
+            f"  Pregunta «{pendiente}» primero; después «{nombre_nodo}» ya tendrá "
+            f"opciones concretas que ofrecer al usuario.\n"
+            f"  El orden de los nodos en `pasos.json` es el orden en que se preguntan."
+        )
+
     catalogo = opciones_declaradas(nodo, estado, pasos, args.paso) if nodo else None
     canonicas, fuera = [], []
     for elegida in elegidas:
@@ -690,7 +743,10 @@ def cmd_decision(args):
     }
     if fuera:
         registro["fuera_de_catalogo"] = fuera
-        registro["propuesta_agente"] = True
+        # `propuesta_agente` solo si el nodo las admite. Si no, es una opción fuera del
+        # catálogo: las dos cosas quedan registradas, pero no son lo mismo y el reporte
+        # no debe presentar como propuesta legítima algo que el flujo no contemplaba.
+        registro["propuesta_agente"] = bool(propuestas_ok)
 
     estado["decisiones"] = [
         d
@@ -943,10 +999,13 @@ def cmd_mostrar(args):
         aplica, comprobable = nodo_aplica(dec, estado, paso_id)
         registrada = decision_registrada(estado, paso_id, dec["nodo"])
 
+        espera = origen_sin_responder(dec, estado, paso_id)
         if registrada is not None:
             marca = "RESPONDIDA → «" + registrada.get("opcion", "") + "»"
         elif not aplica:
             marca = "no aplica por ahora (depende de otra decisión)"
+        elif espera:
+            marca = f"PENDIENTE — pregunta «{espera}» primero: de ahí salen sus opciones"
         else:
             marca = "PENDIENTE — hay que preguntarla antes de cerrar el paso"
         print(f"- {dec['nodo']} ({dec['tipo']}) · {marca}")
@@ -1145,11 +1204,67 @@ def cmd_verificar(args):
                 f"«{dec.get('nodo')}» no es un nodo de pasos.json — el flujo la ignora"
             )
         if dec.get("fuera_de_catalogo"):
+            que = ("propuesta del agente" if dec.get("propuesta_agente")
+                   else "opción fuera del catálogo")
             hallazgos.append(
                 f"paso {definicion.get('orden')} ({dec['paso']}): «{dec.get('nodo')}» "
-                f"se registró con una opción fuera del catálogo "
-                f"({', '.join(dec['fuera_de_catalogo'])}) — debe estar declarada en el reporte"
+                f"se registró con una {que} ({', '.join(dec['fuera_de_catalogo'])}) — "
+                f"debe estar declarada en `advertencias` del reporte"
             )
+            continue
+
+        # Una respuesta puede quedar obsoleta sin que nadie la toque: si el nodo del que
+        # salían sus opciones se cambió después, la palanca elegida ya no pertenece a la
+        # ambición vigente. Nada lo detectaría, porque en su momento fue válida.
+        nodo = buscar_nodo(definicion, dec.get("nodo"))
+
+        # Decisión registrada en un nodo que no aplica: se le preguntó al usuario algo
+        # que su recorrido no incluía, o la condición cambió después.
+        if nodo and isinstance(nodo.get("solo_si"), dict):
+            aplica, _ = nodo_aplica(nodo, estado, dec["paso"])
+            if not aplica:
+                cond = nodo["solo_si"]
+                hallazgos.append(
+                    f"paso {definicion.get('orden')} ({dec['paso']}): «{dec['nodo']}» está "
+                    f"registrada pero no aplica — depende de «{cond.get('nodo')}», que quedó "
+                    f"con otro valor. O se preguntó de más, o la condición cambió después"
+                )
+                continue
+
+        if nodo and "." in str(nodo.get("opciones_desde") or ""):
+            fuente = str(nodo["opciones_desde"]).split(".", 1)[0]
+            origen = decision_registrada(estado, dec["paso"], fuente)
+            etiqueta = f"paso {definicion.get('orden')} ({dec['paso']}): «{dec['nodo']}»"
+
+            # Se responde antes que el nodo del que salen sus opciones: la respuesta no
+            # se eligió de ningún catálogo.
+            if origen is None:
+                hallazgos.append(
+                    f"{etiqueta} está respondida pero «{fuente}», de donde salen sus "
+                    f"opciones, no. La respuesta no salió de ningún catálogo"
+                )
+            # Registrada ANTES que su fuente: en su momento fue válida, pero la decisión
+            # de la que dependía cambió después. Nada más lo detectaría.
+            elif dec.get("registrado", "") < origen.get("registrado", ""):
+                hallazgos.append(
+                    f"{etiqueta} se registró ANTES que «{fuente}», que cambió después: "
+                    f"la opción elegida pertenecía a otro valor. Hay que volver a preguntarla"
+                )
+            else:
+                catalogo = opciones_declaradas(nodo, estado, pasos, dec["paso"])
+                if catalogo is None:
+                    hallazgos.append(
+                        f"{etiqueta} no se puede comprobar: «{fuente}» se resolvió con una "
+                        f"opción fuera del catálogo, así que no declara opciones para este nodo"
+                    )
+                else:
+                    huerfanas = [o for o in _elegidas(dec)
+                                 if not any(_norm(c) == _norm(o) for c in catalogo)]
+                    if huerfanas:
+                        hallazgos.append(
+                            f"{etiqueta} → {', '.join(huerfanas)} no está entre las opciones "
+                            f"que ofrece «{fuente}» con su valor actual"
+                        )
 
     print(f"# Verificación del flujo — {estado.get('proyecto','(sin nombre)')}")
     cerrados = sum(1 for p in estado["pasos"] if p["estado"] == "completado")
@@ -1277,8 +1392,15 @@ def render_state_md(estado, pasos, estado_path=None):
             if d.get("fuera_de_catalogo"):
                 # Se anota en la vista humana porque es lo único del histórico que no
                 # sale de `pasos.json`: quien lea el estado tiene que poder distinguirlo.
-                linea += (" — _propuesta fuera del catálogo original: "
-                          + ", ".join(d["fuera_de_catalogo"]) + "_")
+                # Y se distingue una propuesta legítima (el nodo las admite) de una
+                # opción que el flujo no contemplaba.
+                que = ("propuesta del agente" if d.get("propuesta_agente")
+                       else "FUERA del catálogo del flujo")
+                # Si todo lo elegido está fuera del catálogo, enumerarlo detrás de la
+                # opción es repetir lo mismo dos veces.
+                fuera = d["fuera_de_catalogo"]
+                detalle = "" if len(fuera) == len(_elegidas(d)) else ": " + ", ".join(fuera)
+                linea += f" — _{que}{detalle}_"
             L.append(linea)
     else:
         L.append("_(ninguna registrada todavía)_")

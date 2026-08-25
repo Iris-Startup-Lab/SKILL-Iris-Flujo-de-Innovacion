@@ -739,3 +739,36 @@ Al correr cualquiera de los tres ejemplos anteriores, verifica los siguientes pu
    - Los archivos `.html` resultantes se abren directamente en el navegador y contienen el riel de navegación interactivo de 11 pasos, la paleta corporativa IRIS (morado y dorado) y el logo oficial embebido en base64 sin enlaces rotos.
 4. **Integridad de Decisiones:**
    - Los nodos de decisión no permiten opciones inventadas; deben coincidir de forma estricta con las opciones estipuladas en [pasos.json](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/pasos.json).
+   - Esto **ya no depende de la buena voluntad del agente**: lo comprueba el script. Un nodo o una opción que no estén en `pasos.json`, dos opciones en un nodo de elección única, o menos opciones que el `minimo` de un nodo múltiple, se rechazan con **exit 2** y el mensaje lista lo que era válido.
+5. **Barreras del flujo (lo que hay que intentar romper a propósito):**
+
+   | Intento | Qué debe pasar |
+   | --- | --- |
+   | `completar` un paso sin registrar sus decisiones | exit 2, nombrando los nodos que faltan |
+   | Registrar «Apalancamiento» antes de «Ambición estratégica» | exit 2: sus opciones salen del nodo anterior |
+   | Elegir una palanca de otra ambición | exit 2, con las palancas válidas listadas |
+   | Registrar «Entrega de la landing page» sin haber elegido *Simple Landing Page* | exit 2: es una decisión condicional que todavía no aplica |
+   | Proponer una ambición nueva sin `--forzar` | exit 2, avisando de que ese nodo sí admite propuestas |
+   | La misma con `--forzar` | se registra y sale marcada «propuesta del agente» en `STATE.md` y en el HTML |
+   | Inventar una opción en cualquier otro nodo, con `--forzar` | se registra marcada «FUERA del catálogo» |
+
+   Ninguna de estas debería saltar en un recorrido bien hecho. Si salta un aviso donde no
+   tocaba, el umbral está mal puesto y hay que anotarlo: no es culpa de quien prueba.
+6. **Auditoría final del recorrido:**
+
+   ```bash
+   python scripts/estado_flujo.py verificar --estado <carpeta>/flujo_estado.json
+   ```
+
+   Debe devolver **exit 0 y «sin hallazgos»** en un recorrido completo bien hecho. Devuelve 2 con
+   la lista cuando hay huecos: pasos cerrados sin decisión, sin resumen, sin datos o sin entrega;
+   omisiones sin motivo; predecesores o decisiones saltados con `--forzar`; opciones fuera del
+   catálogo; y decisiones que quedaron obsoletas porque el nodo del que dependían cambió después.
+7. **Render en pantalla estrecha:**
+   - Abre un reporte y estrecha la ventana hasta ~320 px: el texto **no** debe quedar cortado por
+     la derecha ni aparecer scroll horizontal en la página. El riel de los 11 pasos sí tiene su
+     propio scroll horizontal, y eso es correcto.
+   - Ojo con el método: una captura de pantalla recortada **no** es una medición. Chrome headless
+     en Windows no baja de ~485 px de viewport, así que una captura pedida a 390 px es un recorte
+     de un render de 485 y parece un desborde que no existe. Para medirlo de verdad hay que
+     comparar `document.body.scrollWidth` contra el ancho objetivo.

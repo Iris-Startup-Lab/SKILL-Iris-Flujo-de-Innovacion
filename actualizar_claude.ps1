@@ -26,7 +26,6 @@ try {
     [System.IO.File]::Copy($src, $dest, $true)
     $srcInfo = Get-Item -LiteralPath $src
     $destInfo = Get-Item -LiteralPath $dest
-    x|
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host " Sincronizacion de AGENTS.md -> CLAUDE.md exitosa" -ForegroundColor Green
     Write-Host "============================================================" -ForegroundColor Cyan

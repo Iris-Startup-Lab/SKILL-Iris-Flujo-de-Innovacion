@@ -27,7 +27,12 @@
   /* ---------- Header ---------- */
   header.site{background:linear-gradient(135deg,var(--purple-900) 0%,var(--purple-700) 62%,#4A2F7A 100%);color:#fff;padding:28px clamp(20px,4vw,56px) 34px;position:relative;overflow:hidden;overflow:clip}
   header.site::after{content:"";position:absolute;top:-140px;right:-140px;width:420px;height:420px;background:radial-gradient(circle,rgba(232,185,62,.16),transparent 65%);pointer-events:none}
-  .header-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;position:relative;z-index:1}
+  /* `flex-wrap` importa por el `overflow:clip` del header: sin envolver, en una pantalla
+     estrecha el logo + la etiqueta de la skill + el distintivo de datos simulados + el
+     botón no caben en una línea y los últimos quedan RECORTADOS, no desbordados — se
+     pierden sin dejar rastro. Al envolver, bajan a una segunda línea y siguen visibles.
+     (No causaba scroll horizontal de la página: eso lo impide el propio `clip`.) */
+  .header-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;position:relative;z-index:1}
   .logo-chip{background:#fff;border-radius:12px;padding:8px 14px;box-shadow:var(--shadow-md);display:inline-flex;align-items:center}
   .logo-chip img{height:52px;width:auto;display:block}
   .badge-skill{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:8px 16px;border-radius:999px}
@@ -122,7 +127,10 @@
   .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 14px;border-bottom:2px solid var(--purple-200);padding-bottom:8px}
   .section-head h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700}
   .section-head .meta{font-size:.78rem;color:var(--ink-soft)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:14px}
+  /* `min(295px,100%)` y no `295px`: en una pantalla de 320 px el track mínimo era más
+     ancho que el espacio disponible y las tarjetas sobresalían 14 px, dejando toda la
+     página con scroll horizontal. Medido con la sonda de anchos, no supuesto. */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(295px,100%),1fr));gap:14px}
   .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:.18s}
   .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--purple-200)}
   .card.expanded{border-color:var(--purple-600);box-shadow:var(--shadow-md)}
@@ -220,7 +228,7 @@
   /* ---------- Decisiones ---------- */
   .decisiones{padding:10px clamp(20px,4vw,56px) 44px;max-width:1280px;margin:0 auto}
   .decisiones h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;border-bottom:2px solid var(--purple-200);padding-bottom:8px;margin-bottom:14px}
-  .dec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:14px}
+  .dec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(295px,100%),1fr));gap:14px}
   .dec{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px}
   .dec h4{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:700;margin-bottom:6px}
   .dec p{font-size:.85rem;color:var(--ink-soft)}
@@ -528,9 +536,15 @@ window.REPORT_DATA = __REPORT_DATA__;
     body.appendChild(caja('Decisiones tomadas', decs.length
       ? decs.map(d => {
           const fuera = (d.fuera_de_catalogo||[]).filter(Boolean);
+          const que = d.propuesta_agente
+            ? 'propuesta del agente' : 'fuera del catálogo del flujo';
+          // Si TODO lo elegido está fuera del catálogo, repetirlo detrás de la opción
+          // sería decir dos veces lo mismo. Solo se enumera cuando parte de las
+          // opciones sí eran oficiales y hay que señalar cuál no lo era.
+          const todas = fuera.length && fuera.length === (d.opciones||[d.opcion]).length;
           const marca = fuera.length
-            ? ' <em title="Opción propuesta por el agente: no forma parte del catálogo '
-              + 'original del flujo">(propuesta del agente: '+esc(fuera.join(', '))+')</em>'
+            ? ' <em title="Esta opción no forma parte del catálogo original del flujo">('
+              + que + (todas ? '' : ': '+esc(fuera.join(', '))) + ')</em>'
             : '';
           return '<li><span class="id">'+esc(pasoLbl(d.paso))+'</span><span><span class="k">'
             + esc(d.nodo)+'</span> → '+esc(d.opcion)+marca+'</span></li>';
