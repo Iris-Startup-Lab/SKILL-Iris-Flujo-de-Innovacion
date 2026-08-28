@@ -20,7 +20,7 @@ Cuando ejecutes comandos de Python o scripts dentro de este proyecto, activa sie
 conda activate skills_env
 ```
 
-Python del entorno: **3.12**. Paquetes disponibles: `pandas`, `numpy`, `scipy`, `bs4` (beautifulsoup4), `pytrends`, `python-pptx`, `openpyxl`, `tiktoken` (solo para la medición de tokens; `scripts/medir_tokens.py` cae a `÷4` si no está).
+Python del entorno: **3.12**. Paquetes disponibles: `pandas`, `numpy`, `scipy`, `bs4` (beautifulsoup4), `pytrends`, `python-pptx`, `openpyxl`, `tiktoken` (solo para la medición de tokens; `scripts/medir_tokens.py` cae a `÷4` si no está), `plotly` (solo para la gráfica de barras de `medir_tokens.py --grafica`; si no está, el script avisa y sigue sin gráfica).
 
 ## 3. Estructura del repositorio
 
@@ -309,7 +309,7 @@ El tono de los textos debe ser:
 | ¿Dónde veo ejemplos de diseño? | `sub-skills_sample_outputs/` |
 | ¿Cuál es el prompt original de una skill? | `Documentos_prompts_base_md/<fase>/<archivo>.md` |
 | ¿Cómo valido scripts? | Activar `skills_env` y `python -m py_compile <script>` |
-| ¿Cuánto cuesta el recorrido en tokens y en dinero? | `python scripts/medir_tokens.py [--proyecto <dir>] [--modelo "<modelo>"]`; precios en `scripts/precios_modelos.json` y `--precios` |
+| ¿Cuánto cuesta el recorrido en tokens y en dinero? | `python scripts/medir_tokens.py [--proyecto <dir>] [--modelo "<modelo>"] [--grafica <ruta.html>]`; precios en `scripts/precios_modelos.json` y `--precios` |
 | ¿Cómo navegar entre los reportes de un proyecto? | `python scripts/generar_indice.py --estado <dir>/flujo_estado.json` → `index.html` (abrir en navegador) |
 | ¿Cómo sincronizar reglas con Claude Code/Desktop? | `.\actualizar_claude.ps1` (o `./actualizar_claude.sh`) genera `CLAUDE.md` a demanda |
 

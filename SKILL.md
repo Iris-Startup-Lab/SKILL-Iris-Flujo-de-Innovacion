@@ -324,6 +324,9 @@ Anuncia el cierre por el nombre del paso y su posición, no por el nombre del ar
 Entrega el HTML y **pregunta antes de arrancar el siguiente paso**. Cerrar un paso no autoriza
 el siguiente: el usuario decide cuánto recorrido quiere hacer hoy.
 
+Si el paso recién cerrado es el **último** (Prototipado y Validación), no hay «siguiente» que
+ofrecer: en vez de esta pregunta, ve directo a «¿Qué hacer al final de todo el flujo?».
+
 - **Seguir** — vuelve al punto 1 con el paso siguiente.
 - **Parar aquí por ahora** — ve a «Pausar el proyecto».
 - **Saltarse el siguiente** — ve a «Omitir un paso».
@@ -543,8 +546,22 @@ la interpretación, no las cifras. **Y explícale al usuario qué quiere decir c
 
 ## ¿Qué hacer al final de todo el flujo?
 
-Tras cerrar el último paso (Prototipado y Validación), **comprueba que el recorrido respetó el
-flujo**, genera el **tablero de navegación** y mide el coste:
+Al cerrar el último paso (Prototipado y Validación) el proceso **no termina solo**: hay un cierre
+que el agente tiene que hacer. Primero pregunta, luego ejecuta.
+
+**Primero, pregunta — no lo des por hecho.** Ofrece el cierre en opciones:
+
+> ¿Cierro el proyecto? Puedo hacer: **(a)** auditar que el recorrido respetó el flujo,
+> **(b)** generar el tablero de navegación (`index.html`) y **(c)** medir el consumo de tokens y
+> su costo, con la gráfica de barras por paso. ¿Las tres, o prefieres solo alguna?
+
+- La auditoría (a) y el tablero (b) van siempre que haya algo cerrado, salvo que el usuario diga
+  que no los quiere.
+- La medición (c) se hace **solo si la pide**. Si la quiere, pregúntale el modelo que usó la
+  sesión (si no lo sabe, mira `README.md` § «Modelo recomendado por herramienta»). Si no la
+  quiere, no la vuelques.
+
+**Segundo, ejecuta** lo que aceptó:
 
 ```bash
 python scripts/estado_flujo.py verificar --estado <dir>/flujo_estado.json
@@ -582,6 +599,7 @@ El medidor es `scripts/medir_tokens.py` y se ejecuta desde la raíz del reposito
 ```bash
 python scripts/medir_tokens.py                              # E1 + E3, ruta completa y mínima
 python scripts/medir_tokens.py --proyecto <dir>             # añade E2/E4/S1 del proyecto real
+python scripts/medir_tokens.py --proyecto <dir> --grafica <dir>/tokens_por_paso.html
 ```
 
 `<dir>` es la carpeta que guarda `flujo_estado.json` y los `reporte_*.json` del
@@ -591,11 +609,16 @@ proyecto (por ejemplo `output/<proyecto>`; si el estado vive en la raíz del rep
 ### Estimar el costo en dinero
 
 Con el modelo que se usó en la sesión (pregúntaselo al usuario si no lo sabes), añade
-`--modelo` para obtener el costo por paso y el total:
+`--modelo` para obtener el costo por paso y el total, y `--grafica` para la gráfica de barras
+(tokens por paso, ordenada de mayor a menor — el paso que más consume es la primera barra):
 
 ```bash
-python scripts/medir_tokens.py --proyecto <dir> --modelo "Claude Sonnet"
+python scripts/medir_tokens.py --proyecto <dir> --modelo "Claude Sonnet" \
+    --grafica <dir>/tokens_por_paso.html
 ```
+
+`--grafica` escribe una gráfica Plotly autocontenida (se abre en el navegador, con conexión).
+Sin `--modelo` también funciona: da el conteo y la gráfica, solo sin el costo en dinero.
 
 Los precios viven en `scripts/precios_modelos.json` (fuente oficial + fecha). Para
 verlos o refrescarlos:
@@ -619,7 +642,9 @@ confirmar el precio en su fuente y no des una cifra.
 No vuelques la tabla cruda. Resume en dos o tres líneas lo que importa: cuánto costó de
 entrada y de salida el recorrido, el costo estimado en dinero (si hay precio) y la
 diferencia entre ruta completa y mínima. Traduce la notación interna (di «tokens de
-entrada» y «tokens de salida», no «E1» o «S1»).
+entrada» y «tokens de salida», no «E1» o «S1»). Si generaste la gráfica, di dónde está
+(`tokens_por_paso.html`) y qué destaca: el paso que más tokens consume (la primera barra,
+en dorado) y el que menos.
 
 Si además estás en Claude Code (Cowork), ejecuta la skill nativa `/explain-usage` para
 el uso real de la sesión; en un chat simple esa funcionalidad no existe y se omite.

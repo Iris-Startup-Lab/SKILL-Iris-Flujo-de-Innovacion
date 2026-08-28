@@ -245,6 +245,13 @@ JSON). Confirma que `÷4` sirve solo de orden de magnitud, no para presupuestar.
 `E1 + E3`: completa **142,867** · mínima **70,620** (~49%). El ahorro de la mínima está casi
 todo en E3: son 6 sub-skills que no se cargan.
 
+> **Corrección (28/08/2026):** esta cifra de E3 media **caracteres, no tokens**. El script
+> sumaba el índice equivocado de la fila (`chars` en vez de `tok`), así que E3 salía ~4× inflado.
+> Corregido (`por_id[...][4]`): con el contenido actual, E3 completa ≈ **39,231 tok** y mínima ≈
+> **16,989 tok** (`E1 + E3` completa ≈ 57,130). E1, E2, E4 y S1 nunca estuvieron afectados. Los
+> **ratios** de herencia (declarados vs cadena) y el ahorro de la ruta mínima no cambian, porque
+> son proporciones, no magnitudes.
+
 ### Herencia (E4) — recorrido real de 6 pasos (`output/huertos-urbanos-mx/`)
 
 El único coste que crece. Tres formas de leerla, medidas sobre los `reporte.json` reales:

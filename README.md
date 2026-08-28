@@ -154,6 +154,25 @@ hay nada y 2 con la lista si lo hay, así que sirve como comprobación automáti
 | **OpenCode** | DeepSeek V4 Flash | — |
 | **ChatGPT Desktop** | GPT Terra | — |
 
+### Medir el consumo de tokens
+
+Al terminar el flujo, puedes medir cuántos tokens costó cada paso y el recorrido completo, y
+verlo en una **gráfica de barras** (Plotly) ordenada de mayor a menor —el paso que más consume
+es la primera barra, en dorado—:
+
+```bash
+python scripts/medir_tokens.py --proyecto <carpeta> --grafica <carpeta>/tokens_por_paso.html
+```
+
+- Con `--proyecto` se miden los tokens reales del proyecto (briefing, herencia y salida de cada
+  paso), no solo los archivos de las sub-skills.
+- Con `--modelo "Claude Sonnet"` se añade el costo estimado en dinero por paso y el total
+  (precios en `scripts/precios_modelos.json`).
+- `--grafica` escribe una gráfica Plotly autocontenida que se abre en el navegador (requiere
+  conexión). Sin `plotly` instalado, el script lo avisa y sigue sin la gráfica.
+
+El detalle del plan y de los niveles de medición está en `PLAN_MEDICION_TOKENS.md`.
+
 ### Sincronización para Claude Code / Claude Desktop (CLAUDE.md)
 
 Para utilizar este repositorio en entornos como **Claude Code** o **Claude Desktop** que leen `CLAUDE.md`, las directrices del proyecto residen en `AGENTS.md` y se clonan a demanda para mantener la compatibilidad sin inconsistencias.

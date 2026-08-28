@@ -180,6 +180,37 @@ renderiza dentro del historial y 0 errores de JS. Regenerados los 11 HTML de
 **Documentado:** `README.md` § «Navegar entre los reportes», `SKILL.md` § final del flujo,
 `AGENTS.md` §5 y `_plantilla_html/README.md` (bloque `flujo.historial` + flag `--sin-historial`).
 
+### Medición de tokens al cierre + gráfica de barras (Plotly)
+
+El cierre del flujo no estaba ocurriendo: al terminar el paso 11, el agente **no preguntaba** por
+la medición ni daba el resumen de tokens/costo. Se arregló por los dos lados:
+
+- **Orquestación (`SKILL.md`):** el cierre ahora es explícito. «Preguntar si sigue» (paso 8 del
+  ciclo) apunta a «¿Qué hacer al final de todo el flujo?» cuando se cierra el último paso, y esa
+  sección arranca **preguntando al usuario** (auditar + `index.html` + medir con gráfica) en vez
+  de asumirlo. La medición se corre solo si la pide; el resumen en 2–3 líneas se da siempre, y si
+  hay gráfica se dice dónde está y qué destaca.
+- **`scripts/medir_tokens.py`:** nuevo flag `--grafica [ruta]` (default `tokens_por_paso.html`)
+  que escribe una **gráfica de barras Plotly** con los tokens por paso (entrada + salida),
+  ordenada de mayor a menor —el paso que más consume es la primera barra, en dorado; el resto en
+  morado IRIS—. `--grafica` funciona con o sin `--modelo` y con o sin `--proyecto` (sin proyecto
+  solo hay E3).
+- **Bug corregido (caracteres vs tokens):** el script sumaba el índice equivocado de E3 (`chars`
+  en vez de `tok`) en el total, en el CSV y en el costo: E3 salía ~4× inflado. Corregido a
+  `por_id[...][4]`. E1, E2, E4 y S1 nunca estuvieron afectados. Esto invalida la cifra de E3 de
+  `PLAN_MEDICION_TOKENS.md` § Resultados (completa 124,968 era chars; correcta ≈ 39,231 con el
+  contenido actual) — se dejó una nota de corrección ahí.
+- **`plotly` instalado** en `skills_env` (7.0.0) y declarado en `AGENTS.md` §2; el script avisa
+  y sigue sin gráfica si no está.
+
+**Verificado:** `medir_tokens.py --proyecto output/ecopack-circular --grafica ... --modelo
+"DeepSeek V4 Flash"` genera `tokens_por_paso.html` (~9 KB) con 11 barras ordenadas (Paso 4 —
+Persona Profile es la primera, 25,862 tok; la última, Paso 1, 10,603). Render comprobado en
+Chrome headless: 11 barras, 11 etiquetas de valor, 0 errores de JS.
+
+**Documentado:** `README.md` § «Medir el consumo de tokens», `AGENTS.md` (§2 y §8) y `SKILL.md`
+§ «¿Qué hacer al final de todo el flujo?».
+
 ## Hecho el 24/08/2026
 
 Sesión de pruebas del pendiente 0. Se ejecutó todo lo que estaba escrito sin probar, y

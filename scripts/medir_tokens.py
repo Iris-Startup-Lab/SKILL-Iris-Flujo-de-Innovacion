@@ -18,6 +18,7 @@ Uso:
     python scripts/medir_tokens.py --decisiones decisiones.json    # skills elegidas
     python scripts/medir_tokens.py --csv medicion.csv       # salida CSV
     python scripts/medir_tokens.py --modelo "Claude Sonnet" # + costo estimado por paso
+    python scripts/medir_tokens.py --grafica                # + gráfica de barras (Plotly)
     python scripts/medir_tokens.py --precios                # catálogo de precios
     python scripts/medir_tokens.py --precios --actualizar   # comprobar fuentes online
 """
@@ -341,7 +342,7 @@ def imprimir_precios(precios, actualizar=False):
 
 def costo_por_paso(pid, por_id, filas_proyecto, precio_entrada, precio_salida):
     """Tokens de entrada (E2+E3+E4) y salida (S1) de un paso, y su costo en USD."""
-    e3 = por_id[pid][3]
+    e3 = por_id[pid][4]
     e2 = e4 = s1 = 0
     if filas_proyecto:
         pf = next((f for f in filas_proyecto if f["id"] == pid), None)
@@ -386,6 +387,86 @@ def imprimir_costo(modelo, pasos, por_id, filas_proyecto, total_e1, nombres_ruta
         print(f"  {'= TOTAL con arranque':<38} ${total_ruta + e1_costo:>8.4f}\n")
 
 
+def filas_grafica(pasos, por_id, filas_proyecto, ids):
+    """Totales por paso para la gráfica de barras: tokens de entrada y de salida.
+
+    `ids` es el conjunto de pasos que entran (según `--ruta`). Sin `--proyecto` solo
+    hay E3 (las sub-skills); la salida (S1) y el resto de entrada (E2/E4) requieren
+    el proyecto real. Devuelve la lista con {id, titulo, orden, entrada, salida}.
+    """
+    filas = []
+    for p in pasos["pasos"]:
+        if p["id"] not in ids:
+            continue
+        e3 = por_id[p["id"]][4]
+        e2 = e4 = s1 = 0
+        if filas_proyecto:
+            pf = next((f for f in filas_proyecto if f["id"] == p["id"]), None)
+            if pf:
+                e2 = pf.get("E2") or 0
+                e4 = pf.get("E4_declarados") or 0
+                s1 = pf.get("S1") or 0
+        filas.append({
+            "id": p["id"],
+            "titulo": p["titulo"],
+            "orden": p["orden"],
+            "entrada": e2 + e3 + e4,
+            "salida": s1,
+        })
+    return filas
+
+
+def generar_grafica(filas, salida, titulo=None):
+    """Gráfica de barras horizontal (Plotly) de tokens por paso, ordenada de mayor a
+    menor: el paso que más tokens consume es la primera barra (arriba). La escribe
+    como HTML autocontenido (Plotly desde CDN) y devuelve la ruta, o None si falta
+    `plotly` en el entorno."""
+    try:
+        import plotly.graph_objects as go
+    except ImportError:
+        print("AVISO: no se pudo generar la gráfica: falta `plotly`.")
+        print("  Instálalo con: pip install plotly")
+        return None
+
+    filas = sorted(filas, key=lambda f: f["entrada"] + f["salida"], reverse=True)
+    labels = [f"Paso {f['orden']} — {f['titulo']}" for f in filas]
+    totales = [f["entrada"] + f["salida"] for f in filas]
+    maximo = max(totales) if totales else 0
+    # La barra que más consume se destaca en dorado; el resto, en morado IRIS.
+    colores = ["#D4A73E" if t == maximo else "#5A3A8C" for t in totales]
+    hover = [
+        (f"entrada {f['entrada']:,} tok · salida {f['salida']:,} tok")
+        if f["salida"] else f"entrada {f['entrada']:,} tok (sin proyecto no se mide la salida)"
+        for f in filas
+    ]
+
+    fig = go.Figure(go.Bar(
+        y=labels,
+        x=totales,
+        orientation="h",
+        marker_color=colores,
+        text=[f"{t:,} tok" for t in totales],
+        textposition="outside",
+        cliponaxis=False,
+        customdata=hover,
+        hovertemplate="%{y}<br>%{customdata}<extra></extra>",
+    ))
+    fig.update_layout(
+        title={"text": titulo or "Tokens por paso del flujo", "x": 0.05},
+        xaxis_title="Tokens (entrada + salida)",
+        height=max(360, 48 * len(filas) + 120),
+        margin={"l": 10, "r": 120, "t": 72, "b": 44},
+        font={"family": "Sora, Inter, sans-serif", "color": "#2A2433"},
+        plot_bgcolor="#F7F3FC",
+        paper_bgcolor="#F7F3FC",
+        xaxis={"gridcolor": "#E4DCEF"},
+        showlegend=False,
+    )
+    fig.update_yaxes(autorange="reversed")  # la mayor queda arriba
+    fig.write_html(salida, include_plotlyjs="cdn")
+    return salida
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Nivel 1 de medición de tokens del flujo IRIS.")
     ap.add_argument("--proyecto", default=None, help="Directorio del proyecto (flujo_estado.json + reporte_*.json)")
@@ -396,6 +477,11 @@ def main(argv=None):
     ap.add_argument("--modelo", default=None,
                     help="Modelo para estimar el costo (ej. 'Claude Sonnet', 'DeepSeek V4 Flash'). "
                          "Si no está en el catálogo se avisa y no se estima.")
+    ap.add_argument("--grafica", nargs="?", const="tokens_por_paso.html", default=None,
+                    metavar="RUTA",
+                    help="Genera una gráfica de barras (Plotly) con los tokens por paso, "
+                         "ordenada de mayor a menor. Ruta de salida opcional "
+                         "(default: tokens_por_paso.html).")
     ap.add_argument("--precios", action="store_true",
                     help="Lista el catálogo de precios (scripts/precios_modelos.json) y sale.")
     ap.add_argument("--actualizar", action="store_true",
@@ -433,7 +519,7 @@ def main(argv=None):
     filas_csv = []
     for ruta in nombres_ruta:
         pasos_ruta = rutas(pasos, ruta)
-        e3_ruta = sum(por_id[p["id"]][3] for p in pasos_ruta)
+        e3_ruta = sum(por_id[p["id"]][4] for p in pasos_ruta)
         print(f"## E3 — Sub-skills ({ruta}: {len(pasos_ruta)} pasos)")
         for p in pasos_ruta:
             pid, titulo, skills, chars, tok, detalle = por_id[p["id"]]
@@ -459,7 +545,7 @@ def main(argv=None):
                 "paso": pid,
                 "titulo": f[1],
                 "E1": total_e1,
-                "E3": f[3],
+                "E3": f[4],
             }
             if filas_proyecto:
                 pf = next(x for x in filas_proyecto if x["id"] == pid)
@@ -494,6 +580,25 @@ def main(argv=None):
         else:
             imprimir_costo(modelo, pasos, por_id, filas_proyecto, total_e1, nombres_ruta,
                            aviso=advertencia_caducidad(precios))
+
+    if args.grafica:
+        ids_grafica = set()
+        for ruta in nombres_ruta:
+            ids_grafica.update(p["id"] for p in rutas(pasos, ruta))
+        filas_g = filas_grafica(pasos, por_id, filas_proyecto, ids_grafica)
+        nombre_proy = None
+        if args.proyecto:
+            try:
+                est = json.loads(
+                    (Path(args.proyecto) / "flujo_estado.json").read_text(encoding="utf-8")
+                )
+                nombre_proy = est.get("proyecto")
+            except (OSError, json.JSONDecodeError):
+                pass
+        titulo = "Tokens por paso" + (f" — {nombre_proy}" if nombre_proy else " del flujo")
+        salida = generar_grafica(filas_g, args.grafica, titulo=titulo)
+        if salida:
+            print(f"\nGráfica de tokens por paso escrita en: {salida}")
     return 0
 
 
