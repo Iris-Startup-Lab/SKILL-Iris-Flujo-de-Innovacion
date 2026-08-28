@@ -150,7 +150,7 @@ python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -
 ```
 
 - `_plantilla_html/templates/reporte_base.html` — plantilla interactiva genérica (riel del flujo, bloque de contexto, header con logo, KPIs, buscador/filtros/orden, tarjetas expandibles, Chart.js, decisiones, modal).
-- `_plantilla_html/scripts/generar_html.py` — inyecta el contexto del flujo, **valida el esquema** (falla si falta algo) y **embebe el logo oficial en base64**.
+- `_plantilla_html/scripts/generar_html.py` — inyecta el contexto del flujo, **valida el esquema** (falla si falta algo), **embebe el logo oficial en base64** y **embebe los reportes de los pasos previos** (`flujo.historial`) para que cada HTML sea navegable por sí mismo dentro de Claude/Codex (desactivable con `--sin-historial`).
 - `_plantilla_html/scripts/validar_report_data.py` — validador del esquema `REPORT_DATA`, usable por separado.
 - `_plantilla_html/scripts/logo_base64.py` — helper PNG → data URI (también copiado en `senales-debiles/scripts/`).
 - Esquema `REPORT_DATA`, bloque `flujo` y guía de uso: `_plantilla_html/README.md`.

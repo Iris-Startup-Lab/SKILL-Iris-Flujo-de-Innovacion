@@ -87,15 +87,20 @@ Ideación, `html_11` Prototipado y Validación) piden confirmación extra antes 
 
 Los 11 HTML llevan **el contexto completo del flujo**: un riel de progreso con los 11
 pasos (completados, omitidos, el actual), las decisiones tomadas hasta ese punto, el
-resumen de cada paso previo con enlace a su reporte, y los pasos omitidos con su impacto.
-Ningún reporte se lee fuera de contexto.
+resumen de cada paso previo con enlace a su contenido —embebido en el propio HTML—, y
+los pasos omitidos con su impacto. Ningún reporte se lee fuera de contexto.
 
 ### Navegar entre los reportes
 
-Los reportes se enlazan entre sí con **enlaces relativos** (el riel del flujo apunta a
-`html_1.html`, `html_4.html`, …). Esos enlaces funcionan cuando los 11 HTML están en la
-**misma carpeta** y se abren con el **navegador** (no desde la vista previa embebida de un
-gestor, que no tiene sistema de archivos).
+Cada reporte es **incremental y navegable por sí mismo**: `html_N` embebe dentro del mismo
+archivo los reportes de los pasos `1…N−1`, y el riel del flujo salta a ellos con un ancla
+interna (`#paso-N`). Así se navega hacia atrás también desde la **vista previa embebida** de
+un gestor (Claude/Codex), que no tiene sistema de archivos para abrir a un HTML vecino.
+
+Lo que aún no existe —los pasos **futuros**— queda como **enlace relativo** a
+`html_4.html`, `html_11.html`, …, y funciona cuando los 11 HTML están en la **misma
+carpeta** y se abren con el **navegador**. El embebido se desactiva con `--sin-historial`
+(archivos más pequeños, sin navegación interna).
 
 Para una puerta de entrada única, genera el tablero de navegación:
 

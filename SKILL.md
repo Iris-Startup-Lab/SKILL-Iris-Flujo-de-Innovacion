@@ -564,12 +564,18 @@ python scripts/generar_indice.py --estado <dir>/flujo_estado.json   # index.html
 ```
 
 `index.html` es la puerta de entrada al proyecto: lista los 11 pasos con su estado y un
-botón «Abrir reporte» por cada paso completado. Los enlaces entre HTML son **relativos**,
-así que funcionan cuando todos los reportes viven en la misma carpeta y se abren con el
-navegador (doble clic en `index.html`). En la vista previa embebida de un gestor no hay
-sistema de archivos y un HTML no puede abrir a su vecino: por eso la navegación se hace
-desde `index.html` en el navegador, no desde el preview. El riel de cada reporte también
-enlaza a los pasos previos (en pestaña nueva).
+botón «Abrir reporte» por cada paso completado. Sus enlaces son **relativos**, así que
+funcionan cuando todos los reportes viven en la misma carpeta y se abren con el navegador
+(doble clic en `index.html`).
+
+Cada reporte, además, es **incremental y navegable por sí mismo**: el generador embebe los
+reportes de los pasos anteriores dentro del mismo HTML (bloque `flujo.historial`), así que
+el riel salta a la sección embebida con un ancla interna (`#paso-N`) en vez de abrir a su
+vecino. Esto funciona también en la vista previa embebida de un gestor (Claude/Codex),
+donde no hay sistema de archivos y un HTML no puede abrir a otro archivo. Solo lo que aún
+**no existe** (los pasos futuros) queda como enlace relativo, y se navega con `index.html`
+en el navegador. Para desactivar el embebido (archivos más pequeños) existe
+`--sin-historial`.
 
 El medidor es `scripts/medir_tokens.py` y se ejecuta desde la raíz del repositorio:
 

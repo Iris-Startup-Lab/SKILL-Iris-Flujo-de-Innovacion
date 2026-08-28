@@ -37,6 +37,7 @@ sistema y las gráficas muestran un aviso «no disponible sin conexión» en vez
 | `--estado <ruta>` | `flujo_estado.json` (default: raíz del repo) |
 | `--pasos <ruta>` | `pasos.json` (default: raíz del repo) |
 | `--sin-flujo` | Skill suelta: no exige contexto del flujo |
+| `--sin-historial` | No embeder los reportes de los pasos previos (HTML más pequeño, sin navegación interna entre pasos) |
 | `--no-strict` | Salta la validación. **No lo uses para esquivar un error**: corrige el JSON |
 
 Códigos de salida: `0` ok · `1` error de archivo/uso · `2` esquema o flujo inválido.
@@ -181,7 +182,18 @@ documenta aquí solo para saber qué se renderiza:
 Se renderiza como:
 
 - **Riel de progreso** en el header: los 11 pasos con color por estado (completado en
-  verde, omitido tachado, el actual en dorado). Los pasos con `archivo` son enlaces.
+  verde, omitido tachado, el actual en dorado). Los pasos ya completados **anteriores** al
+  actual son anclas internas (`#paso-N`) que saltan a la sección embebida del historial
+  (ver abajo); si un paso completado no se pudo embeder (`--sin-historial`), conserva el
+  enlace al archivo vecino.
+- **Historial embebido** (bloque `flujo.historial`, lo rellena el generador): los reportes
+  completos de los pasos anteriores viajan dentro del mismo HTML, uno por paso, en
+  secciones plegables. Es lo que hace que el reporte sea navegable por sí mismo dentro de
+  la pasarela de Claude / Codex, donde no hay sistema de archivos para abrir `html_2.html`.
+  Cada entrada: `{id, titulo, etapa, orden, resumen, veredicto, reporte}` con el
+  `reporte.json` completo. El tamaño crece de forma incremental (html_N embebe los N−1
+  pasos previos), pero es despreciable: cada `reporte.json` pesa ~3–5 KB frente a los
+  ~122 KB del logo embebido. Se desactiva con `--sin-historial`.
 - **«De dónde viene este reporte»**: el proyecto, las decisiones tomadas, lo que ya se
   sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
   quien lea el reporte sepa qué le falta.
@@ -283,6 +295,8 @@ archivo a mano, verifica que contenga:
 3. El logo embebido como `data:image/png;base64,...`.
 4. El riel del flujo con el paso actual en dorado y los omitidos tachados.
 5. Los controles interactivos y la(s) gráfica(s) si `chart` está definido.
+6. (Si hay pasos previos) la sección «Pasos anteriores del flujo» con un `<details>`
+   por paso completado, y el riel enlazando a `#paso-N` en vez de a archivos vecinos.
 
 Para validar solo el JSON, sin generar HTML:
 

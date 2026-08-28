@@ -1,4 +1,4 @@
-# To-do — 24/08/2026
+# To-do — 28/08/2026
 
 **La revisión del flujo general está escrita y probada.** El pendiente 0 se cerró el 24/08:
 las 8 pruebas del script, el recorrido completo de los 11 pasos y la medición del render.
@@ -20,6 +20,10 @@ Lo único que sigue siendo tuyo: regenerar `CLAUDE.md` con `.\actualizar_claude.
 
 **Nuevo el 21/08** Script .ps1 y .sh para poder generar una copia de AGENTS.md  para convertirla a CLAUDE.md a demanda del usuario
 Esto solo lo actualiza la persona no el agente
+
+**Nuevo el 28/08** los HTML ahora son **incrementales**: cada `html_N` embebe los reportes de los
+pasos anteriores y el riel navega dentro del propio documento (`#paso-N`), no entre archivos.
+Detalle en «Hecho el 28/08/2026».
 
 **Nuevo el 19/08:** las 5 skills simuladoras de entrevistas se integraron al flujo como
 **sub-sub-skills** (`<skill>/simulador/SIMULADOR.md`), con estadística calculada por script y la
@@ -137,6 +141,44 @@ estorban**. Están calibrados a ojo (n<20, Q+R>10%, saturación en 2 sesiones si
 uso real es lo único que dice si el umbral es el correcto.
 
 ---
+
+## Hecho el 28/08/2026
+
+### HTML incremental — cada reporte navegable por sí mismo (dentro de Claude/Codex)
+
+Problema real: dentro de la pasarela (vista previa embebida de Claude/Codex) no hay sistema de
+archivos, así que un `html_N` no puede abrir a su vecino (`html_2.html` desde `html_3`). La
+navegación hacia atrás quedaba rota.
+
+**Solución:** cada `html_N` **embebe los reportes de los pasos anteriores** dentro del propio
+documento (`flujo.historial`), y el riel salta a ellos con un ancla interna (`#paso-N`) en vez de
+abrir un archivo. `html_2` contiene a `html_1`; `html_11` contiene del `html_1` al `html_10`.
+
+- **Generador** (`_plantilla_html/scripts/generar_html.py`): `anexar_historial()` lee los
+  `reporte.json` de los predecesores (desde `flujo_estado.json` → `ruta[].datos`, resueltos
+  relativos a la carpeta del estado) y los mete en `flujo.historial`. Solo los pasos
+  **anteriores** al actual (el `ruta` viene en orden; se corta al llegar al paso en curso). Si un
+  predecesor no tiene `datos` o su archivo no se lee, se omite sin romper. Flag `--sin-historial`
+  para no embeder.
+- **Plantilla** (`reporte_base.html`): sección «Pasos anteriores del flujo» —un `<details>`
+  plegable por paso con su contenido completo (KPIs, tarjetas expandibles, gráficas, decisiones,
+  notas)—; el riel enlaza a `#paso-N` y abre el detalle al clic; el bloque «Lo que ya sabemos»
+  del contexto también enlaza a `#paso-N`, y ya **no lista pasos futuros** (antes, en un proyecto
+  con los 11 cerrados, «Lo que ya sabemos» de `html_1` listaba `html_2…11`).
+- **Costo en tokens: cero.** El HTML lo escribe el script, no el modelo; el embebido lo hace
+  `generar_html.py` leyendo `reporte.json` ya existentes. El archivo crece de forma incremental
+  pero es despreciable: cada `reporte.json` pesa ~3–5 KB frente a ~122 KB del logo embebido
+  (html_1: 210 KB → html_11: 268 KB).
+- Lo que aún no existe (pasos **futuros**) sigue como enlace relativo, navegable con
+  `index.html` en el navegador.
+
+**Verificado** con Chrome headless: html_N embebe N−1 pasos (0 en html_1, 10 en html_11), el riel
+y «Lo que ya sabemos» enlazan a `#paso-N`, el clic abre el detalle, la gráfica scatter del PSF se
+renderiza dentro del historial y 0 errores de JS. Regenerados los 11 HTML de
+`output/ecopack-circular/`.
+
+**Documentado:** `README.md` § «Navegar entre los reportes», `SKILL.md` § final del flujo,
+`AGENTS.md` §5 y `_plantilla_html/README.md` (bloque `flujo.historial` + flag `--sin-historial`).
 
 ## Hecho el 24/08/2026
 

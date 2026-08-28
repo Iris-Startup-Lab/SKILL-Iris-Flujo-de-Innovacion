@@ -6,7 +6,7 @@ un JSON estructurado (window.REPORT_DATA) y la plantilla base. Embebe el logo
 oficial en base64 para que el HTML resultante sea 100% autocontenido (funciona
 sin conexión y sin archivos externos, salvo Google Fonts y Chart.js por CDN).
 
-Hace tres cosas antes de escribir el archivo:
+Hace cuatro cosas antes de escribir el archivo:
 
 1. **Inyecta el contexto del flujo.** Con `--estado` y `--paso`, construye el
    bloque `flujo` desde `flujo_estado.json` + `pasos.json`. Así cada HTML sabe
@@ -17,6 +17,9 @@ Hace tres cosas antes de escribir el archivo:
 3. **Embebe el logo** en base64: el oficial del repositorio si está, y si no la
    copia `assets/logo.png` de la sub-skill, para que una skill extraída del repo
    siga generando su HTML por su cuenta (ver `resolver_logo`).
+4. **Embebe los reportes de los pasos previos** en `flujo.historial`, para que el
+   HTML sea navegable por sí mismo (el riel salta a `#paso-N` dentro del mismo
+   documento, sin abrir archivos vecinos). Se desactiva con `--sin-historial`.
 
 Uso desde la raíz del repositorio:
 
@@ -112,6 +115,60 @@ def inyectar_flujo(data, paso, estado_path=None, pasos_path=None):
     return data
 
 
+def anexar_historial(data, estado_path):
+    """Embebe los reportes de los pasos ya completados en `data["flujo"]["historial"]`.
+
+    Así cada HTML es navegable por sí mismo: el riel enlaza a una sección interna
+    (no a un archivo vecino) y los pasos previos se leen completos dentro del mismo
+    documento. Es lo que hace que el reporte funcione dentro de la pasarela de
+    Claude / Codex, donde no hay sistema de archivos para abrir `html_2.html`.
+
+    Cada entrada: {id, titulo, etapa, orden, resumen, veredicto, reporte}, donde
+    `reporte` es el `reporte.json` completo de ese paso (meta, kpis, secciones,
+    decisiones, advertencias, fuentes). Si un predecesor no tiene `datos` o su
+    archivo no se puede leer, se omite en silencio: el historial es una mejora de
+    navegación, no un requisito, y un hueco no debe romper el reporte.
+    """
+    flujo = data.get("flujo") or {}
+    ruta = flujo.get("ruta") or []
+    actual_id = flujo.get("paso_actual")
+    base = Path(estado_path).resolve().parent if estado_path else Path.cwd()
+    historial = []
+    for i, p in enumerate(ruta):
+        # Solo los pasos ANTERIORES al actual (el `ruta` viene en orden de flujo):
+        # al llegar al paso que se está renderizando, no hay más predecesores.
+        if p.get("id") == actual_id:
+            break
+        if p.get("estado") != "completado":
+            continue
+        datos = p.get("datos")
+        if not datos:
+            continue
+        rp = Path(datos)
+        if not rp.is_absolute():
+            rp = base / rp
+        rp = rp.resolve()
+        if not rp.is_file():
+            continue
+        try:
+            reporte = json.loads(rp.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            continue
+        historial.append({
+            "id": p.get("id"),
+            "titulo": p.get("titulo"),
+            "etapa": p.get("etapa"),
+            "orden": i + 1,
+            "resumen": p.get("resumen"),
+            "veredicto": p.get("veredicto"),
+            "reporte": reporte,
+        })
+    if historial:
+        flujo["historial"] = historial
+        data["flujo"] = flujo
+    return data
+
+
 def generar(
     data_path,
     output_path,
@@ -121,6 +178,7 @@ def generar(
     estado_path=None,
     pasos_path=None,
     sin_flujo=False,
+    sin_historial=False,
     validar_esquema=True,
 ):
     with open(data_path, encoding="utf-8") as f:
@@ -128,6 +186,8 @@ def generar(
 
     if paso:
         data = inyectar_flujo(data, paso, estado_path, pasos_path)
+        if not sin_historial:
+            data = anexar_historial(data, estado_path or ESTADO_DEFAULT)
     elif not sin_flujo and "flujo" not in data:
         print(
             "Error: falta el contexto del flujo.\n"
@@ -197,6 +257,10 @@ def main(argv=None):
                         help="pasos.json (default: raíz del repo)")
     parser.add_argument("--sin-flujo", action="store_true",
                         help="Skill suelta: no exigir contexto del flujo")
+    parser.add_argument("--sin-historial", action="store_true",
+                        help="No embeder los reportes de los pasos previos en el HTML "
+                             "(resulta en archivos más pequeños, pero sin navegación "
+                             "interna entre pasos)")
     parser.add_argument("--no-strict", action="store_true",
                         help="Omitir la validación del esquema (no recomendado)")
     args = parser.parse_args(argv)
@@ -211,6 +275,7 @@ def main(argv=None):
             estado_path=args.estado,
             pasos_path=args.pasos,
             sin_flujo=args.sin_flujo,
+            sin_historial=args.sin_historial,
             validar_esquema=not args.no_strict,
         )
     except FileNotFoundError as exc:

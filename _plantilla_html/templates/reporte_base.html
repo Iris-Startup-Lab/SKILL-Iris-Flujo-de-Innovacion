@@ -241,6 +241,26 @@
   .notas li{font-size:.83rem;color:var(--ink-soft);padding:3px 0 3px 18px;position:relative}
   .notas li::before{content:"•";color:var(--gold-500);position:absolute;left:0;font-weight:700}
 
+  /* ---------- Historial: pasos anteriores embebidos en el mismo HTML ---------- */
+  /* Hace que el reporte sea navegable por sí mismo (sin enlaces a archivos vecinos):
+     cada paso ya completado viaja dentro del documento y el riel salta a él. */
+  .historial{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
+  .historial > h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;border-bottom:2px solid var(--purple-200);padding-bottom:8px;margin-bottom:14px}
+  .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:14px;overflow:hidden}
+  .paso-previo > summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Sora',sans-serif;font-weight:700}
+  .paso-previo > summary::-webkit-details-marker{display:none}
+  .paso-previo > summary .n{width:26px;height:26px;border-radius:999px;background:var(--purple-700);color:#fff;display:grid;place-items:center;font-size:.78rem;flex:0 0 auto}
+  .paso-previo > summary .t{font-size:1.02rem}
+  .paso-previo > summary .v{margin-left:auto}
+  .paso-previo > summary .r{font-family:'Inter',sans-serif;font-weight:400;font-size:.82rem;color:var(--ink-soft);flex:1 1 100%}
+  .paso-previo > summary::after{content:"⌃";color:var(--purple-600);transform:rotate(180deg);transition:.2s;flex:0 0 auto}
+  .paso-previo[open] > summary::after{transform:none}
+  .paso-previo-body{padding:0 18px 18px;border-top:1px dashed var(--line)}
+  .paso-previo-body .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 6px}
+  .paso-previo-body .kpi{background:var(--purple-050);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .paso-previo-body .kpi .num{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:800}
+  .paso-previo-body .kpi .lbl{font-size:.7rem;color:var(--ink-soft)}
+
   /* ---------- Footer ---------- */
   footer.site{background:var(--purple-900);color:#C9BCE0;padding:34px clamp(20px,4vw,56px) 22px}
   .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:22px;max-width:1280px;margin:0 auto}
@@ -346,6 +366,11 @@
   </div>
 </section>
 
+<section class="historial" id="historial-wrap" style="display:none">
+  <h2>Pasos anteriores del flujo</h2>
+  <div id="historial"></div>
+</section>
+
 <section class="siguiente" id="siguiente-wrap" style="display:none">
   <div class="siguiente-box">
     <span class="lbl">Siguiente paso</span>
@@ -449,18 +474,28 @@ window.REPORT_DATA = __REPORT_DATA__;
     flujo.ruta.forEach((p, i) => { indice[p.id] = i + 1; });
     const pasoLbl = id => (indice[id] ? ('Paso ' + indice[id]) : id);
 
-    // Riel de progreso
+    // Riel de progreso. Un paso ya completado se navega dentro del propio
+    // documento (ancla #paso-N hacia la sección embebida del historial): así
+    // funciona también en una vista previa embebida (Claude/Codex), sin sistema
+    // de archivos. Si un paso completado no llegó a embeberse (--sin-historial),
+    // se conserva el enlace relativo al archivo vecino.
+    const histIds = new Set((flujo.historial||[]).map(h => h.id));
+    const histOrden = {};
+    (flujo.historial||[]).forEach(h => { histOrden[h.id] = h.orden; });
     flujo.ruta.forEach((p,i) => {
       const esActual = p.estado==='actual' || p.id===actualId;
       const clase = esActual ? 'actual' : (p.estado||'pendiente');
-      const enlazable = !esActual && p.archivo;
-      const el = document.createElement(enlazable ? 'a' : 'span');
+      const enlazableHist = !esActual && p.estado==='completado' && histIds.has(p.id);
+      const enlazableArchivo = !esActual && !enlazableHist && p.archivo;
+      const el = document.createElement((enlazableHist||enlazableArchivo) ? 'a' : 'span');
       el.className = 'flow-step ' + clase;
-      if(enlazable){
-        // Enlace relativo: funciona cuando los 11 HTML se abren desde la misma
-        // carpeta en el navegador. En una vista previa embebida (sin sistema de
-        // archivos) no puede resolver el archivo vecino; por eso se abre en una
-        // pestaña nueva, para no perder el reporte actual.
+      if(enlazableHist){
+        el.href = '#paso-' + (i+1);
+        el.addEventListener('click', () => {
+          const det = document.getElementById('paso-' + (i+1));
+          if(det) det.open = true;
+        });
+      } else if(enlazableArchivo){
         el.href = p.archivo;
         el.target = '_blank';
         el.rel = 'noopener';
@@ -552,11 +587,14 @@ window.REPORT_DATA = __REPORT_DATA__;
       : null, 'Sin decisiones registradas todavía.'));
 
     // 3. Lo que ya sabemos (pasos completados previos)
-    const hechos = flujo.ruta.filter(p => p.estado==='completado' && p.id!==actualId);
+    const indiceActual = indice[actualId] || 0;
+    const hechos = flujo.ruta.filter(p => p.estado==='completado' && indice[p.id] < indiceActual);
     body.appendChild(caja('Lo que ya sabemos', hechos.length
       ? hechos.map(p => {
-          const t = p.archivo
-            ? '<a href="'+esc(p.archivo)+'">'+esc(p.titulo)+'</a>' : '<span class="k">'+esc(p.titulo)+'</span>';
+          const t = histOrden[p.id]
+            ? '<a href="#paso-'+histOrden[p.id]+'">'+esc(p.titulo)+'</a>'
+            : (p.archivo ? '<a href="'+esc(p.archivo)+'">'+esc(p.titulo)+'</a>'
+                         : '<span class="k">'+esc(p.titulo)+'</span>');
           const r = p.resumen ? ' — '+esc(p.resumen) : '';
           const v = p.veredicto ? ' <span class="muted">('+esc(p.veredicto)+')</span>' : '';
           return '<li><span class="id">'+esc(pasoLbl(p.id))+'</span><span>'+t+r+v+'</span></li>';
@@ -634,6 +672,82 @@ window.REPORT_DATA = __REPORT_DATA__;
       ? '<ul class="ctx-list">'+htmlItems+'</ul>'
       : '<p class="ctx-empty">'+esc(vacio||'—')+'</p>');
     return d;
+  }
+
+  // ---------- Historial: pasos anteriores embebidos (navegación interna) ----------
+  // Cada paso ya completado se renderiza completo —KPIs, secciones con tarjetas
+  // expandibles, decisiones y notas— dentro de un <details> plegable. El riel salta
+  // a él con #paso-N. Así un solo HTML contiene todo el recorrido hasta ese paso y
+  // no depende de abrir archivos vecinos (que la pasarela de Claude/Codex no puede).
+  function renderHistorial(){
+    const wrap = document.getElementById('historial-wrap');
+    const cont = document.getElementById('historial');
+    const hist = (flujo && flujo.historial) || [];
+    if(!hist.length){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    cont.innerHTML='';
+
+    hist.forEach(h => {
+      const rep = h.reporte || {};
+      const det = document.createElement('details');
+      det.className = 'paso-previo';
+      det.id = 'paso-' + (h.orden || '');
+      const v = h.veredicto && VERDICT_LABEL[h.veredicto]
+        ? '<span class="verdict '+esc(h.veredicto)+' v" title="'+esc(verdictTitle(h.veredicto))+'">'+esc(VERDICT_LABEL[h.veredicto])+'</span>' : '';
+      let s = '<summary><span class="n">'+(h.orden||'')+'</span><span class="t">'+esc(h.titulo||h.id)+'</span>'+v;
+      if(h.resumen) s += '<span class="r">'+esc(h.resumen)+'</span>';
+      s += '</summary>';
+      det.innerHTML = s;
+
+      const body = document.createElement('div');
+      body.className = 'paso-previo-body';
+
+      const kpis = rep.kpis || [];
+      if(kpis.length){
+        body.innerHTML += '<div class="kpis">'+kpis.map(k =>
+          '<div class="kpi"><div class="num">'+esc(k.value)+'</div><div class="lbl">'+esc(k.label)+'</div></div>').join('')+'</div>';
+      }
+
+      (rep.secciones||[]).forEach(sec => {
+        const head = document.createElement('div'); head.className='section-head';
+        const n = (sec.items||[]).length;
+        head.innerHTML = '<h2>'+esc(sec.titulo||'Sección')+'</h2><span class="meta">'+n+' item'+(n===1?'':'s')+'</span>';
+        body.appendChild(head);
+        const grid = document.createElement('div'); grid.className='grid';
+        (sec.items||[]).forEach(it => grid.appendChild(buildCard(it)));
+        body.appendChild(grid);
+      });
+
+      const decs = rep.decisiones || [];
+      if(decs.length){
+        const dh = document.createElement('div'); dh.className='section-head';
+        dh.innerHTML = '<h2>Decisiones</h2>';
+        body.appendChild(dh);
+        const dg = document.createElement('div'); dg.className='dec-grid';
+        decs.forEach(d => {
+          const el = document.createElement('div'); el.className='dec';
+          let vh = d.veredicto && VERDICT_LABEL[d.veredicto]
+            ? '<span class="verdict '+esc(d.veredicto)+'" title="'+esc(verdictTitle(d.veredicto))+'">'+esc(VERDICT_LABEL[d.veredicto])+'</span>' : '';
+          el.innerHTML = vh + '<h4>'+esc(d.titulo)+'</h4><p>'+esc(d.texto)+'</p>';
+          dg.appendChild(el);
+        });
+        body.appendChild(dg);
+      }
+
+      const sim = (flujo && flujo.simulacion && flujo.simulacion.activo);
+      const adv = (rep.advertencias||[]).slice(), src = rep.fuentes||[];
+      if(sim && !adv.some(a => /simulad/i.test(String(a)))) adv.unshift(NOTA_SIM_DEFECTO);
+      if(adv.length || src.length){
+        const nb = document.createElement('div'); nb.className='notas';
+        nb.style.cssText = 'padding:0;max-width:none;margin:0';
+        if(adv.length) nb.innerHTML += '<div class="box"><h3>Advertencias y limitaciones</h3><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul></div>';
+        if(src.length) nb.innerHTML += '<div class="box"><h3>Fuentes</h3><ul>'+src.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+        body.appendChild(nb);
+      }
+
+      det.appendChild(body);
+      cont.appendChild(det);
+    });
   }
 
   // Build unified item list
@@ -1181,6 +1295,7 @@ window.REPORT_DATA = __REPORT_DATA__;
   }
 
   renderFlujo();
+  renderHistorial();
   renderResumen();
   renderSiguiente();
   render();
