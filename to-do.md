@@ -164,16 +164,61 @@ Dos cosas encadenadas, para otro día:
 2. **Revisar los ejemplos reales — hecho el 01/09/2026.** Los dos proyectos de `real_examples/`
    se evaluaron contra `pasos.json` y las notas de los usuarios: veredicto en «Evaluación de los
    ejemplos reales — 01/09/2026». **El proceso resiste el uso real** (11 pasos, decisiones del
-   usuario, marcas de supuestos, HTML con contexto); salieron **8 fricciones**, ninguna es bug
-   del script — son huecos de diseño en la orquestación y en tres sub-skills
+   usuario, marcas de supuestos, HTML con contexto); salieron **9 fricciones** (6 reportadas por
+   los usuarios y 3 más detectadas en los HTML), ninguna es bug del script — son huecos de
+   diseño en la orquestación y en cuatro sub-skills
    (`entrevistas-empatia`/`discovery-survey` ingesta de material, `problem-solution-fit` orden,
-   `dimensionador-estrategico` justificación del score en el HTML) más el cierre del flujo (el
-   resumen ejecutivo no es parte del cierre estándar) y el PSF/Journey de perfiles no elegidos
-   que quedan huérfanos fuera del flujo. Cada fricción trae su idea de solución en la tabla de
-   esa sección.
+   `dimensionador-estrategico` justificación del score en el HTML, `online-ads` prompts de
+   imagen) más el cierre del flujo (el resumen ejecutivo no es parte del cierre estándar) y el
+   PSF/Journey de perfiles no elegidos que quedan huérfanos fuera del flujo. Cada fricción trae
+   su idea de solución en la tabla de esa sección.
 
    El orden de trabajo queda igual: la sub-skill de datos abiertos va primero porque es la pieza
-   que robustece; los arreglos de las fricciones 1–8 vienen después, ya con esa pieza puesta.
+   que robustece; los arreglos de las fricciones 1–9 vienen después, ya con esa pieza puesta.
+
+### 10. Evaluar los métodos estadísticos y construir los scripts que faltan
+
+**Evaluación hecha el 01/09/2026** — ver «Evaluación de los métodos estadísticos — 01/09/2026»
+más abajo. Veredicto: la estadística ya scripteada es correcta (muestras, Wilson, Kano, Berger,
+saturación, EDA de señales débiles, SSoT); lo que falta es convertir a cálculo determinista
+todo lo que hoy hace el LLM a mano:
+
+1. **`calcular_tam_sam_som.py`** — TAM/SAM/SOM con reducciones top-down y proyección 1/3/5 + CAGR
+   (`benchmark-mercado`, `dimensionador-estrategico`).
+2. **`calcular_modelo.py`** — unidad económica del Dimensionador (CLV, CAC, CLV:CAC, payback,
+   ROI, ARR) a partir de métricas unitarias. Hoy el `xlsx_generator.py` solo dibuja lo que ya
+   calculó el LLM.
+3. **`calcular_score.py`** — score /25 con justificación obligatoria por criterio y umbrales
+   PROTOTIPAR/VALIDAR/DESCARTAR (atiende también la fricción 4 del pendiente 9).
+4. **`analizar_resultados.py`** (o equivalente por skill) — k/n observados → IC de Wilson +
+   comparación contra umbral o control, para que los pasos de validación sepan leer sus propios
+   experimentos. Hoy solo `email-campaign` calcula el n requerido, y ninguno analiza el resultado.
+5. **Baseline/grupo control explícito** en las Testing Cards de validación (responde la nota de
+   `notas_humanas_…txt` de «no se tienen grupos control»).
+6. **Regla de explicación estadística accesible (obligatoria).** Cuando un script emita valores
+   estadísticos —`p`, `alpha`, intervalo de confianza, margen de error, `n` requerido,
+   coeficientes, etc.— el LLM debe **explicarlos con fórmulas fáciles de entender y en lenguaje
+   de usuario**, siempre que apliquen. La audiencia son usuarios de todo tipo, expertos y no
+   expertos: está prohibido soltar «p = 0.03» o «IC95 42–76%» sin decir en una frase qué
+   significan («la probabilidad de que esta diferencia sea puro azar es del 3%»; «de cada 100
+   repeticiones del estudio, en 95 el resultado caería en este rango»). La fórmula va en
+   versión «de libro» y en versión «en palabras», como ya hace la regla de los `*` de
+   `SKILL.md` § «Cómo nombrar las cosas ante el usuario».
+7. **Honestidad sobre fallas metodológicas y de muestra (obligatoria).** El LLM debe declarar
+   con total transparencia cuando encuentre fallas metodológicas o tamaños muestrales
+   insuficientes —aunque el script no lo advierta—: sesgos del instrumento, ausencia de grupo
+   control, `n` que no sostiene el porcentaje, comparaciones múltiples, muestras de conveniencia.
+   No maquillar un resultado débil ni enterrarlo en `advertencias`: decirlo en el resumen y en
+   la conversación, con el impacto que tiene sobre la decisión.
+8. **Gráficos: generar los scripts requeridos.** Si la explicación de un método necesita gráficos
+   (barras con IC, curvas de saturación, matriz Importancia × Satisfacción, distribuciones,
+   trayectorias TAM/SAM/SOM), hay que **escribir los scripts que los generen** —Chart.js, Plotly,
+   matplotlib— como parte del entregable, no dibujarlos a mano ni omitirlos. La regla de
+   integridad se aplica igual: los gráficos salen de datos calculados por script, nunca de una
+   aproximación visual del LLM.
+
+Decisión pendiente de diseño: si enriquecer `catalogo-patrones.md` de `business-model-navigator`
+con indicadores numéricos o al menos aplicar el orden de desempate por script.
 
 ---
 
@@ -381,6 +426,107 @@ de detalle que una herramienta de imagen necesita para producir algo publicable.
 | 7 | Marca de simulación global | Considerar un campo opcional por reporte (`meta.simulado` a nivel de sección/item) para que un paso con datos reales dentro de un proyecto simulado pueda declararlo sin apagar la marca global. Decisión de diseño para el usuario: ¿la marca es del proyecto o del paso? |
 | 8 | Orden de ideas del `html_9` | El `dimensionador` debe presentar las ideas **por score descendente** en el HTML (con el número original solo como tag), y la tabla resumen como tabla visible, no solo en `subtitulo`. |
 | 9 | Prompts de imagen genéricos | Ampliar `online-ads` para que el prompt de imagen sea una dirección de arte ejecutable: composición, iluminación, encuadre, estilo visual de referencia, paleta exacta, y qué evitar (texto, marcas de terceros). Incluir una variante de prompt por campaña y una nota de cuándo usar cada herramienta (Midjourney/DALL·E/Firefly). |
+
+---
+
+## Evaluación de los métodos estadísticos — 01/09/2026
+
+Evaluación de la base estadística del flujo: qué métodos se proponen, cuáles están ya
+implementados por script (y son correctos), y cuáles se dejan al LLM cuando deberían ser
+cálculo determinista. Parte del pendiente que quedó anotado en `notas_humanas_…txt`
+(«evaluar los métodos estadísticos y proponer otra arquitectura… por ejemplo no se tienen
+grupos control»).
+
+### 1. Lo que ya está bien resuelto (script existente y fórmula correcta)
+
+| Método | Script | Revisión |
+| --- | --- | --- |
+| Tamaño de muestra de encuesta (n, n_aj, envíos) | `discovery-survey/scripts/calcular_muestra.py` | Fórmulas correctas (Z²pq/e², ajuste finito, envíos). Tabla Z por proximidad: OK para 95/99. |
+| Significancia de tasas (una muestra y A/B) | `email-campaign/scripts/calcular_significancia.py` | `NormalDist` correcto; las dos fórmulas (una/dos muestras) son las estándar. |
+| Intervalo de Wilson, prueba z de dos proporciones, margen de error | simuladores (`simular_discovery`, `simular_kano`) | Implementaciones correctas y con avisos de n pequeña. |
+| Matriz Kano M/O/A/I/R/Q (25 celdas) | `encuesta-kano/scripts/clasificar_kano.py` + `simular_kano.py` | Matriz verificada; idéntica en los dos scripts. |
+| Coeficientes de Berger CS/DS, tasa Q+R | `simular_kano.py` | Fórmulas correctas; suprimidos cuando la base A/O/M/I es minoritaria. |
+| Curva de saturación cualitativa | `simular_entrevistas/aditl/expo` | Heurística correcta (2 sesiones sin novedad); criterio documentado. |
+| Score ponderado y ranking de ideas | `ideacion/scripts/evaluar_ideas.py` | Promedio ponderado correcto; los inputs (N/U/F) son juicio del agente y así se declaran. |
+| EDA de señales débiles (chi², Cramér's V, Cohen's d, Gini, Spearman, IQR, tasa base) | `senales-debiles/scripts/fase1_analisis.py` | Estadística correcta; p de chi² vía scipy (disponible). |
+| Verificación SSoT de cifras (fracciones a/b, sumas, tasa base) | `senales-debiles/scripts/verificar_numeros.py` | Invariante bien planteado: ninguna cifra del LLM sobrevive al gate. |
+| Pendiente de regresión lineal de Google Trends | `search-trend-analysis/scripts/google_trends.py` | Regresión simple correcta para la tendencia. |
+
+### 2. Métodos propuestos que hoy calcula el LLM y deberían ser script
+
+Estos violan la regla «si un script puede calcularlo, el script lo calcula»: son aritmética
+determinista sobre supuestos, y el LLM los hace a mano. Es la misma causa de la fricción 4
+(«de dónde sacó urgencia/diferenciación…») y de que el usuario de Divisas dudara de los
+números («todos los datos fueron supuestos»).
+
+| Método | Dónde | Qué falta |
+| --- | --- | --- |
+| **TAM/SAM/SOM con reducciones top-down y proyección 1/3/5 años + CAGR** | `benchmark-mercado` y `dimensionador-estrategico` | Un `calcular_tam_sam_som.py`: base de mercado + % de reducción (geografía/vertical/canal) + tasa de crecimiento → TAM/SAM/SOM a 1/3/5 y CAGR. El LLM solo escribe fuentes y narrativa. |
+| **Modelo financiero del Dimensionador** (CLV, CLV ajustado con cross-sell, CAC, CLV:CAC, payback, ROI, EBITDA, MRR/ARR, churn/NRR, punto de equilibrio) | `dimensionador-estrategico` (módulos 3–8 del AGENTE.md) | Un `calcular_modelo.py` que reciba métricas unitarias (ticket, frecuencia, vida, margen, CAC, cross-sell) y derive el resto. Hoy el `xlsx_generator.py` solo **dibuja** valores que ya calculó el LLM: no calcula nada. |
+| **Score de atractivo /25 y sus umbrales** (20-25 PROTOTIPAR · 13-19 VALIDAR · ≤12 DESCARTAR) | `dimensionador-estrategico` (módulo 9) | Un `calcular_score.py` que tome los 5 criterios (urgencia/diferenciación/escalabilidad/velocidad/fit) y agregue + aplique umbrales, **exigiendo justificación por criterio** (lo que reclama la fricción 4). El LLM propone los 5 puntajes con su porqué; el script suma, decide y verifica que ninguna justificación falte. |
+| **Muestra mínima de anuncios** (`Muestra ≈ (16·σ²)/d²`, ~400–500 impresiones/variante) | `online-ads` | Reusar `calcular_significancia.py` (o un script propio en la skill): que el n por variante salga del script, no de una fórmula suelta en el AGENTE.md. |
+| **Umbrales de conversión de los experimentos** (landing, feature-stub, popup, explainer) | `4.Prototipado/landing-page`, `5.Validacion/*` | Las Testing Cards fijan «≥ X% de conversión en N visitas» sin derivar N. Un script de **n requerido y de análisis posterior** (k/n observado + IC Wilson + comparación vs. umbral/control) serviría a las cinco skills de validación. Hoy solo `email-campaign` tiene el de n requerido, y ninguno analiza resultados después. |
+| **Indicadores del catálogo de Business Model Navigator** (Costo/Configuración/Ejecución/Fuerza de Evidencia 1-5) | `business-model-navigator` | El catálogo no trae esos números, así que el agente los estima (en los ejemplos reales se declara «estimación del analista»). Decidir: (a) enriquecer `catalogo-patrones.md` con indicadores, o (b) al menos que el script de ranking aplique el orden de desempate (evidencia > costo > configuración > ejecución) de forma determinista sobre los valores que se declaren. |
+
+### 3. Decisiones de diseño estadístico que proponer
+
+1. **Grupo control / baseline en los experimentos de validación.** Los pasos 11 comparan contra
+   un umbral de industria (`[REFERENCIA DE INDUSTRIA]`) o contra un objetivo declarado, pero no
+   contra un **control medido en el mismo experimento** (p. ej. la versión actual sin el cambio).
+   `calcular_significancia.py` ya tiene el modo dos muestras (A/B): la propuesta es que las
+   Testing Cards de landing/ads/feature-stub/email/explainer **incluyan siempre un baseline o
+   grupo control explícito**, o declaren por qué no es posible y que la lectura es exploratoria.
+   Esto responde la nota «no se tienen grupos control».
+2. **Análisis posterior compartido.** Un script común (p. ej. `scripts/analizar_resultados.py`
+   en `_plantilla_html` o por skill) que tome `k/n` observados + baseline y emita tasa con IC de
+   Wilson, prueba vs. umbral y, si hay dos brazos, prueba z de dos proporciones. Así el flujo no
+   solo **diseña** el experimento, sino que sabe **leerlo** cuando el usuario vuelve con datos.
+3. **Múltiples comparaciones.** Los simuladores prueban muchas proporciones a la vez y no
+   corrigen por comparaciones múltiples (el aviso del IC de Wilson es por-tema). Documentar que
+   con decenas de temas un ~5% de IC caerá por azar fuera — el propio `simular_discovery` ya
+   avisa que «pasa por azar de vez en cuando»; convertir ese comentario en advertencia estándar.
+4. **`calcular_muestra.py` menor:** el Z se aproxima por el nivel de confianza más cercano en
+   vez de interpolar. Irrelevante para 95/99; si se quiere exactitud para otros valores, usar
+   `NormalDist().inv_cdf` como ya hace `calcular_significancia.py`.
+
+### 4. Lo que se propone construir (resumen accionable)
+
+| Prioridad | Script / cambio | Skill(s) |
+| --- | --- | --- |
+| Alta | `calcular_tam_sam_som.py` (reducciones top-down + proyección 1/3/5 + CAGR) | `benchmark-mercado`, `dimensionador-estrategico` |
+| Alta | `calcular_modelo.py` (CLV/CAC/CLV:CAC/payback/ROI/ARR — unidad económica determinista) | `dimensionador-estrategico` |
+| Alta | `calcular_score.py` (/25 con justificación obligatoria por criterio y umbrales) | `dimensionador-estrategico` |
+| Media | n requerido + `analizar_resultados.py` (k/n → IC Wilson + prueba vs. baseline/control) | `landing-page`, `online-ads`, `feature-stub`, `popup-store`, `explainer-video`, `email-campaign` |
+| Media | Muestra mínima de anuncios vía script (sustituir la fórmula del AGENTE.md) | `online-ads` |
+| Media | Baseline/control explícito en las Testing Cards de validación | `5.Validacion/*`, `landing-page` |
+| Baja | Advertencia de comparaciones múltiples en simuladores; Z interpolado en `calcular_muestra.py` | simuladores, `discovery-survey` |
+| Decisión | Enriquecer `catalogo-patrones.md` con indicadores, o ranking determinista de BMN | `business-model-navigator` |
+
+**Nota de alcance:** ninguna de estas piezas existe todavía; esta sección es el diagnóstico y la
+propuesta. Implementarlas toca `AGENTE.md` + scripts de cada skill y, si se hace el
+`analizar_resultados.py` compartido, la regla de extraibilidad de `AGENTS.md` §4 (cada skill
+con su copia o script autocontenido, sin importar de otras skills).
+
+### 5. Regla transversal: explicar la estadística para cualquier lector, con honestidad y gráficos
+
+Vale para **todos** los métodos de arriba, nuevos y existentes, y se implementa junto con cada
+script (también está como punto 6–8 del pendiente 10):
+
+1. **Explicar, no soltar números.** Cada valor estadístico que emita un script (`p`, `alpha`,
+   IC, margen de error, `n` requerido, coeficientes) se presenta con su fórmula **en dos
+   versiones**: la de libro y la «en palabras», en lenguaje de usuario. Un «p = 0.03» nunca va
+   solo: va con «la probabilidad de que esta diferencia se deba al azar es del 3%». Un
+   «IC95 42–76%» va con «si repitiéramos el estudio 100 veces, en 95 el resultado caería en
+   este rango». La audiencia son usuarios de todo tipo: quien domina matemáticas y quien no.
+2. **Total honestidad metodológica.** Si el resultado tiene una falla metodológica o un tamaño
+   de muestra insuficiente —aunque el script no la advierta—, se declara sin maquillar: sesgos
+   del instrumento, ausencia de grupo control, `n` que no sostiene un porcentaje, muestras de
+   conveniencia, comparaciones múltiples. Se dice en el resumen y en la conversación, con su
+   impacto en la decisión, no solo enterrado en `advertencias`.
+3. **Gráficos cuando el método lo pida, generados por script.** Si la explicación necesita
+   gráfico (barras con IC, curva de saturación, matriz Importancia × Satisfacción, trayectoria
+   TAM/SAM/SOM, histograma), el script correspondiente lo genera —Chart.js, Plotly o
+   matplotlib— desde los datos calculados; el LLM nunca lo dibuja a mano ni lo omite.
 
 ---
 
