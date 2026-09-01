@@ -158,6 +158,15 @@ python _plantilla_html/scripts/generar_html.py --data reporte.json --sin-flujo -
 **Convención de rutas (obligatoria):** todos los comandos de este repo se ejecutan desde la
 raíz. No uses rutas relativas tipo `../../../` dentro de las sub-skills.
 
+**Navegación interna sin `<a href>` (obligatorio).** La pasarela de Claude Desktop sirve el
+reporte en un iframe propio e intercepta el clic de cualquier `<a href>`, incluido un ancla:
+`href="#paso-1"` abría el diálogo «Estás saliendo de Claude» con la URL del iframe en vez de
+saltar al paso previo. Dentro del documento se navega con `data-salto="N"` sobre un `<button>`
+y el manejador delegado de la plantilla; un enlace a otro archivo se dibuja solo cuando el
+reporte **no** está embebido (`window.self !== window.top`), porque dentro de la pasarela no
+hay disco que abrir. Detalle y motivo: `_plantilla_html/README.md` § «Navegación interna sin
+`<a href>`».
+
 **Rutas seguras (obligatorio).** Todo nombre de archivo y de carpeta usa **solo
 `[A-Za-z0-9._-]`**: sin acentos, sin espacios, sin `&`. Los gestores de habilidades rechazan el
 ZIP con `Zip file contains path with invalid characters` y no documentan qué aceptan, así que se

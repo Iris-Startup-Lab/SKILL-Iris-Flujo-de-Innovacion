@@ -1,6 +1,6 @@
 ---
 name: iris-flujo-de-innovacion
-description: "Orquesta el flujo completo de innovación IRIS (Investigación → Descubrimiento → Ideación → Prototipado → Validación). Guía paso por paso con human-in-the-loop, invoca las sub-skills especializadas por ruta y consolida sus resultados en 11 reportes HTML interactivos con el diseño corporativo IRIS. Cada reporte lleva el contexto completo del flujo y el usuario puede omitir los pasos que no necesite. Usar cuando el usuario quiera iniciar un proyecto de innovación, investigación de mercado, validación de una idea o producto, o ejecutar el proceso IRIS completo o una de sus fases."
+description: "Orquesta el flujo completo de innovación IRIS (IRIS Startup Lab, la división de innovación de Grupo Salinas) (Investigación → Descubrimiento → Ideación → Prototipado → Validación). Guía paso por paso con human-in-the-loop, invoca las sub-skills especializadas por ruta y consolida sus resultados en 11 reportes HTML interactivos con el diseño corporativo IRIS. Cada reporte lleva el contexto completo del flujo y el usuario puede omitir los pasos que no necesite. Usar cuando el usuario quiera iniciar un proyecto de innovación, investigación de mercado, validación de una idea o producto, o ejecutar el proceso IRIS completo o una de sus fases."
 version: 2.0
 author: "Skill Integradora: Fernando Dorantes Nieto  SubSkills: Integrantes de Iris Startup Lab"
 creacion_date: "2026-08-12"
@@ -587,12 +587,14 @@ funcionan cuando todos los reportes viven en la misma carpeta y se abren con el 
 
 Cada reporte, además, es **incremental y navegable por sí mismo**: el generador embebe los
 reportes de los pasos anteriores dentro del mismo HTML (bloque `flujo.historial`), así que
-el riel salta a la sección embebida con un ancla interna (`#paso-N`) en vez de abrir a su
-vecino. Esto funciona también en la vista previa embebida de un gestor (Claude/Codex),
-donde no hay sistema de archivos y un HTML no puede abrir a otro archivo. Solo lo que aún
-**no existe** (los pasos futuros) queda como enlace relativo, y se navega con `index.html`
-en el navegador. Para desactivar el embebido (archivos más pequeños) existe
-`--sin-historial`.
+el riel abre la sección embebida en vez de abrir a su vecino. Esto funciona también en la
+vista previa embebida de un gestor (Claude/Codex), donde no hay sistema de archivos y un
+HTML no puede abrir a otro archivo. El salto **no es un ancla `#paso-N`**: la pasarela de
+Claude Desktop intercepta el clic de cualquier enlace, así que va con un botón y un
+manejador propio (motivo en `_plantilla_html/README.md` § «Navegación interna sin
+`<a href>`»). Solo lo que aún **no existe** (los pasos futuros) queda como enlace relativo,
+y se navega con `index.html` en el navegador. Para desactivar el embebido (archivos más
+pequeños) existe `--sin-historial`.
 
 El medidor es `scripts/medir_tokens.py` y se ejecuta desde la raíz del repositorio:
 

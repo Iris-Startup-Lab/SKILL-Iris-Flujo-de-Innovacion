@@ -93,13 +93,19 @@ los pasos omitidos con su impacto. Ningún reporte se lee fuera de contexto.
 ### Navegar entre los reportes
 
 Cada reporte es **incremental y navegable por sí mismo**: `html_N` embebe dentro del mismo
-archivo los reportes de los pasos `1…N−1`, y el riel del flujo salta a ellos con un ancla
-interna (`#paso-N`). Así se navega hacia atrás también desde la **vista previa embebida** de
-un gestor (Claude/Codex), que no tiene sistema de archivos para abrir a un HTML vecino.
+archivo los reportes de los pasos `1…N−1`, y al hacer clic en un paso del riel se abre esa
+sección embebida, sin salir del documento. Así se navega hacia atrás también desde la
+**vista previa embebida** de un gestor (Claude/Codex), que no tiene sistema de archivos para
+abrir a un HTML vecino.
 
-Lo que aún no existe —los pasos **futuros**— queda como **enlace relativo** a
-`html_4.html`, `html_11.html`, …, y funciona cuando los 11 HTML están en la **misma
-carpeta** y se abren con el **navegador**. El embebido se desactiva con `--sin-historial`
+Ese salto **no usa un ancla `#paso-N`**: la pasarela de Claude Desktop intercepta el clic de
+cualquier enlace y ofrecía «salir a un enlace externo» en vez de saltar. Va con un botón y un
+manejador propio, que funciona igual dentro del gestor y con el HTML descargado. El motivo
+completo está en `_plantilla_html/README.md` § «Navegación interna sin `<a href>`».
+
+Con el proyecto **descargado**, además, cada paso embebido ofrece «Abrir el archivo» para ver
+su `html_N.html` aparte (dos pasos lado a lado, o imprimir uno solo). Dentro del gestor ese
+enlace no se dibuja: no hay carpeta que abrir. El embebido se desactiva con `--sin-historial`
 (archivos más pequeños, sin navegación interna).
 
 Para una puerta de entrada única, genera el tablero de navegación:

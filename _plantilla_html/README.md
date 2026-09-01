@@ -183,9 +183,10 @@ Se renderiza como:
 
 - **Riel de progreso** en el header: los 11 pasos con color por estado (completado en
   verde, omitido tachado, el actual en dorado). Los pasos ya completados **anteriores** al
-  actual son anclas internas (`#paso-N`) que saltan a la sección embebida del historial
-  (ver abajo); si un paso completado no se pudo embeder (`--sin-historial`), conserva el
-  enlace al archivo vecino.
+  actual son botones que saltan a la sección embebida del historial (ver abajo, y la regla
+  «Navegación interna sin `<a href>`»); si un paso completado no se pudo embeber
+  (`--sin-historial`), ofrece el enlace al archivo vecino **solo cuando el reporte no está
+  dentro de un iframe**, porque ahí no hay sistema de archivos que abrir.
 - **Historial embebido** (bloque `flujo.historial`, lo rellena el generador): los reportes
   completos de los pasos anteriores viajan dentro del mismo HTML, uno por paso, en
   secciones plegables. Es lo que hace que el reporte sea navegable por sí mismo dentro de
@@ -193,7 +194,9 @@ Se renderiza como:
   Cada entrada: `{id, titulo, etapa, orden, resumen, veredicto, reporte}` con el
   `reporte.json` completo. El tamaño crece de forma incremental (html_N embebe los N−1
   pasos previos), pero es despreciable: cada `reporte.json` pesa ~3–5 KB frente a los
-  ~122 KB del logo embebido. Se desactiva con `--sin-historial`.
+  ~122 KB del logo embebido. Se desactiva con `--sin-historial`. Con el proyecto descargado,
+  la cabecera de cada paso ofrece además **«Abrir el archivo»** (su `html_N.html` vecino, útil
+  para ver dos pasos lado a lado o imprimir uno solo); dentro de la pasarela no se dibuja.
 - **«De dónde viene este reporte»**: el proyecto, las decisiones tomadas, lo que ya se
   sabe de los pasos previos y —en caja ámbar— los pasos omitidos con su impacto, para que
   quien lea el reporte sepa qué le falta.
@@ -218,6 +221,31 @@ Se renderiza como:
 
 `estado` admite: `pendiente`, `en_curso`, `completado`, `omitido`, `fallido`, `actual`
 (solo uno puede ser `actual`).
+
+#### Navegación interna sin `<a href>` (obligatorio)
+
+**Un salto dentro del reporte no se hace con un ancla.** La pasarela de Claude Desktop sirve
+el HTML en un iframe propio (`claudeusercontent.com/?domain=claude.ai&parentOrigin=…`) e
+intercepta el clic de **cualquier** `<a href>`: resuelve el href contra la URL de ese iframe
+y lo trata como salida del producto. Un `href="#paso-1"` abría el diálogo *«Estás saliendo de
+Claude para visitar un enlace externo»* con la URL del iframe en vez de saltar al paso. Con el
+HTML descargado funcionaba; dentro de Claude, no.
+
+Por eso el riel usa `<button>` y la lista «Lo que ya sabemos» un `<button class="salto">`, los
+dos con `data-salto="N"`, y un único manejador delegado (`irAPaso`) abre el `<details>`, lo
+desplaza con `scrollIntoView` —recalculando `scroll-margin-top` con la altura real de la barra
+sticky, que si no tapa el título— y lo realza un segundo. No se pierde nada: el riel lo dibuja
+el propio script, así que nunca hubo un caso «sin JavaScript» al que el ancla sirviera.
+
+Al añadir navegación a la plantilla:
+
+- **Dentro del documento** → `data-salto` + botón. Nunca `href="#…"`.
+- **A otro archivo** → `<a href>` está bien, pero envuélvelo en la condición `!EMBEBIDO`
+  (`window.self !== window.top`): dentro de la pasarela no hay archivo que abrir y el clic
+  solo produce el diálogo. Así se dibujan el enlace del riel en modo `--sin-historial` y el
+  botón «Abrir el archivo» de cada paso del historial.
+- `EMBEBIDO` gobierna **solo** los enlaces a archivos. El salto interno funciona en los dos
+  contextos sin consultarlo, así que el arreglo no depende de acertar la detección.
 
 Tres campos de `ruta[]` son la **herencia entre pasos** —lo que la skill del paso siguiente
 lee para no reconstruir el contexto desde cero:

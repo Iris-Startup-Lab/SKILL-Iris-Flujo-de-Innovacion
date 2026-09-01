@@ -53,7 +53,11 @@
   .flow-rail{position:relative;z-index:1;display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:thin}
   .flow-rail::-webkit-scrollbar{height:6px}
   .flow-rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px}
-  .flow-step{flex:0 0 auto;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#D8CCEF;border-radius:999px;padding:5px 12px;font-size:.72rem;font-weight:600;white-space:nowrap;text-decoration:none}
+  /* Un paso navegable es un <button>, no un <a href="#...">: ver el comentario
+     «Navegación interna» en el script. Por eso el selector de hover cuelga de
+     `.saltable` y no del tipo de elemento, y hay que neutralizar los estilos que
+     el navegador le pone al botón (tipografía, alineación, cursor). */
+  .flow-step{flex:0 0 auto;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#D8CCEF;border-radius:999px;padding:5px 12px;font-family:inherit;font-size:.72rem;font-weight:600;line-height:1.35;white-space:nowrap;text-decoration:none;text-align:left;cursor:default;appearance:none;-webkit-appearance:none}
   .flow-step .n{font-family:'Sora',sans-serif;width:19px;height:19px;border-radius:999px;display:grid;place-items:center;font-size:.65rem;background:rgba(255,255,255,.14);flex:0 0 auto}
   .flow-step.completado{color:#fff;border-color:rgba(62,142,90,.6);background:rgba(62,142,90,.22)}
   .flow-step.completado .n{background:var(--risk1);color:#fff}
@@ -63,8 +67,10 @@
   .flow-step.fallido .n{background:#B84A3D;color:#fff}
   .flow-step.actual{color:var(--purple-900);background:var(--gold-400);border-color:var(--gold-400);box-shadow:0 4px 16px rgba(232,185,62,.34)}
   .flow-step.actual .n{background:rgba(36,27,51,.20);color:var(--purple-900)}
-  a.flow-step:hover{border-color:var(--gold-400);color:#fff}
-  a.flow-step.completado:hover{background:rgba(62,142,90,.34)}
+  .flow-step.saltable{cursor:pointer}
+  .flow-step.saltable:hover{border-color:var(--gold-400);color:#fff}
+  .flow-step.saltable.completado:hover{background:rgba(62,142,90,.34)}
+  .flow-step.saltable:focus-visible{outline:2px solid var(--gold-400);outline-offset:2px}
 
   /* ---------- Contexto del flujo ---------- */
   .contexto{max-width:1280px;margin:0 auto;padding:22px clamp(20px,4vw,56px) 0}
@@ -86,6 +92,13 @@
   .ctx-list .k{font-weight:600}
   .ctx-list .muted{color:var(--ink-soft)}
   .ctx-list a{font-weight:600}
+  /* Salto al paso embebido: un botón con aspecto de enlace (un <a href="#..."> lo
+     intercepta la pasarela de Claude; ver «Navegación interna» en el script). */
+  .ctx-list .salto{border:none;background:none;padding:0;font-family:inherit;font-size:inherit;
+    font-weight:600;color:var(--purple-700);text-decoration:underline;text-decoration-style:dotted;
+    text-underline-offset:2px;cursor:pointer}
+  .ctx-list .salto:hover{color:var(--purple-600);text-decoration-style:solid}
+  .ctx-list .salto:focus-visible{outline:2px solid var(--purple-600);outline-offset:2px;border-radius:3px}
   .ctx-empty{font-size:.83rem;color:var(--ink-soft)}
 
   /* ---------- En resumen (conclusión al frente) ---------- */
@@ -246,13 +259,32 @@
      cada paso ya completado viaja dentro del documento y el riel salta a él. */
   .historial{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
   .historial > h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;border-bottom:2px solid var(--purple-200);padding-bottom:8px;margin-bottom:14px}
-  .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:14px;overflow:hidden}
+  /* `scroll-margin-top` evita que la barra de herramientas (sticky, arriba) tape el
+     título del paso al saltar. El script lo recalcula con la altura real de la
+     barra —que crece cuando los filtros se envuelven en dos líneas—; este valor es
+     el respaldo. */
+  .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:14px;overflow:hidden;scroll-margin-top:76px}
+  /* Realce breve tras el salto: en un documento largo, aterrizar sin señal deja al
+     lector preguntándose si el clic hizo algo. */
+  .paso-previo.destacado{animation:destacar 1.6s ease-out}
+  @keyframes destacar{
+    0%{box-shadow:0 0 0 3px var(--gold-400),0 6px 22px rgba(232,185,62,.45)}
+    100%{box-shadow:var(--shadow-sm)}
+  }
+  @media (prefers-reduced-motion:reduce){ .paso-previo.destacado{animation:none} }
   .paso-previo > summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Sora',sans-serif;font-weight:700}
   .paso-previo > summary::-webkit-details-marker{display:none}
   .paso-previo > summary .n{width:26px;height:26px;border-radius:999px;background:var(--purple-700);color:#fff;display:grid;place-items:center;font-size:.78rem;flex:0 0 auto}
   .paso-previo > summary .t{font-size:1.02rem}
   .paso-previo > summary .v{margin-left:auto}
   .paso-previo > summary .r{font-family:'Inter',sans-serif;font-weight:400;font-size:.82rem;color:var(--ink-soft);flex:1 1 100%}
+  /* Enlace al archivo del paso. Solo se dibuja fuera de la pasarela (con el
+     proyecto descargado, donde el archivo vecino existe de verdad). */
+  .paso-previo > summary .archivo{margin-left:auto;font-family:'Inter',sans-serif;font-weight:600;
+    font-size:.72rem;color:var(--purple-600);text-decoration:none;border:1px solid var(--purple-200);
+    border-radius:999px;padding:3px 10px;flex:0 0 auto}
+  .paso-previo > summary .v ~ .archivo{margin-left:0}
+  .paso-previo > summary .archivo:hover{background:var(--purple-050);border-color:var(--purple-600)}
   .paso-previo > summary::after{content:"⌃";color:var(--purple-600);transform:rotate(180deg);transition:.2s;flex:0 0 auto}
   .paso-previo[open] > summary::after{transform:none}
   .paso-previo-body{padding:0 18px 18px;border-top:1px dashed var(--line)}
@@ -458,6 +490,46 @@ window.REPORT_DATA = __REPORT_DATA__;
   document.getElementById('foot-fase').textContent = meta.fase || "—";
   document.getElementById('foot-fecha').textContent = meta.fecha || "—";
 
+  // ---------- Navegación interna: por qué aquí no hay <a href="#paso-N"> ----------
+  // La pasarela de Claude Desktop sirve el reporte dentro de un iframe propio
+  // (`claudeusercontent.com/?domain=claude.ai&parentOrigin=...`) e intercepta el clic
+  // de CUALQUIER <a href>: resuelve el href contra la URL de ese iframe y lo trata
+  // como salida del producto, así que «#paso-1» abría el diálogo «Estás saliendo de
+  // Claude para visitar un enlace externo» en lugar de saltar al paso. Un <button>
+  // no tiene nada que interceptar, y el arreglo no depende de adivinar cómo funciona
+  // el interceptor.
+  //
+  // No se pierde nada al quitar el href: el riel y la lista de contexto los dibuja
+  // este mismo script desde REPORT_DATA, así que nunca existió un escenario sin
+  // JavaScript al que el ancla estuviera dando servicio.
+  //
+  // `EMBEBIDO` gobierna SOLO los enlaces a archivos vecinos (que dentro de la
+  // pasarela no pueden funcionar: no hay sistema de archivos). El salto interno
+  // funciona en los dos contextos sin consultarlo.
+  const EMBEBIDO = (() => {
+    try { return window.self !== window.top; } catch(e) { return true; }
+  })();
+
+  // Salta al paso embebido: lo abre, lo deja bajo la barra sticky (no detrás) y lo
+  // realza un momento.
+  function irAPaso(orden){
+    const det = document.getElementById('paso-' + orden);
+    if(!det) return;
+    det.open = true;
+    const tb = document.querySelector('.toolbar');
+    if(tb) det.style.scrollMarginTop = (tb.offsetHeight + 14) + 'px';
+    det.scrollIntoView({behavior:'smooth', block:'start'});
+    det.classList.remove('destacado');
+    void det.offsetWidth;                 // reinicia la animación al saltar dos veces al mismo paso
+    det.classList.add('destacado');
+  }
+
+  // Delegación: cubre el riel y la lista «Lo que ya sabemos» con un solo manejador.
+  document.addEventListener('click', ev => {
+    const t = (ev.target instanceof Element) ? ev.target.closest('[data-salto]') : null;
+    if(t) irAPaso(t.getAttribute('data-salto'));
+  });
+
   // ---------- Contexto del flujo (riel + "De dónde viene este reporte") ----------
   const ESTADO_LABEL = {completado:"completado", omitido:"omitido", pendiente:"pendiente",
                         en_curso:"en curso", fallido:"falló", actual:"este reporte"};
@@ -474,38 +546,42 @@ window.REPORT_DATA = __REPORT_DATA__;
     flujo.ruta.forEach((p, i) => { indice[p.id] = i + 1; });
     const pasoLbl = id => (indice[id] ? ('Paso ' + indice[id]) : id);
 
-    // Riel de progreso. Un paso ya completado se navega dentro del propio
-    // documento (ancla #paso-N hacia la sección embebida del historial): así
-    // funciona también en una vista previa embebida (Claude/Codex), sin sistema
-    // de archivos. Si un paso completado no llegó a embeberse (--sin-historial),
-    // se conserva el enlace relativo al archivo vecino.
+    // Riel de progreso. Un paso ya completado se navega DENTRO del propio documento:
+    // su reporte viaja embebido en el historial, así que el salto funciona igual en
+    // la pasarela de Claude/Codex (sin sistema de archivos) y en el HTML descargado.
+    // El enlace al archivo vecino queda solo para `--sin-historial`, y solo cuando el
+    // reporte no está embebido: dentro de la pasarela no hay archivo que abrir.
     const histIds = new Set((flujo.historial||[]).map(h => h.id));
     const histOrden = {};
     (flujo.historial||[]).forEach(h => { histOrden[h.id] = h.orden; });
     flujo.ruta.forEach((p,i) => {
+      const orden = i + 1;
       const esActual = p.estado==='actual' || p.id===actualId;
       const clase = esActual ? 'actual' : (p.estado||'pendiente');
-      const enlazableHist = !esActual && p.estado==='completado' && histIds.has(p.id);
-      const enlazableArchivo = !esActual && !enlazableHist && p.archivo;
-      const el = document.createElement((enlazableHist||enlazableArchivo) ? 'a' : 'span');
-      el.className = 'flow-step ' + clase;
-      if(enlazableHist){
-        el.href = '#paso-' + (i+1);
-        el.addEventListener('click', () => {
-          const det = document.getElementById('paso-' + (i+1));
-          if(det) det.open = true;
-        });
-      } else if(enlazableArchivo){
+      const saltoHist = !esActual && p.estado==='completado' && histIds.has(p.id);
+      const enlaceArchivo = !esActual && !saltoHist && !EMBEBIDO && !!p.archivo;
+      const el = document.createElement(saltoHist ? 'button' : (enlaceArchivo ? 'a' : 'span'));
+      el.className = 'flow-step ' + clase + ((saltoHist||enlaceArchivo) ? ' saltable' : '');
+      if(saltoHist){
+        el.type = 'button';
+        el.setAttribute('data-salto', orden);
+      } else if(enlaceArchivo){
         el.href = p.archivo;
         el.target = '_blank';
         el.rel = 'noopener';
       }
-      el.innerHTML = '<span class="n">'+(i+1)+'</span><span>'+esc(p.titulo||p.id)+'</span>';
+      el.innerHTML = '<span class="n">'+orden+'</span><span>'+esc(p.titulo||p.id)+'</span>';
       const nota = esActual ? (p.objetivo||'')
                  : (p.estado==='omitido' ? ('Omitido — '+(p.impacto||p.motivo||''))
                                          : (p.resumen || p.objetivo || ''));
-      el.title = 'Paso ' + (i+1) + ' de ' + (flujo.total_pasos||'') + ' · ' + esc(p.titulo||p.id)
-               + (nota ? '\n' + nota : '');
+      const pista = saltoHist ? 'Clic para leer este paso aquí mismo, sin salir del reporte.'
+                  : (enlaceArchivo ? 'Clic para abrir el archivo de este paso.'
+                  : (!esActual && p.estado==='completado' && EMBEBIDO
+                       ? 'Este paso no viaja dentro del reporte (se generó con --sin-historial) y su archivo no se puede abrir desde aquí.'
+                       : ''));
+      el.title = 'Paso ' + orden + ' de ' + (flujo.total_pasos||'') + ' · ' + (p.titulo||p.id)
+               + (nota ? '\n' + nota : '')
+               + (pista ? '\n' + pista : '');
       if(esActual) el.setAttribute('aria-current','step');
       railEl.appendChild(el);
     });
@@ -591,10 +667,14 @@ window.REPORT_DATA = __REPORT_DATA__;
     const hechos = flujo.ruta.filter(p => p.estado==='completado' && indice[p.id] < indiceActual);
     body.appendChild(caja('Lo que ya sabemos', hechos.length
       ? hechos.map(p => {
+          // Mismo criterio que el riel: botón de salto al paso embebido; enlace al
+          // archivo solo fuera de la pasarela; si no hay ninguno, texto plano.
           const t = histOrden[p.id]
-            ? '<a href="#paso-'+histOrden[p.id]+'">'+esc(p.titulo)+'</a>'
-            : (p.archivo ? '<a href="'+esc(p.archivo)+'">'+esc(p.titulo)+'</a>'
-                         : '<span class="k">'+esc(p.titulo)+'</span>');
+            ? '<button type="button" class="salto" data-salto="'+histOrden[p.id]
+              + '" title="Leer este paso aquí mismo">'+esc(p.titulo)+'</button>'
+            : ((p.archivo && !EMBEBIDO)
+                 ? '<a href="'+esc(p.archivo)+'" target="_blank" rel="noopener">'+esc(p.titulo)+'</a>'
+                 : '<span class="k">'+esc(p.titulo)+'</span>');
           const r = p.resumen ? ' — '+esc(p.resumen) : '';
           const v = p.veredicto ? ' <span class="muted">('+esc(p.veredicto)+')</span>' : '';
           return '<li><span class="id">'+esc(pasoLbl(p.id))+'</span><span>'+t+r+v+'</span></li>';
@@ -676,9 +756,11 @@ window.REPORT_DATA = __REPORT_DATA__;
 
   // ---------- Historial: pasos anteriores embebidos (navegación interna) ----------
   // Cada paso ya completado se renderiza completo —KPIs, secciones con tarjetas
-  // expandibles, decisiones y notas— dentro de un <details> plegable. El riel salta
-  // a él con #paso-N. Así un solo HTML contiene todo el recorrido hasta ese paso y
-  // no depende de abrir archivos vecinos (que la pasarela de Claude/Codex no puede).
+  // expandibles, decisiones y notas— dentro de un <details> plegable con id
+  // `paso-N`, al que salta el riel. Así un solo HTML contiene todo el recorrido
+  // hasta ese paso y no depende de abrir archivos vecinos (que la pasarela de
+  // Claude/Codex no puede). Con el proyecto descargado, además, se ofrece el
+  // archivo original del paso como enlace secundario.
   function renderHistorial(){
     const wrap = document.getElementById('historial-wrap');
     const cont = document.getElementById('historial');
@@ -695,9 +777,21 @@ window.REPORT_DATA = __REPORT_DATA__;
       const v = h.veredicto && VERDICT_LABEL[h.veredicto]
         ? '<span class="verdict '+esc(h.veredicto)+' v" title="'+esc(verdictTitle(h.veredicto))+'">'+esc(VERDICT_LABEL[h.veredicto])+'</span>' : '';
       let s = '<summary><span class="n">'+(h.orden||'')+'</span><span class="t">'+esc(h.titulo||h.id)+'</span>'+v;
+      // Con el proyecto descargado, el archivo del paso está en la misma carpeta y
+      // abrirlo aparte es útil (dos pasos lado a lado, imprimir uno solo). Dentro de
+      // la pasarela no se dibuja: no hay disco, y el clic solo daría el diálogo de
+      // enlace externo. El contenido ya está aquí, así que no se pierde nada.
+      const enRuta = (flujo.ruta||[]).find(p => p.id === h.id);
+      if(!EMBEBIDO && enRuta && enRuta.archivo){
+        s += '<a class="archivo" href="'+esc(enRuta.archivo)+'" target="_blank" rel="noopener"'
+           + ' title="Abre '+esc(enRuta.archivo)+' en una pestaña nueva">Abrir el archivo</a>';
+      }
       if(h.resumen) s += '<span class="r">'+esc(h.resumen)+'</span>';
       s += '</summary>';
       det.innerHTML = s;
+      // Sin esto, el clic en el enlace llega al <summary> y además plegaría el paso.
+      const aArch = det.querySelector('summary a.archivo');
+      if(aArch) aArch.addEventListener('click', ev => ev.stopPropagation());
 
       const body = document.createElement('div');
       body.className = 'paso-previo-body';

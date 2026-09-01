@@ -1,4 +1,4 @@
-# To-do — 28/08/2026
+# To-do — 01/09/2026
 
 **La revisión del flujo general está escrita y probada.** El pendiente 0 se cerró el 24/08:
 las 8 pruebas del script, el recorrido completo de los 11 pasos y la medición del render.
@@ -22,8 +22,14 @@ Lo único que sigue siendo tuyo: regenerar `CLAUDE.md` con `.\actualizar_claude.
 Esto solo lo actualiza la persona no el agente
 
 **Nuevo el 28/08** los HTML ahora son **incrementales**: cada `html_N` embebe los reportes de los
-pasos anteriores y el riel navega dentro del propio documento (`#paso-N`), no entre archivos.
+pasos anteriores y el riel navega dentro del propio documento, no entre archivos.
 Detalle en «Hecho el 28/08/2026».
+
+**Nuevo el 01/09** el salto entre pasos **ya funciona dentro de Claude Desktop**. El ancla interna
+(`#paso-N`) que resolvía el caso del 28/08 la interceptaba la pasarela y abría el diálogo «Estás
+saliendo de Claude»; ahora el salto va con `<button>` + `data-salto`, sin `href`. Detalle en «Hecho
+el 01/09/2026». **Te toca:** re-empaquetar el ZIP (el cambio está en la plantilla), regenerar
+`CLAUDE.md` y confirmar el clic en Claude Desktop.
 
 **Nuevo el 19/08:** las 5 skills simuladoras de entrevistas se integraron al flujo como
 **sub-sub-skills** (`<skill>/simulador/SIMULADOR.md`), con estadística calculada por script y la
@@ -52,6 +58,8 @@ conda activate skills_env
 Nada está commiteado: los commits los lleva el usuario.
 
 ---
+
+## Pendientes
 
 ### 0. Revisión del flujo general — cerrada el 24/08 (5 bugs encontrados y arreglados)
 
@@ -140,6 +148,240 @@ Lo que hay que mirar con ojo crítico en ese estreno: **si los avisos de los scr
 estorban**. Están calibrados a ojo (n<20, Q+R>10%, saturación en 2 sesiones sin novedad), y el
 uso real es lo único que dice si el umbral es el correcto.
 
+### 9. Convertir `skill_de_investigacion.md` en sub-skill y revisar `real_examples/`
+
+Dos cosas encadenadas, para otro día:
+
+1. **Primero, robustecer Investigación sin fuentes de pago.** Cuando el usuario no tiene Statista
+   (ni otro servicio pagado) hace falta una alternativa de datos abiertos. El texto ya está:
+   `skill_de_investigacion.md` (en la raíz, nombre «Fuentes de Datos Abiertos sin API Key») es el
+   catálogo de fuentes públicas/gratuitas sin registro ni token, con la distinción legal
+   (oficiales vs. librerías de scraping). Falta **convertirla en sub-skill**: renombrarla a
+   kebab-case, moverla a `sub-skills/1.Investigacion/`, escribirle su `AGENTE.md` + `README.md`
+   (convención de sub-skill: contrato JSON y «Uso independiente»), adaptar/crear sus scripts y
+   engancharla como opción cuando falte el acceso a fuentes de pago.
+
+2. **Revisar los ejemplos reales — hecho el 01/09/2026.** Los dos proyectos de `real_examples/`
+   se evaluaron contra `pasos.json` y las notas de los usuarios: veredicto en «Evaluación de los
+   ejemplos reales — 01/09/2026». **El proceso resiste el uso real** (11 pasos, decisiones del
+   usuario, marcas de supuestos, HTML con contexto); salieron **8 fricciones**, ninguna es bug
+   del script — son huecos de diseño en la orquestación y en tres sub-skills
+   (`entrevistas-empatia`/`discovery-survey` ingesta de material, `problem-solution-fit` orden,
+   `dimensionador-estrategico` justificación del score en el HTML) más el cierre del flujo (el
+   resumen ejecutivo no es parte del cierre estándar) y el PSF/Journey de perfiles no elegidos
+   que quedan huérfanos fuera del flujo. Cada fricción trae su idea de solución en la tabla de
+   esa sección.
+
+   El orden de trabajo queda igual: la sub-skill de datos abiertos va primero porque es la pieza
+   que robustece; los arreglos de las fricciones 1–8 vienen después, ya con esa pieza puesta.
+
+---
+
+## Hecho el 01/09/2026
+
+### El salto entre pasos dentro de Claude Desktop — la pasarela intercepta cualquier `<a href>`
+
+Lo que reportó el usuario: en Claude Desktop, al hacer clic en «Paso 1» desde `html_2`, salía el
+diálogo **«Estás saliendo de Claude para visitar un enlace externo»** en lugar de saltar al paso.
+Descargando los HTML sí funcionaba.
+
+**Causa, leída en la URL del propio diálogo:** la pasarela sirve el reporte en un iframe suyo
+(`claudeusercontent.com/?domain=claude.ai&parentOrigin=…`) e intercepta el clic de **cualquier**
+`<a href>`. Resuelve el href contra la URL de ese iframe, así que `#paso-1` no se lee como «ancla
+de este documento» sino como `https://www.claudeusercontent.com/?…#paso-1`: una salida del
+producto. El arreglo del 28/08 (embeber los pasos y saltar con un ancla) era correcto en la parte
+difícil —el contenido **sí estaba** dentro del html_2— y fallaba solo en el mecanismo del salto.
+
+**Arreglo:** la navegación interna no usa anclas. Nada que interceptar, así que no depende de
+adivinar cómo funciona el interceptor.
+
+- **Riel** (`reporte_base.html`): un paso completado es un `<button data-salto="N">`, no un
+  `<a href="#paso-N">`. Igual en «Lo que ya sabemos» (`<button class="salto">`). Un solo manejador
+  delegado (`irAPaso`) abre el `<details>`, lo desplaza con `scrollIntoView` y lo realza 1.6 s.
+- **No se pierde nada al quitar el `href`:** el riel lo dibuja ese mismo script desde
+  `REPORT_DATA`, así que nunca existió un caso «sin JavaScript» al que el ancla sirviera.
+- **Enlaces a archivo vecino** (riel en modo `--sin-historial`): se dibujan solo si el reporte
+  **no** está embebido (`EMBEBIDO = window.self !== window.top`). Dentro de la pasarela no hay
+  disco que abrir y el clic solo producía el diálogo; ahora el paso queda como texto con un
+  `title` que explica por qué no se puede abrir desde ahí.
+- **`EMBEBIDO` gobierna solo los enlaces a archivos.** El salto interno funciona en los dos
+  contextos sin consultarlo: si la detección fallara, lo que se rompe es el extra, no el arreglo.
+- **Nuevo extra al descargar:** cada paso del historial ofrece «Abrir el archivo» (su
+  `html_N.html` vecino, para ver dos pasos lado a lado o imprimir uno solo). Con
+  `stopPropagation`, porque si no el clic plegaba el paso además de abrir el archivo.
+- **Dos arreglos de acabado** que también afectaban al HTML descargado: `scroll-margin-top`
+  recalculado con la altura real de la barra sticky —que antes **tapaba el título** del paso al
+  saltar (medido: 100 px)— y los estilos de hover, que colgaban de `a.flow-step` y se habrían
+  quedado sin efecto al cambiar el elemento; ahora cuelgan de `.saltable`.
+
+**Verificado con Chrome headless, las cuatro ramas:**
+
+| Contexto | Resultado |
+| --- | --- |
+| Iframe (reproduce la pasarela, servido por `http.server` para poder inspeccionarlo) | `EMBEBIDO` detectado; riel = 10 `<button>` + 1 `<span>` (el actual); **0 anclas internas**; 0 enlaces a archivo; clic en el paso 3 → `open=true`, realzado, `scroll-margin-top: 100px` |
+| Descargado (`file://`) | 0 anclas internas; 20 botones de salto (riel + contexto); 10 enlaces «Abrir el archivo» a `html_1…10.html`; 10 pasos embebidos |
+| `--sin-historial`, descargado | riel = 10 `<a>` a `html_N.html`, 0 `data-salto`, 0 pasos embebidos |
+| `--sin-historial`, embebido | el enlace a archivo no se dibuja |
+
+Además: `node --check` sobre el JS de la plantilla (941 líneas) y los 11 pasos regenerados sin
+fallos. Regenerados también los HTML de `output/ecopack-circular` (11) y
+`output/huertos-urbanos-mx` (6) más sus `index.html` — solo el render, desde los mismos
+`reporte_*.json`, como el 28/08. `output/` está en `.gitignore`, así que no toca nada versionado.
+
+**Cuidado con el chequeo estático:** buscar `<a href="#` en el HTML generado da **falsos
+positivos**, porque los comentarios de CSS y de JS de la plantilla citan la regla. Hay que quitar
+los bloques `<script>` y `<style>` antes de contar, o mirar el DOM renderizado.
+
+**Documentado:** `_plantilla_html/README.md` § «Navegación interna sin `<a href>`» (con las tres
+reglas para quien añada navegación a la plantilla) y `AGENTS.md` §5.
+
+**Pendiente para el usuario:** re-empaquetar el ZIP (el cambio vive en la plantilla, así que el
+paquete del 24/08 quedó atrás), regenerar `CLAUDE.md` con `.\actualizar_claude.ps1` y confirmar el
+clic en Claude Desktop con un reporte recién generado.
+
+`scripts/generar_indice.py` se dejó como está: su `index.html` enlaza archivos del disco, y esa
+navegación solo tiene sentido con el proyecto descargado. Dentro de la pasarela no hay arreglo
+posible, y para eso está el historial embebido.
+
+---
+
+## Evaluación de los ejemplos reales — 01/09/2026 (cierra el pendiente 9, punto 2)
+
+Se revisaron los dos proyectos de `real_examples/` contra `pasos.json` y contra lo que cada
+sub-skill declara que entrega, contrastando además con las notas de los usuarios que los
+corrieron (Diana en Reclutalia, Jonathan en Divisas). Método: se extrajo `window.REPORT_DATA`
+de cada HTML (los reportes viven como JSON embebido), se compararon las decisiones registradas
+contra el catálogo de `pasos.json`, se contrastó cada fricción anotada contra el script y las
+instrucciones de la sub-skill involucrada, y se cotejó con `verificar` (sin estado a mano en
+`real_examples/`, la verificación se hizo leyendo los JSON).
+
+### Veredicto general
+
+**El proceso resiste el uso real.** Los dos proyectos recorrieron los 11 pasos completos, con
+decisiones registradas por el usuario (no por el agente), con la marca de datos simulados
+propagándose sola donde tocaba, con `*`/`[REFERENCIA DE INDUSTRIA]`/`[no disponible]` donde
+faltaba fuente, y con los HTML generados con contexto del flujo. **No se encontró ningún caso
+de decisión inventada, dato inventado o cierre de paso sin su decisión**: las cuatro invariantes
+de `AGENTS.md` §6 se sostienen en la práctica.
+
+**Pero las notas de usuario destapan 6 fricciones reales**, y al leer los HTML se ven además 2
+más que nadie reportó. No son bugs del script (el script hizo lo que debía): son **huecos de
+diseño** en la orquestación y en tres sub-skills. Detalle por fricción:
+
+### Fricción 1 — Reclutalia paso 3: los zips de transcripciones entraron sin protocolo
+
+Nota de Diana: «en el paso 3 cuando subí los transcripts de las entrevistas, sí me dejó subir en
+un solo paso adjuntar en zips por perfiles todos los transcripts (no me preguntó nada, solo la
+skill dice que con que sea formato csv texto etc)». El flujo acepta el material sin confirmar
+**qué es lo que se sube**: cuántos archivos, de qué perfiles, si son entrevistas, encuestas o
+notas, y sin declarar cómo se van a usar. Esto choca con el espíritu de human-in-the-loop: hay
+un aporte de evidencia de campo y el agente no lo reconoce ni lo confirma.
+
+Causa de diseño: `SKILL.md` § «Qué archivos puede adjuntar» lista formatos pero **no define un
+protocolo de ingesta** (qué preguntar al recibir material, cómo confirmarlo, cómo declararlo en
+el reporte). `entrevistas-empatia` y `discovery-survey` piden inputs pero no un momento de
+"recibo tu material y esto es lo que entendí que es".
+
+### Fricción 2 — Reclutalia paso 4: clic en los enlaces del HTML marcaba error
+
+Nota de Diana: «en el html del paso 4 cuando le doy click a los links marca error». Es el
+mismo síntoma del caso del 01/09 (la pasarela intercepta cualquier `<a href>`): los HTML de
+`real_examples/` son anteriores al arreglo de navegación (`data-salto`), y en su riel los pasos
+completados se dibujan como `<a href="output/CH_Reclutalia/html_1.html">`. Fuera del flujo ese
+enlace además apunta a una ruta que no existe (`output/...`), así que el clic falla también en
+local. **El arreglo del 01/09 ya lo cubre** para reportes recién generados; estos ejemplos
+quedan como muestra del antes. Acción: no requiere cambio de código, pero conviene regenerar un
+ejemplo con la plantilla nueva para la muestra.
+
+### Fricción 3 — Reclutalia paso 5: lista de problemas en desorden en la conversación
+
+Nota de Diana: «en la conversación del skill generó un listado pero lo hizo en desorden, en el
+html sí vienen bien los números consecutivos, pero supongo que los ordenó así porque los
+descarta como solución». El `psf.problemas` del HTML está numerado 1–5 pero **no ordenado por
+importancia** (4.5, 3.5, 3.5, 4.0, 3.0) — el orden no es evidente y la conversación lo presentó
+distinto. Causa: `problem-solution-fit` no declara un criterio de orden visible (por importancia,
+por frecuencia, por `n` de evidencia). El lector no sabe por qué el 4 va antes que el 2.
+
+### Fricción 4 — Reclutalia paso 9: el HTML menos claro que la conversación
+
+Nota de Diana: «a mí me quedó más claro el resumen de la conversación que el html, tiene más
+detalle y las tablas se me hicieron más fáciles de leer»; «no me quedó claro de dónde sacó los
+datos que estoy marcando en el recuadro rojo (urgencia, diferenciación, escalabilidad, etc.)»;
+«al dar click en metodología no lo menciona y dice que se generó una tabla de resumen pero no se
+muestra en el html solo en la conversación».
+
+Al comparar `html_9` de Reclutalia con el de Divisas se ve el hueco con nitidez: el de Divisas
+**sí** trae el item «Score de atractivo y riesgos» con una fila de justificación por criterio
+(urgencia/diferenciación/escalabilidad/velocidad/fit, cada una con su porqué). El de Reclutalia
+solo muestra el `subtitulo` con el score y unos pocos bullets de valor/adopción/riesgo, **sin
+la justificación criterio por criterio**. La tabla de resumen (score por idea) que la skill
+genera en conversación no viaja al HTML. Causa: `dimensionador-estrategico` entrega el detalle
+en el chat pero su `reporte.json` para el paso **no incluye obligatoriamente** la matriz de
+justificación del score; el validador no la exige, así que depende de que el agente la ponga.
+
+### Fricción 5 — Reclutalia paso 11: el reporte final de insights no se generó solo
+
+Nota de Diana: «al final del flujo no generó el reporte final de los insights solo hasta que lo
+pedí (Jonathan me comentó que a él sí se lo generó al terminar el paso 11)». El cierre de
+`SKILL.md` («¿Qué hacer al final de todo el flujo?») pregunta por auditar + `index.html` + medir
+tokens, pero **no menciona el resumen ejecutivo/insights**. Que Jonathan lo recibiera fue
+iniciativa del agente, no del proceso. Acción: añadir al cierre del flujo la pregunta explícita
+por el resumen ejecutivo (o hacerlo parte del cierre estándar).
+
+### Fricción 6 — Reclutalia: el PSF/Journey de Reclutadores y Candidatos se hizo fuera del flujo
+
+Nota de Diana: «le pregunté en dónde estaba cierta información y en uno de los casos tuvo que
+actualizar el html (ya había terminado los 11 pasos)». En los archivos están `h5_reclutadores`,
+`h5_candidatos`, `h6_reclutadores`, `h6_candidatos`: PSF y Journey de los otros dos perfiles,
+generados **después** de cerrar el flujo y con `flujo: null` (sin contexto, sin riel, sin
+decisión de ficha, sin marca). Son análisis válidos pero **huérfanos**: no heredan nada del
+proyecto y no son accesibles desde el riel. Causa de diseño: `html_5` y `html_6` se corrieron
+solo sobre la ficha elegida (Formadores) porque así está diseñado el paso; el usuario pidió los
+demás perfiles y el agente los resolvió fuera del flujo.
+
+### Fricción 7 (no reportada, detectada en los HTML) — la marca de simulación de Reclutalia
+
+El proyecto Reclutalia eligió «Sí — respuestas e insights reales» en el paso 2, y en el paso 3
+eligió Kano + Discovery Survey **simulados**. Desde el `html_3` todos los reportes posteriores
+llevan la marca «Datos simulados» (correcto por diseño: la marca se propaga). Pero los pasos
+4–11 se construyeron sobre las **42 entrevistas reales** de Reclutalia, y cada reporte tiene que
+añadir a mano la nota aclaratoria «este paso está construido 100% con entrevistas reales». La
+marca es global y binaria, y no hay forma de declarar «este paso sí es real aunque el proyecto
+haya simulado algo antes». Es coherente con el diseño actual, pero es una fricción de
+credibilidad que los usuarios tendrán que explicar a quien revise el proyecto.
+
+### Fricción 8 (no reportada, detectada en los HTML) — el orden de ideas del `html_9` de Reclutalia
+
+Las fichas de ideas del `html_9` de Reclutalia salen numeradas 1, 2, 3, 7, 4, 6, 11, 8, 9, 10,
+5, 12: mezcla el número original de la idea del paso 8 con el orden por score de este paso. La
+tabla resumen que sí trae orden por score no se ve como tabla (está en el `subtitulo` de cada
+item). Confunde: parece un desorden, no una priorización.
+
+### Fricción 9 — Divisas paso 11: los prompts de imagen de los ads no dan para el arte
+
+Nota de Jonathan: «siento que las descripciones de las imágenes para generar los ads no son tan
+específicas como para generar los artes necesarios o estos también son muy simples». Al leer el
+`html_11` de Divisas, los prompts de imagen de las 3 campañas son genéricos («ilustración plana
+minimalista de un teléfono móvil mostrando una notificación de banco con un ícono de check
+verde, paleta verde y dorado, sin texto, estilo flat design»). Sirven como concepto, pero no
+como dirección de arte ejecutable: no hay composición detallada, iluminación, referencias,
+tipografía ni variantes. Causa: `online-ads` genera el prompt en una sola línea, sin el nivel
+de detalle que una herramienta de imagen necesita para producir algo publicable.
+
+### Tabla resumen de fricciones y soluciones
+
+| # | Fricción | Solución propuesta |
+| --- | --- | --- |
+| 1 | Zips de transcripciones sin protocolo | Añadir en `SKILL.md` (y en `entrevistas-empatia`/`discovery-survey`) un **protocolo de ingesta de material**: al recibir adjuntos, el agente responde «recibí N archivos: X entrevistas, Y encuestas, de perfiles A/B/C — ¿es correcto?» antes de analizar. Confirmar perfiles y decidir si son datos reales o a simular. Registrarlo en `advertencias`/`contexto_usado`. |
+| 2 | Links rotos en HTML viejos | Ya cubierto por el `data-salto` del 01/09. Regenerar una muestra de `real_examples/` con la plantilla nueva para que sirva de referencia. |
+| 3 | Orden de problemas no evidente | En `problem-solution-fit`, ordenar el `psf.problemas` por un criterio declarado (importancia desc) y mostrarlo igual en conversación y HTML; o documentar el criterio en el `subtitulo`. |
+| 4 | `html_9` sin justificación del score | Hacer **obligatorio** en `dimensionador-estrategico` que el `reporte.json` del paso lleve, por idea, la matriz criterio→puntaje→justificación (como ya lo hace Divisas). Reflejar en `validar_report_data.py` una advertencia si el paso 9 no la incluye. Y que la tabla resumen de scores viaje al HTML como sección. |
+| 5 | Resumen final no se generó solo | Añadir al cierre del flujo la pregunta explícita: «¿Genero el resumen ejecutivo del proyecto?» (una página, legible sin abrir los HTML). Hacerlo parte de la pregunta (a) del cierre. |
+| 6 | PSF/Journey de otros perfiles fuera del flujo | Documentar en `SKILL.md`/pasos que el PSF/Journey corre sobre la ficha elegida, y ofrecer al usuario, al elegir ficha, «analizar también los otros perfiles como anexo» — ejecutado como paso del flujo (con contexto y marca) o al menos con `--estado` para que herede. Si es post-cierre, generarlo con `--estado` para que no quede huérfano. |
+| 7 | Marca de simulación global | Considerar un campo opcional por reporte (`meta.simulado` a nivel de sección/item) para que un paso con datos reales dentro de un proyecto simulado pueda declararlo sin apagar la marca global. Decisión de diseño para el usuario: ¿la marca es del proyecto o del paso? |
+| 8 | Orden de ideas del `html_9` | El `dimensionador` debe presentar las ideas **por score descendente** en el HTML (con el número original solo como tag), y la tabla resumen como tabla visible, no solo en `subtitulo`. |
+| 9 | Prompts de imagen genéricos | Ampliar `online-ads` para que el prompt de imagen sea una dirección de arte ejecutable: composición, iluminación, encuadre, estilo visual de referencia, paleta exacta, y qué evitar (texto, marcas de terceros). Incluir una variante de prompt por campaña y una nota de cuándo usar cada herramienta (Midjourney/DALL·E/Firefly). |
+
 ---
 
 ## Hecho el 28/08/2026
@@ -153,6 +395,10 @@ navegación hacia atrás quedaba rota.
 **Solución:** cada `html_N` **embebe los reportes de los pasos anteriores** dentro del propio
 documento (`flujo.historial`), y el riel salta a ellos con un ancla interna (`#paso-N`) en vez de
 abrir un archivo. `html_2` contiene a `html_1`; `html_11` contiene del `html_1` al `html_10`.
+
+> **Corregido el 01/09:** la parte del embebido quedó bien y sigue igual, pero el ancla `#paso-N`
+> no servía dentro de Claude Desktop —la pasarela la trataba como enlace externo—. El salto se
+> hace ahora con `<button data-salto="N">`. Ver «Hecho el 01/09/2026».
 
 - **Generador** (`_plantilla_html/scripts/generar_html.py`): `anexar_historial()` lee los
   `reporte.json` de los predecesores (desde `flujo_estado.json` → `ruta[].datos`, resueltos
