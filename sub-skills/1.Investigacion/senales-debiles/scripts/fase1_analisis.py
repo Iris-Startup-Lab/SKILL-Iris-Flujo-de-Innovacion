@@ -37,7 +37,14 @@ _CODIFICACION_LIGERA = None  # se establece en analizar() para mapeos de columna
 
 
 def chi2_contingency(table):
-    """Calcula el estadistico chi2 y p-valor para una tabla de contingencia."""
+    """Calcula el estadistico chi2 y p-valor para una tabla de contingencia.
+
+    El chi2, los grados de libertad y los esperados se calculan con numpy, sin
+    dependencias. El p-valor se obtiene de scipy **si esta disponible**; si no,
+    queda en None y el script sigue: los tamanos de efecto (Cramer's V) no lo
+    necesitan. La importacion va dentro de la funcion a proposito, para que la
+    skill corra suelta en un entorno sin scipy.
+    """
     if table.shape[0] < 2 or table.shape[1] < 2:
         return None, None, None, None
     total = table.sum().sum()
@@ -49,14 +56,14 @@ def chi2_contingency(table):
     expected = np.where(expected == 0, np.nan, expected)
     chi2 = np.nansum((table.values - expected) ** 2 / expected)
     dof = (table.shape[0] - 1) * (table.shape[1] - 1)
-    p_value = None
-    # Aproximacion simple del p-valor usando scipy si existe; de lo contrario None
     try:
         from scipy.stats import chi2 as chi2_dist
-        p_value = float(1 - chi2_dist.cdf(chi2, dof))
+        p_value = float(chi2_dist.sf(chi2, dof))
     except Exception:
         p_value = None
     return chi2, p_value, dof, expected
+
+
 def fmt_pct(num, den):
     if den == 0:
         return None
@@ -131,7 +138,8 @@ def gini(series):
 
 
 def sanitize_json(obj):
-    """Reemplaza NaN/Inf por None para que json.dump no falle."""
+    """Reemplaza NaN/Inf por None para que json.dump no falle y aplana tipos
+    numpy (int64, float64, bool_) a tipos nativos serializables."""
     if isinstance(obj, dict):
         return {k: sanitize_json(v) for k, v in obj.items()}
     if isinstance(obj, list):
@@ -139,6 +147,16 @@ def sanitize_json(obj):
     if isinstance(obj, float):
         if math.isnan(obj) or math.isinf(obj):
             return None
+        return obj
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        v = float(obj)
+        if math.isnan(v) or math.isinf(v):
+            return None
+        return v
+    if isinstance(obj, np.bool_):
+        return bool(obj)
     return obj
 
 
@@ -147,6 +165,29 @@ def material_diff(pct1, pct2, threshold=5.0):
     if pct1 is None or pct2 is None:
         return False
     return abs(pct1 - pct2) > threshold
+
+
+PISO_N_ABS = 15
+
+Z_95 = 1.96
+
+
+def wilson_ci(x, n):
+    """Intervalo de Wilson al 95% para una proporcion x/n."""
+    if n <= 0:
+        return 0.0, 0.0
+    p = x / n
+    denom = 1 + Z_95 * Z_95 / n
+    center = (p + Z_95 * Z_95 / (2 * n)) / denom
+    half = Z_95 * math.sqrt(p * (1 - p) / n + Z_95 * Z_95 / (4 * n * n)) / denom
+    return (center - half) * 100, (center + half) * 100
+
+
+def wilson_distinto_de_base(x, n, base_pct):
+    """True si la tasa x/n difiere de base_pct: su intervalo de Wilson al 95%
+    no contiene la base (SPEC.md seccion 5)."""
+    lo, hi = wilson_ci(x, n)
+    return not (lo <= base_pct <= hi)
 
 
 def find_cat_column(df, source_col, codificacion_ligera=None):
@@ -194,6 +235,49 @@ def get_numeric_role_columns(df, roles, role_name):
         if col in df.columns and pd.api.types.is_numeric_dtype(df[col]):
             cols.append(col)
     return cols
+
+
+# ---------------------------------------------------------------------------
+# Variables binarias genéricas (B4 / heatmaps)
+# ---------------------------------------------------------------------------
+BINARIO_STR = {
+    "1": 1, "0": 0, "1.0": 1, "0.0": 0,
+    "true": 1, "false": 0, "verdadero": 1, "falso": 0,
+    "si": 1, "sí": 1, "no": 0, "s": 1, "n": 0, "y": 1,
+}
+
+
+def es_binaria(series):
+    """True si todos los valores no nulos son pares binarios típicos
+    (0/1, Sí/No, verdadero/falso, s/n, y/n)."""
+    s = series.dropna()
+    if len(s) == 0:
+        return False
+    valores = set(s.astype(str).str.strip().str.lower())
+    return valores.issubset(BINARIO_STR)
+
+
+def coerce_binaria(series):
+    """Numérico 0/1 de una columna binaria, o None si no es binaria."""
+    if not es_binaria(series):
+        return None
+    return series.map(lambda x: BINARIO_STR[str(x).strip().lower()])
+
+
+def get_binaria_columns(df, fase0):
+    """Columnas binarias: las declaradas en `dataset_enriquecido.variables_binarias`
+    de Fase 0; si no hay, detección por contenido sobre el CSV."""
+    declaradas = (fase0.get("datos", {})
+                       .get("dataset_enriquecido", {})
+                       .get("variables_binarias", []))
+    cols = [c for c in declaradas if c in df.columns and es_binaria(df[c])]
+    if not cols:
+        for c in df.columns:
+            if c.endswith("_Cat"):
+                continue
+            if es_binaria(df[c]):
+                cols.append(c)
+    return list(dict.fromkeys(cols))
 
 
 # ---------------------------------------------------------------------------
@@ -273,15 +357,19 @@ def b1_tension_intensidad_esfuerzo(df, roles):
         if len(grupos) < 2:
             continue
 
-        # Detectar monotonía inversa/directa
+        # Detectar monotonía directa / inversa / mixta
         medians = [g["mediana"] for g in grupos if g["mediana"] is not None]
-        is_monotonic = all(medians[i] <= medians[i+1] for i in range(len(medians)-1)) or \
-                       all(medians[i] >= medians[i+1] for i in range(len(medians)-1))
+        monotona_creciente = all(medians[i] <= medians[i+1] for i in range(len(medians)-1))
+        monotona_decreciente = all(medians[i] >= medians[i+1] for i in range(len(medians)-1))
         alertas = []
-        if is_monotonic and len(grupos) >= 3:
-            alertas.append("relacion_monotona")
+        if monotona_decreciente and len(grupos) >= 3:
+            alertas.append("relacion_monotona_inversa")
         if any(g["n"] < 5 for g in grupos):
             alertas.append("n_bajo_en_extremos")
+
+        # La expectativa es "a mayor intensidad, mayor esfuerzo" (creciente).
+        # Solo una relación monótona decreciente contradice la expectativa.
+        recomendacion = "escalar" if monotona_decreciente else "revisar"
 
         hallazgos.append({
             "id_propuesto": f"SD-CUANT-{len(hallazgos)+1:03d}",
@@ -290,12 +378,11 @@ def b1_tension_intensidad_esfuerzo(df, roles):
             "dato": grupos,
             "robustez": {"n_total": len(both), "pct_muestra": round(len(both) / len(df) * 100, 1)},
             "alertas": alertas,
-            "recomendacion_llm": "escalar" if is_monotonic else "revisar",
+            "recomendacion_llm": recomendacion,
             "grafica": {
                 "tipo": "bar",
                 "eje_x": primary_intensity,
                 "eje_y": target_col,
-                "datos": grupos,
             }
         })
 
@@ -398,15 +485,25 @@ def b3_coocurrencia_inesperada(df, roles):
                 n = cross.loc[problema, segmento]
                 if n < 3:
                     continue
-                pct_segmento = n / df[seg_col].value_counts().get(segmento, 0) * 100
+                n_segmento = int(df[seg_col].value_counts().get(segmento, 0))
+                if n_segmento < PISO_N_ABS:
+                    # Piso de N (SPEC.md seccion 5): denominador menor a 15
+                    # registros; la desviacion se considera CONSISTENTE.
+                    continue
+                pct_segmento = n / n_segmento * 100 if n_segmento else 0
                 pct_base = fila_total / cross.sum().sum() * 100
-                if material_diff(pct_segmento, pct_base * 100 / cross.shape[1], threshold=10):
+                # Regla de tasa base + significancia (SPEC.md seccion 5):
+                # diferencia material > 5 pp y el intervalo de Wilson del
+                # subgrupo no contiene la base.
+                if material_diff(pct_segmento, pct_base, threshold=5.0) and \
+                        wilson_distinto_de_base(n, n_segmento, pct_base):
                     hallazgos.append({
                         "id_propuesto": f"SD-CUANT-{len(hallazgos)+1:03d}",
                         "tipo": "Co-ocurrencia",
                         "problema": str(problema),
                         "segmento": str(segmento),
                         "n": int(n),
+                        "n_segmento": n_segmento,
                         "pct_del_segmento": round(pct_segmento, 1),
                         "pct_base_problema": round(pct_base, 1),
                         "alertas": ["desviacion_de_base"],
@@ -421,44 +518,67 @@ def b3_coocurrencia_inesperada(df, roles):
     }
 
 
-def b4_segmentos_invertidos(df, roles):
+def b4_segmentos_invertidos(df, roles, fase0):
     segment_cols = get_role_columns(df, roles, "segmento_perfil")
-    if not segment_cols or "tiene_app" not in df.columns:
-        return {"aplica": False, "motivo": "No hay segmentos mapeados o no existe flag tiene_app"}
+    binaria_cols = get_binaria_columns(df, fase0)
+    if not segment_cols or not binaria_cols:
+        return {"aplica": False, "motivo": ("No hay segmentos mapeados o no existe "
+                                            "variable binaria (0/1, Sí/No) para "
+                                            "medir tasa por segmento")}
+
+    binaria = binaria_cols[0]
+    # Excluir la columna _Cat derivada de la propia variable binaria para no
+    # cruzar la variable consigo misma (tautologia, p. ej. tiene_empleo vs
+    # tiene_empleo_Cat).
+    binaria_cat = find_cat_column(df, binaria)
+    segment_cols = [s for s in segment_cols if s != binaria_cat]
+    if not segment_cols:
+        return {"aplica": False, "motivo": ("La unica variable de segmento es la "
+                                            "categorizacion de la propia variable "
+                                            "binaria; no hay segmentos independientes.")}
+    serie_bin = coerce_binaria(df[binaria])
+    if serie_bin is None:
+        return {"aplica": False, "motivo": "Variable binaria no convertible a 0/1"}
 
     hallazgos = []
     for seg_col in segment_cols:
         rates = []
         for segmento in df[seg_col].dropna().unique():
-            sub = df[df[seg_col] == segmento]
-            n = len(sub)
+            idx = df[seg_col] == segmento
+            n = int(idx.sum())
             if n < 5:
                 continue
-            adopcion = sub["tiene_app"].sum()
+            if n < PISO_N_ABS:
+                # Piso de N (SPEC.md seccion 5): denominador menor a 15
+                # registros; la diferencia entre segmentos es CONSISTENTE.
+                continue
+            positivos = int(serie_bin[idx].sum())
             rates.append({
                 "segmento": str(segmento),
                 "n": int(n),
-                "adopcion": int(adopcion),
-                "pct_adopcion": round(adopcion / n * 100, 1),
+                "positivos": positivos,
+                "pct_positivos": round(positivos / n * 100, 1),
             })
         if len(rates) < 2:
             continue
-        rates.sort(key=lambda x: x["pct_adopcion"])
+        rates.sort(key=lambda x: x["pct_positivos"])
         min_rate, max_rate = rates[0], rates[-1]
-        if material_diff(max_rate["pct_adopcion"], min_rate["pct_adopcion"], threshold=10):
+        if material_diff(max_rate["pct_positivos"], min_rate["pct_positivos"], threshold=10):
             hallazgos.append({
                 "id_propuesto": f"SD-CUANT-{len(hallazgos)+1:03d}",
                 "tipo": "Segmentos invertidos",
                 "segmento": seg_col,
+                "variable_binaria": binaria,
                 "dato": rates,
                 "alertas": ["diferencia_entre_segmentos"],
                 "recomendacion_llm": "escalar",
-                "grafica": {"tipo": "bar", "eje_x": seg_col, "eje_y": "% adopción app", "datos": rates},
+                "grafica": {"tipo": "bar", "eje_x": seg_col,
+                            "eje_y": f"% de positivos en {binaria}"},
             })
 
     return {
         "aplica": len(hallazgos) > 0,
-        "expectativa_base": "Segmentos más digitalizados adoptan más apps financieras",
+        "expectativa_base": f"La tasa de positivos de `{binaria}` es homogénea entre segmentos",
         "resultado": "CONTRADICCIÓN" if hallazgos else "CONSISTENTE",
         "hallazgos": hallazgos,
     }
@@ -581,8 +701,8 @@ def calculos_adicionales(df, roles):
 # ---------------------------------------------------------------------------
 def analizar(csv_path, fase0_path, output_path):
     global _CODIFICACION_LIGERA
-    df = pd.read_csv(csv_path, encoding="utf-8")
-    with open(fase0_path, encoding="utf-8") as f:
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    with open(fase0_path, encoding="utf-8-sig") as f:
         fase0 = json.load(f)
 
     roles = fase0.get("datos", {}).get("roles", {})
@@ -594,7 +714,7 @@ def analizar(csv_path, fase0_path, output_path):
         "B1": b1_tension_intensidad_esfuerzo(df, roles),
         "B2": b2_desacople_problema_solucion(df, roles),
         "B3": b3_coocurrencia_inesperada(df, roles),
-        "B4": b4_segmentos_invertidos(df, roles),
+        "B4": b4_segmentos_invertidos(df, roles, fase0),
         "B5": b5_outliers_comportamiento(df, roles),
         "B6": b6_ausencia_estructurada(df, roles),
         "B7": b7_temporal(df, roles),

@@ -29,7 +29,10 @@ Chequeos:
     7. Regla de tasa base (SPEC.md seccion 5): con --base-pct, todo porcentaje
        del JSON dentro de ~5 puntos porcentuales de la base se marca WARN
        (candidato a CONSISTENTE, no a senal debil).
-    8. Con --col-texto y --terminos: cuenta las filas del CSV cuya celda en esa
+     8. Piso de N (SPEC.md seccion 5): todo porcentaje cuyo denominador quede
+        bajo 15 se marca WARN porque la diferencia no sustenta senal por
+        muestra insuficiente.
+    9. Con --col-texto y --terminos: cuenta las filas del CSV cuya celda en esa
        columna contiene cada termino y la compara contra toda fraccion a/b
        declarada en los JSON cuyo texto mencione el termino.
 
@@ -56,12 +59,29 @@ class Hallazgo:
         return f"[{self.nivel}] {self.msg}"
 
 
+PISO_N_ABS = 15
+
+
+def piso_n(n_total):
+    """Piso de N mínimo (SPEC.md sección 5): denominador mínimo de 15
+    registros. Debe coincidir con fase1_analisis.py."""
+    return PISO_N_ABS
+
+
 def extraer_fracciones(texto):
+    """Extrae parejas de fracciones/porcentajes de un texto.
+
+    Una expresion tipo '62% (71/115)' casa simultaneamente con el patron de
+    porcentaje y con la fraccion generica; se reporta UNA vez (la forma
+    porcentual) para no duplicar hallazgos."""
     res = []
-    for m in RE_PCT_FRACCION.finditer(texto):
+    pct_matches = list(RE_PCT_FRACCION.finditer(texto))
+    for m in pct_matches:
         pct = float(m.group(1))
         res.append(("pct", int(m.group(2)), int(m.group(3)), pct))
     for m in RE_FRACCION.finditer(texto):
+        if any(m.start() >= pm.start() and m.end() <= pm.end() for pm in pct_matches):
+            continue
         res.append(("frac", int(m.group(1)), int(m.group(2)), None))
     return res
 
@@ -111,19 +131,21 @@ def verificar(csv_path, json_paths, base_pct=None, col_texto=None, terminos=None
     hallazgos = []
 
     try:
-        df = pd.read_csv(csv_path, encoding="utf-8", dtype=str)
+        df = pd.read_csv(csv_path, encoding="utf-8-sig", dtype=str)
     except Exception as e:
         return [Hallazgo("ERROR", f"No se pudo leer el CSV {csv_path}: {e}")]
 
     n = len(df)
-    hallazgos.append(Hallazgo("OK", f"N de registros del CSV: {n}"))
+    n_piso = piso_n(n)
+    hallazgos.append(Hallazgo("OK", f"N de registros del CSV: {n} (piso de N: {n_piso})"))
+    hallazgos.append(Hallazgo("OK", f"Regla de piso de N (SPEC.md seccion 5): una diferencia porcentual con denominador < {n_piso} se marca CONSISTENTE por muestra insuficiente"))
 
     terminos = [t.strip().lower() for t in (terminos or []) if t.strip()]
 
     por_fase = {}
     for path in json_paths:
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(path, encoding="utf-8-sig") as f:
                 data = json.load(f)
         except (OSError, ValueError) as e:
             hallazgos.append(Hallazgo("ERROR", f"No se pudo leer {path}: {e}"))
@@ -152,6 +174,20 @@ def verificar(csv_path, json_paths, base_pct=None, col_texto=None, terminos=None
                             f"tasa base ({base_pct*100:.1f}%) - candidato a CONSISTENTE "
                             f"(regla de tasa base, SPEC.md seccion 5)"
                         ))
+                if tipo == "pct" and den and den < n_piso:
+                    hallazgos.append(Hallazgo(
+                        "WARN",
+                        f"{path} {item_id}: {pct}% ({num}/{den}) con denominador {den} bajo el "
+                        f"piso de N {n_piso} - sin muestra suficiente, la diferencia "
+                        f"se marca CONSISTENTE por muestra insuficiente (SPEC.md seccion 5)"
+                    ))
+                elif tipo == "frac" and den and den < n_piso:
+                    hallazgos.append(Hallazgo(
+                        "WARN",
+                        f"{path} {item_id}: fraccion {num}/{den} con denominador {den} bajo el "
+                        f"piso de N {n_piso} - posible tasa de subgrupo sin muestra "
+                        f"suficiente (SPEC.md seccion 5)"
+                    ))
             for suma, total, operandos in extraer_sumas_con_total(texto):
                 if suma != total:
                     hallazgos.append(Hallazgo(
@@ -229,31 +265,35 @@ def verificar(csv_path, json_paths, base_pct=None, col_texto=None, terminos=None
                     continue
                 f_origen = origenes[rid][1].get("dato", "")
                 f_cruce = ref.get("dato", "")
-                fr_origen = sorted(set(extraer_fracciones(f_origen)))
-                fr_cruce = sorted(set(extraer_fracciones(f_cruce)))
-                if fr_origen and fr_cruce and fr_origen != fr_cruce:
-                    hallazgos.append(Hallazgo(
-                        "ERROR",
-                        f"{path} {cruce_id} / {rid}: fracciones discrepantes entre fases "
-                        f"(origen {fr_origen} vs cruce {fr_cruce}) - SPEC.md seccion 0.2"
-                    ))
-            # WARN: el cruce introduce fracciones que no estaban en la senal de origen
-            for clave in ("senal_cuanti", "senal_cuali"):
-                ref = cruce.get(clave)
-                if not isinstance(ref, dict) or not ref.get("id"):
-                    continue
-                rid = ref.get("id")
-                if rid not in origenes:
-                    continue
-                f_origen = origenes[rid][1].get("dato", "")
-                fr_origen = set(extraer_fracciones(f_origen))
-                fr_ref = set(extraer_fracciones(ref.get("dato", "")))
-                if fr_ref - fr_origen:
-                    hallazgos.append(Hallazgo(
-                        "WARN",
-                        f"{path} {cruce_id}: introduce cifras no declaradas en {rid} "
-                        f"({sorted(fr_ref - fr_origen)})"
-                    ))
+
+                def _mapa_fracciones(texto):
+                    m = {}
+                    for tipo, num, den, pct in extraer_fracciones(texto):
+                        m.setdefault((num, den), pct)
+                    return m
+
+                mo = _mapa_fracciones(f_origen)
+                mc = _mapa_fracciones(f_cruce)
+                if mc:
+                    nuevas = sorted(k for k in mc if k not in mo)
+                    if nuevas:
+                        hallazgos.append(Hallazgo(
+                            "ERROR",
+                            f"{path} {cruce_id} / {rid}: el cruce declara fracciones no "
+                            f"declaradas o modificadas en la senal de origen "
+                            f"({[f'{n}/{d}' for n, d in nuevas]}) - SPEC.md seccion 0.2"
+                        ))
+                    pct_cambiados = sorted(
+                        k for k in mc
+                        if k in mo and mo[k] is not None and mc[k] is not None
+                        and abs(mo[k] - mc[k]) > 0.001)
+                    if pct_cambiados:
+                        hallazgos.append(Hallazgo(
+                            "ERROR",
+                            f"{path} {cruce_id} / {rid}: el cruce altera el porcentaje "
+                            f"declarado del dato de origen "
+                            f"({[f'{n}/{d}' for n, d in pct_cambiados]}) - SPEC.md seccion 0.2"
+                        ))
             if fr_todo:
                 fr_origen_all = set()
                 for clave in ("senal_cuanti", "senal_cuali"):
@@ -274,8 +314,11 @@ def verificar(csv_path, json_paths, base_pct=None, col_texto=None, terminos=None
 
 def main():
     args = sys.argv[1:]
-    if not args or "-h" in args or "--help" in args:
+    if "-h" in args or "--help" in args:
         print(__doc__)
+        sys.exit(0)          # la ayuda pedida no es un error
+    if not args:
+        print(__doc__, file=sys.stderr)
         sys.exit(1)
 
     base_pct = None

@@ -155,6 +155,10 @@ def main():
     if not args:
         print("Uso: python generar_heatmap.py frecuencias.json [-o salida.svg]", file=sys.stderr)
         sys.exit(1)
+    if args[0] in ("-h", "--help"):
+        # El docstring del modulo ya documenta el uso y el formato de entrada.
+        print((__doc__ or "").strip())
+        sys.exit(0)
 
     entrada = args[0]
     salida = None
@@ -165,8 +169,13 @@ def main():
             sys.exit(1)
         salida = args[i + 1]
 
-    with open(entrada, encoding="utf-8") as f:
+    with open(entrada, encoding="utf-8-sig") as f:
         data = json.load(f)
+
+    # Soporte para salida de preparar_heatmap.py (envuelve en heatmap_principal)
+    # y para el formato plano documentedo en el docstring.
+    if isinstance(data, dict) and "heatmap_principal" in data:
+        data = data["heatmap_principal"]
 
     svg = generar_svg_heatmap(data)
 

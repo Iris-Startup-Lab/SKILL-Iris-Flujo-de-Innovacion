@@ -6,7 +6,7 @@ Evaluar si la pregunta de investigación es clara y accionable, mapear las colum
 
 ## Input
 
-- `encuesta.csv` — dataset tabular con respuestas de encuesta (preguntas cerradas y abiertas). Opcional si solo hay cualitativos.
+- `datos_cuantitativos.csv` — dataset tabular con respuestas de encuesta (preguntas cerradas y abiertas). Opcional si solo hay cualitativos.
 - `transcripciones/*.txt` — archivos de transcripción de entrevistas. Opcional si solo hay cuantitativos.
 - Pregunta de investigación (provista por el usuario en lenguaje natural)
 
@@ -37,7 +37,8 @@ Archivo `fase0_output.json` con la siguiente estructura:
         "n_variables_numericas": 5,
         "n_variables_categoricas": 3,
         "n_variables_texto": 2,
-        "archivo": "encuesta.csv"
+        "variables_texto_abierto": ["respuesta_abierta", "comentario_final"],
+        "archivo": "datos_cuantitativos.csv"
       },
       "datos_cualitativos": {
         "disponible": true,
@@ -49,7 +50,7 @@ Archivo `fase0_output.json` con la siguiente estructura:
         "sujeto_definido": true,
         "variable_dependiente_implicita": true,
         "es_actionable": true,
-        "texto_exacto": "¿Por qué los residentes no participan en los huertos urbanos comunitarios a pesar de expresar interés en alimentación saludable?"
+        "texto_exacto": "¿Por qué los residentes no asisten a los talleres de capacitación laboral a pesar de expresar interés en conseguir empleo?"
       },
       "estrategia_muestreo": "muestra completa, N=120",
       "faltantes_declarados": {
@@ -64,11 +65,11 @@ Archivo `fase0_output.json` con la siguiente estructura:
       "expectativas_discurso": ["texto de qué temas creo que dominarán las entrevistas"]
     },
     "roles": {
-      "intensidad_valor": ["importancia_alimentacion", "satisfaccion_barrio"],
-      "esfuerzo_accion": ["horas_semana_huerto", "gasto_mensual_verduras"],
+      "intensidad_valor": ["importancia_empleo", "satisfaccion_zona"],
+      "esfuerzo_accion": ["horas_semana_taller", "gasto_mensual_capacitacion"],
       "categoria_problema": ["tipo_barrera"],
       "categoria_solucion": ["solucion_actual", "herramienta_usada"],
-      "segmento_perfil": ["tiene_huerto", "tipo_barrio", "tamano_hogar"],
+      "segmento_perfil": ["tiene_empleo", "zona_residencia", "tamano_hogar"],
       "tiempo": ["fecha_encuesta"]
     },
     "roles_no_mapeados": {
@@ -79,25 +80,54 @@ Archivo `fase0_output.json` con la siguiente estructura:
       "segmento_perfil": false,
       "tiempo": true
     },
+    "poblaciones": {
+      "encuesta": { "nombre": "población general del municipio", "n": 115 },
+      "entrevistas": { "nombre": "participantes de los talleres", "n": 5 }
+    },
+    "mapeo_transcripcion": {
+      "hoja": "Transcripciones",
+      "col_archivo": "Nombre del archivo",
+      "col_hablante": "Persona quien habla",
+      "col_texto": "Texto"
+    },
     "dataset_enriquecido": {
-      "path": "encuesta_enriquecida.csv",
+      "path": "datos_cuantitativos_enriquecido.csv",
       "n_registros_original": 120,
       "n_registros_final": 120,
-      "columnas_originales": ["id", "importancia_alimentacion", "horas_semana_huerto", "tipo_barrera", "solucion_actual", "respuesta_abierta"],
+      "columnas_originales": ["id", "importancia_empleo", "horas_semana_taller", "tipo_barrera", "solucion_actual", "respuesta_abierta"],
       "columnas_nuevas": ["tipo_barrera_cat", "solucion_actual_cat"],
+      "variables_binarias": ["asistio_primer_taller"],
       "calidad_respuesta": { "baja_calidad": 4, "total_marcados": 4 }
     },
     "codificacion_ligera": {
+      "reglas": {
+        "problem": [
+          ["falta_tiempo", ["no tengo tiempo", "trabajo todo el día"]],
+          ["informacion", ["no se como", "no sé cómo", "no encuentro"]],
+          ["ubicacion", ["queda lejos", "no hay en mi zona"]],
+          ["motivacion", ["no me interesa", "no me llama"]],
+          ["otro", ["no hay cupo", "ya no"]]
+        ],
+        "solution": [
+          ["buscar", ["tutorial", "internet", "video"]],
+          ["preguntar", ["conocido", "familia", "preguntar"]],
+          ["ninguna", ["no he intentado", "no hago"]]
+        ],
+        "segment": [
+          ["con_empleo", ["trabajo", "empleo"]],
+          ["sin_empleo", ["desemple", "sin trabajo"]]
+        ]
+      },
       "tipo_barrera_cat": {
         "variable_original": "tipo_barrera",
         "criterio": "respuesta corta (1-10 palabras), tema predecible",
         "categorias": {
           "falta_tiempo": { "n": 35, "ejemplos": ["no tengo tiempo", "trabajo todo el día"] },
-          "lejania": { "n": 22, "ejemplos": ["queda lejos", "no hay en mi colonia"] },
-          "no_se_como": { "n": 20, "ejemplos": ["no sé sembrar", "se me mueren las plantas"] },
-          "falta_interes": { "n": 15, "ejemplos": ["no me interesa", "prefiero comprar"] },
-          "espacio": { "n": 12, "ejemplos": ["no tengo dónde", "mi depa es chico"] },
-          "otro": { "n": 8, "ejemplos": ["inseguridad", "el agua es cara"] },
+          "informacion": { "n": 20, "ejemplos": ["no sé cómo inscribirme", "no encuentro la convocatoria"] },
+          "ubicacion": { "n": 22, "ejemplos": ["queda lejos", "no hay en mi zona"] },
+          "motivacion": { "n": 15, "ejemplos": ["no me interesa", "no me llama la atención"] },
+          "horario": { "n": 12, "ejemplos": ["no encaja con mi horario", "es en la tarde"] },
+          "otro": { "n": 8, "ejemplos": ["no hay cupo", "ya no quedan inscripciones"] },
           "no_clasificable": { "n": 8, "ejemplos": ["no sé", "varios"] }
         },
         "total_clasificados": 112,
@@ -106,6 +136,7 @@ Archivo `fase0_output.json` con la siguiente estructura:
     },
     "transcripciones": {
       "n_total": 5,
+      "formato": "txt_normalizado",
       "detalle": [
         { "archivo": "entrevista1.txt", "participante_id": "E1", "duracion_minutos": 42, "n_intervenciones": 110 },
         { "archivo": "entrevista2.txt", "participante_id": "E2", "duracion_minutos": 35, "n_intervenciones": 88 }
@@ -116,7 +147,7 @@ Archivo `fase0_output.json` con la siguiente estructura:
         "archivo": "reporte_tercero.pdf",
         "tipo": "PDF",
         "clasificacion": "cualitativo",
-        "justificacion": "Contenido predominantemente narrativo: reporte de mystery shopper con observaciones textuales",
+        "justificacion": "Contenido predominantemente narrativo: bitácora de campo del facilitador con observaciones textuales",
         "n_paginas": 5
       }
     ],
@@ -129,7 +160,7 @@ Archivo `fase0_output.json` con la siguiente estructura:
         "El 50.5% de los registros no tiene dato de 'Importancia' y no hay evidencia suficiente para saber si es diseño del instrumento o ausencia real de respuesta."
       ],
       "por_cobertura": [
-        "La muestra cualitativa (N=5) solo incluye comerciantes que ya usan herramientas digitales; el segmento de efectivo puro no tiene voz cualitativa directa."
+        "La muestra cualitativa (N=5) solo incluye participantes que ya completaron un taller; el segmento de nunca inscritos no tiene voz cualitativa directa."
       ]
     }
   }
@@ -140,13 +171,26 @@ Archivo `fase0_output.json` con la siguiente estructura:
 
 ## Procedimiento
 
-### Paso 1: Carga y reconocimiento
+### Paso 1: Consulta inicial (única interacción con el usuario)
 
-1. Leer `encuesta.csv` (si existe). Obtener:
+Antes de procesar los datos, el agente ejecuta `scripts/preview_columnas.py` sobre la fuente tabular (encabezados, tipo, cardinalidad y muestras por columna) y propone un mapeo provisional de columnas a roles. Entonces hace una sola consulta que combina validación del mapeo y captura de contexto:
+
+"Recibí los datos y la pregunta. Este es el mapeo que propongo:
+- [columna] → [rol]
+- [columna] → [rol]
+
+¿Te parece bien? ¿Tienes alguna hipótesis que ya tengan mapeada, alguna aclaración sobre el significado de una columna, o contexto de cómo se recolectaron los datos? Si no hay nada más, dime 'adelante' y sigo con todo el análisis."
+
+El usuario responde una sola vez. Las hipótesis se incorporan a `hipotesis_previas` (fuente: "contexto inicial del usuario") y las aclaraciones de columnas a `notas_semanticas.md` (Regla 18 de AGENTE.md) antes de generar `fase0_output.json`. A partir de aquí el pipeline corre de corrido (Regla 19 de AGENTE.md); no se vuelve a pedir confirmación entre fases.
+
+### Paso 2: Carga y reconocimiento
+
+1. Leer `datos_cuantitativos.csv` (si existe). Obtener:
    - N exacto de registros
    - Nombres de todas las columnas
    - Tipos de datos (numéricas, categóricas, texto)
    - Primeras 5 filas para inspección visual
+   - **Marcar las columnas de texto abierto** en `variables_texto_abierto` (respuestas libres cuyo significado interpreta el LLM y que el script no codifica completamente). El resto del CSV no se vuelca al contexto: la evidencia de lectura completa la aportan los scripts (`fase0_enriquecer.py`, `fase1_analisis.py`) y la verifica el gate contra el CSV enriquecido (Regla 9 de AGENTE.md).
 2. Leer `transcripciones/*.txt` (si existen). Obtener:
    - N de archivos
    - Nombres de archivo
@@ -159,9 +203,25 @@ Archivo `fase0_output.json` con la siguiente estructura:
      - Si el contenido es predominantemente numérico/tabular (tablas, cifras, estadísticas) → clasificar como fuente cuantitativa.
      - Si el contenido es predominantemente textual/narrativo (párrafos, entrevistas, reportes) → clasificar como fuente cualitativa.
      - Si es mixto → clasificar en ambas y documentar.
+   - **Caso transcriptor→planilla:** si el XLSX/DOCX es una transcripción de entrevista (columna de diálogo + columna de hablante/sesión), es cualitativo por contenido, NO cuantitativo: no se exime de lectura completa (Regla 9) y Fase 0 lo serializa a `transcripciones/*.txt` antes del análisis cualitativo.
    - Documentar la clasificación en el JSON de salida bajo `datos.fuentes_adicionales`.
 
-### Paso 2: Evaluar pregunta de investigación
+**Normalización de transcripciones en planilla (obligatoria si hay fuentes cualitativas XLSX/DOCX):**
+
+Cuando una fuente cualitativa llega como planilla, se ejecuta `scripts/normalizar_transcripciones.py` para exportar un campo TXT por entrevista y declarar el rol de hablante:
+
+```bash
+python scripts/normalizar_transcripciones.py <planilla.xlsx|.docx> -o transcripciones/ \
+    --manifesto transcripciones/manifesto.json [--mapeo mapeo_transcripcion.json]
+```
+
+- Acepta XLSX y DOCX en tabla-planilla (columnas archivo/hablante/texto). Un **DOCX narrativo** (sin tabla) se vuelca como un solo TXT (`formato: "docx_narrativo"` en el manifiesto). **PDF/PPTX** no los lee el script: serializar a TXT por otro medio (o con pypdf/pdfminer si están) y declarar en `advertencias` que la fuente se serializó externamente.
+
+- El layout de columnas se declara en Fase 0 (`datos.mapeo_transcripcion`: hoja + columnas de archivo/hablante/texto por letra o por nombre de cabecera). Fallback: detección por cabecera; si el layout no es parseable, se declara en `advertencias` y se lee la planilla directamente en contexto.
+- **Rol de hablante siempre inferido por heurística lingüística, nunca por etiqueta de diarización** (p. ej. `persona_N`, `speaker_1`): la etiqueta numérica no indica rol — el entrevistador puede llevar cualquier número —, por eso el script decide por el contenido del turno y etiqueta `entrevistador`/`entrevistado_N`, declarando la advertencia `"rol_hablante inferido por heurística, no por etiqueta del transcriptor"`.
+- El manifiesto integra `n_hablantes` y `n_entrevistados` por archivo (una entrevista puede tener más de dos hablantes, p. ej. dos entrevistados de un mismo hogar; cada `entrevistado_N` cuenta como población distinta, regla 12 y blindaje transpoblacional).
+
+### Paso 3: Evaluar pregunta de investigación
 
 Responder explícitamente:
 - ¿Tiene sujeto de estudio definido? (¿a quién se estudia?)
@@ -170,7 +230,7 @@ Responder explícitamente:
 
 Si la pregunta no es clara: `decision = "DETENER"`, `motivo_detencion = "pregunta de investigación no clara"`. Describir qué falta.
 
-### Paso 3: Mapear columnas a roles semánticos
+### Paso 4: Mapear columnas a roles semánticos
 
 Para cada columna del CSV, asignar uno de los 6 roles:
 
@@ -185,7 +245,7 @@ Para cada columna del CSV, asignar uno de los 6 roles:
 
 Si una columna no encaja: marcar como `[sin rol]` y documentar. Si un rol queda sin columnas: marcar como `false` en `roles_no_mapeados`.
 
-### Paso 4: Codificación ligera
+### Paso 5: Codificación ligera
 
 Solo para columnas de texto con respuestas cortas (1-10 palabras) y temas predecibles:
 1. Leer todas las respuestas únicas.
@@ -196,23 +256,23 @@ Solo para columnas de texto con respuestas cortas (1-10 palabras) y temas predec
 
 No aplica para: respuestas largas (>1 oración), texto narrativo, transcripciones.
 
-### Paso 5: Calidad de respuesta
+### Paso 6: Calidad de respuesta
 
 - Detectar respondientes con ≥70% de ítems Likert idénticos consecutivos → marcar como baja calidad.
 - Detectar respuestas abiertas monosílabas/genéricas → marcar como baja calidad.
 - No eliminar registros. Marcar en columna `calidad_respuesta`.
 - Documentar N total de marcados.
 
-### Paso 6: Generar dataset enriquecido
+### Paso 7: Generar dataset enriquecido
 
-- Ejecutar `scripts/fase0_enriquecer.py <csv_limpio> <fase0_output.json> -o <csv_enriquecido> --update-fase0` después de mapear los roles en el paso anterior.
-  - Este script normaliza espacios, aplica codificación ligera por reglas semánticas, normaliza métodos de pago detectados, deriva flags binarios (p. ej. `tiene_app`) y calcula métricas de calidad de respuesta de forma determinística.
-  - Las reglas por defecto cubren encuestas de pequeño comercio en español; se pueden sobreescribir con `--rules <json>`.
-- El agente debe revisar el resultado del script: ajustar categorías atípicas, corregir reglas si una columna fue mal clasificada y validar que `tiene_app` o flags derivados tengan sentido.
+- Ejecutar `scripts/fase0_enriquecer.py <csv_limpio> <fase0_output.json> -o <csv_enriquecido> --update-fase0` después de mapear los roles (Paso 4).
+  - Este script normaliza espacios, aplica codificación ligera solo con las reglas semánticas declaradas, detecta variables binarias y calcula métricas de calidad de respuesta de forma determinística.
+  - Las reglas de codificación se leen de `codificacion_ligera.reglas` de este JSON o de `--rules <json>`. El script NO aplica reglas de dominio por defecto: si una columna temática no tiene reglas, lo advierte y preserva el valor original (passthrough) en lugar de inventar categorías de un dominio ajeno.
+- El agente debe revisar el resultado del script: ajustar categorías atípicas, corregir reglas si una columna fue mal clasificada y validar que las variables binarias detectadas tengan sentido.
 - Guardar copia del CSV original con columnas nuevas agregadas. El original no se toca.
 - Documentar en `fase0_output.json`: path, N original, N final, columnas nuevas, columnas originales.
 
-### Paso 7: Declarar viabilidad
+### Paso 8: Declarar viabilidad
 
 | Ítem | Estado | Evidencia |
 |:---|:---|:---|
@@ -221,31 +281,28 @@ No aplica para: respuestas largas (>1 oración), texto narrativo, transcripcione
 | Pregunta clara | [Sí/No] | Copiar pregunta exacta |
 | Decisión | [FLUIR/DETENER] | [motivo si DETENER] |
 
-### Paso 8: Generar `fase0_output.json`
+### Paso 9: Generar `fase0_output.json`
 
 Ensamblar el JSON con todas las secciones anteriores. Si algún dato no está disponible, usar `[no disponible]`.
 
-### Paso 9: Consulta al usuario
+### Paso 10: Reporte de viabilidad (no bloqueante)
 
-Después de generar `fase0_output.json`, el agente DEBE preguntar al usuario:
+Al terminar `fase0_output.json`, el agente informa el resultado y continúa sin esperar confirmación (Regla 19 de AGENTE.md):
 
-"Fase 0 completada. Antes de continuar con el análisis:
-- ¿Tienes dudas sobre el mapeo de columnas o la clasificación de alguna variable?
-- ¿Hay alguna indicación especial que quieras darme? Por ejemplo: el significado exacto de alguna columna, contexto sobre cómo se recolectaron los datos, o alguna hipótesis que ya tengan mapeada y quieras que tome en cuenta.
-- ¿Quieres ajustar algo antes de que empiece el análisis de señales?"
+"Fase 0 lista. Mapeo de columnas: [resumen]. Decisión: FLUIR. Continúo con el análisis."
 
-El agente NO avanza a Fase 1 hasta que el usuario confirme explícitamente que puede continuar (ej. "adelante", "ok", "continúa").
-
-Si el usuario proporciona hipótesis previas o contexto adicional en este paso, se incorporan al campo `hipotesis_previas` del JSON y se actualiza `fase0_output.json` antes de continuar.
+No se detiene. Si el usuario interviene después, el agente aplica los ajustes en la siguiente fase sin rehacer lo ya completado (Regla 18 de AGENTE.md).
 
 ---
 
 ## Reglas
 
 - No te detengas si falta cuanti o cuali. Ejecuta con lo que haya y declara la ausencia en `faltantes_declarados`.
-- No verifiques el entorno de ejecución. Asume que todo corre en Claude.
+- No verifiques el entorno de ejecución. Asume que el entorno está listo y ejecuta directamente.
 - El dataset original nunca se sobrescribe.
 - Toda transformación se documenta.
 - Si un rol no puede mapearse, se declara explícitamente.
 
 - No asumas que distintas fuentes provienen de la misma población. Si el input incluye una encuesta y entrevistas, no infieras que los entrevistados son un subconjunto de los encuestados a menos que el usuario lo confirme explícitamente. Cada fuente se analiza en su propio contexto y las conclusiones no se transfieren automáticamente entre fuentes sin evidencia.
+- Declara los universos en `datos.poblaciones` (mapa `universo → {nombre, n}`: nombre de la población y **N de la población** para el piso adaptativo de Fase 3, p. ej. `encuesta`, `entrevistas`). Formato legado aceptado: `universo → "nombre"` (sin N; el piso por población cae a 30 fijo). Es la lista contra la que el gate contrasta por substring los cruces transpoblacionales (regla 12 de AGENTE.md y blindaje de `references/fase-3-cruce.md`).
+- Si una fuente cualitativa viene en planilla (XLSX/DOCX con columna de diálogo y hablante), Fase 0 la serializa a `transcripciones/*.txt` (normalización de transcripciones) y lo declara en `datos.fuentes_adicionales` y en `datos.transcripciones`; el archivo original no se lee en contexto (Regla 9 de AGENTE.md).

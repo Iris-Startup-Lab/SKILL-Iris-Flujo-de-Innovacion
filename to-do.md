@@ -240,6 +240,83 @@ con indicadores numéricos o al menos aplicar el orden de desempate por script.
 
 ---
 
+## Hecho el 02/09/2026
+
+### Adaptada la versión nueva de `senales-debiles` que llegó de los colegas
+
+Llegó como carpeta suelta (`senales-debiles-new/`, sin git) y es una reescritura sustancial, no un
+parche: `run_gate.py` pasa de 239 a 412 líneas, `verificar_citas.py` de 355 a 867,
+`verificar_trazabilidad.py` de 254 a 512, y trae seis archivos nuevos —`generar_reporte.py` +
+`plantilla_reporte.html` (el HTML propio ya no lo escribe el modelo), `invariante_clasificacion.py`
+(implementación única del Filtro 2, compartida entre el gate intermedio y el final),
+`preview_columnas.py`, `normalizar_transcripciones.py` y `references/ejemplos-senales.md`—.
+
+Lo que se cambió al adaptarla, y nada más:
+
+1. **`SKILL.md` → `AGENTE.md`,** archivo y las 25 referencias de texto repartidas por las fases,
+   `SPEC.md` y tres scripts. Es la regla del gestor (§5: *exactamente un `SKILL.md` por ZIP*), y
+   `empaquetar_skill.ps1 -SubSkill` la deshace sola al publicar la sub-skill suelta.
+2. **`category: Investigación`** de vuelta en el frontmatter.
+3. **Las tres secciones del flujo** al final del `AGENTE.md`: contexto de entrada, «Como paso del
+   flujo IRIS» y el contrato JSON de salida. Con tres cosas propias de esta versión: la consulta
+   inicial única se alimenta del contexto del flujo en vez de repreguntar objetivo y audiencia; las
+   hipótesis que el proyecto ya daba por sentadas entran como `hipotesis_previas` con
+   `fuente: "contexto del flujo IRIS"` y **pasan por el Filtro 2 como cualquier otra**; y un gate
+   cerrado como NO VERIFICADO se declara en `advertencias`, porque el HTML del paso viaja a los
+   siguientes y la duda tiene que viajar con él.
+4. **`meta.origen_datos` y el bloque `tabla`** en las instrucciones del `reporte.json` del paso —
+   los dos son de la ronda del 01/09 y este paso es justo el que suele correr sobre datos reales.
+5. **Saltos de línea a LF y newline final.** La carpeta venía mezclada: 14 archivos en CRLF y 3
+   sin newline final. En este repo `core.autocrlf=true`, así que **git no lo habría notado** —
+   normaliza al leer y al confirmar—; se normalizó igual para que la copia de trabajo se lea como
+   el resto del repo y para no dejar los 3 archivos sin newline final (MD047 y ruido en cualquier
+   diff futuro).
+6. **`README.md` reescrito** con el pipeline, la tabla de scripts y el gate; se conservan
+   `assets/logo.png` (regla «Extraíble») y `scripts/logo_base64.py` (lo cita AGENTS.md §5).
+7. **El p-valor de chi² vuelve a calcularse** si `scipy` está disponible. La versión nueva lo
+   dejaba fijo en `None`; la anterior lo obtenía con un `import` opcional. No cambia ninguna salida
+   —el único llamador (`cramers_v`) descarta el p-valor en las dos versiones—, pero la nota de
+   §«Evaluación de los métodos estadísticos» lo daba por presente. Contrastado contra
+   `scipy.stats.chi2_contingency`: coinciden a 1e-12, y sin scipy sigue devolviendo `None`.
+
+**Lo que decidió el colega y se respetó:** el reporte propio ya **no lleva el logo** («elementos
+del catálogo de agentes de otro producto»). El logo corporativo sigue en el HTML del paso, así que
+la marca no se pierde donde importa.
+
+**Verificado:** 15 scripts compilan; prueba de humo desde la raíz del repo con un proyecto de
+juguete (`preview_columnas` → `generar_heatmap` → `generar_reporte` → `run_gate`) en verde; el
+`reporte_ejecutivo.html` sale con **0 anclas internas** `<a href="#">` (regla de navegación del
+01/09), 0 IDs técnicos y su único recurso externo son las Google Fonts, igual que la plantilla del
+flujo; `run_gate.py` sobre un proyecto incompleto falla cerrado sin colgarse. Regresión del repo:
+62 scripts compilan, 156 casos en 5 baterías, 0 fallos.
+
+La carpeta de paso `senales-debiles-new/` ya la borró el usuario tras revisar.
+
+### `--help` unificado en los 6 scripts de `senales-debiles` que no usan argparse
+
+Al probar la versión nueva salieron dos papercuts: `generar_heatmap.py` y `generar_reporte.py`
+trataban `--help` como **nombre de archivo** (`FileNotFoundError: '--help'`). Al arreglarlos
+apareció el de fondo: `verificar_citas.py`, `verificar_numeros.py` y `verificar_trazabilidad.py`
+sí atendían `-h/--help`, pero metían la ayuda pedida y la falta de argumentos en la misma
+condición y salían con **código 1** en los dos casos; `validar_reporte.py` no la atendía y además
+imprimía su uso por stdout.
+
+Convención única, aplicada a los 6:
+
+- `-h` / `--help` → imprime el docstring del módulo por **stdout** y sale con **0**. Una ayuda
+  pedida no es un error: con exit 1 se rompe cualquier `script --help && …` y un chequeo de CI
+  la cuenta como fallo.
+- sin argumentos → el uso por **stderr** y exit **1**, como antes.
+
+El docstring es la ayuda porque ya documenta el formato de entrada de cada script (el de
+`generar_heatmap.py` trae el esquema de `frecuencias.json`, que no es adivinable). Los otros 9
+scripts de la skill usan `argparse` y ya se comportaban así.
+
+**Verificado:** los 14 scripts con CLI responden `--help` con exit 0 e imprimen su uso; `-h` es
+equivalente; los 6 tocados siguen saliendo con 1 y avisando por stderr cuando no reciben
+argumentos. Prueba de humo del pipeline y regresión del repo (48 scripts, 156 casos en 5
+baterías) en verde.
+
 ## Hecho el 01/09/2026
 
 ### El salto entre pasos dentro de Claude Desktop — la pasarela intercepta cualquier `<a href>`

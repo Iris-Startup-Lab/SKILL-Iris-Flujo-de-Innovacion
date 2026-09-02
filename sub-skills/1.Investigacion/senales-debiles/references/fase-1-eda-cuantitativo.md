@@ -26,6 +26,8 @@ python scripts/fase1_analisis.py <csv_enriquecido> <fase0_output.json> -o fase1_
 
 El borrador incluye los bloques B0-B7, conteos, tasas base, alertas, datos para gráficas y cálculos adicionales (Gini, correlaciones Spearman, Cramér's V). El LLM debe revisar cada hallazgo, decidir si escala, ajustar severidad/sorpresa y redactar `expectativa_rota` e `hipotesis_valor`.
 
+**Lectura completa sin volcar el CSV:** la evidencia de lectura completa del dataset la aporta el script (N de filas/columnas procesadas, Regla 9 de AGENTE.md), no el volcado del archivo en contexto. El LLM solo lee en contexto el contenido de las columnas declaradas en `variables_texto_abierto` de Fase 0 (para interpretar bucketizaciones atípicas y texto libre); el resto del archivo no se reproduce. En `infraestructura` se reportan los N exactos procesados por el script para que el gate los contraste contra el CSV enriquecido.
+
 Nota: `hipotesis_previas` no se repite en este archivo; se hereda de `fase0_output.json` (ver contrato en AGENTE.md). Los cambios de estado de una hipótesis se declaran en `advertencias`.
 
 ```json
@@ -47,7 +49,7 @@ Nota: `hipotesis_previas` no se repite en este archivo; se hereda de `fase0_outp
     "infraestructura": {
       "descriptivos": [
         {
-          "variable": "importancia_alimentacion",
+          "variable": "importancia_empleo",
           "rol": "intensidad_valor",
           "media": 4.3,
           "mediana": 5.0,
@@ -61,7 +63,7 @@ Nota: `hipotesis_previas` no se repite en este archivo; se hereda de `fase0_outp
       ],
       "faltantes": [
         {
-          "variable": "horas_semana_huerto",
+          "variable": "horas_semana_taller",
           "n_faltantes": 5,
           "pct_faltantes": 4.2,
           "clasificacion": "no disponible",
@@ -91,36 +93,39 @@ Nota: `hipotesis_previas` no se repite en este archivo; se hereda de `fase0_outp
         "nombre": "Tensión intensidad-esfuerzo",
         "aplica": true,
         "roles_requeridos": ["intensidad_valor", "esfuerzo_accion"],
-        "expectativa_base": "A mayor importancia de la alimentación saludable, mayor participación en el huerto comunitario",
+        "expectativa_base": "A mayor importancia de conseguir empleo, mayor asistencia a los talleres de capacitación",
         "expectativa_inferida": true,
-        "cruce": "importancia_alimentacion × horas_semana_huerto, color por tipo_barrera_cat",
+        "cruce": "importancia_empleo × horas_semana_taller, color por tipo_barrera_cat",
         "resultado": "CONTRADICCIÓN",
         "senales": [
           {
             "id": "SD-CUANT-001",
-            "fuente_origen": ["encuesta.csv"],
+            "fuente_origen": ["datos_cuantitativos.csv"],
             "tipo": "Multivariante",
-            "dato": "62% (71/115) otorga importancia máxima (5) a la alimentación saludable pero dedica 0 horas/semana al huerto comunitario",
-            "contexto": "N=115, muestra completa, todos los barrios",
-            "expectativa_rota": "Esperábamos que a mayor importancia de la alimentación saludable, mayor participación en el huerto. Observamos un cluster mayoritario (62%) con máxima importancia y cero acción.",
+            "dato": "62% (71/115) otorga importancia máxima (5) a conseguir empleo pero dedica 0 horas/semana a los talleres de capacitación",
+            "contexto": "N=115, muestra completa, todas las zonas",
+            "poblacion": "encuesta",
+            "n": 115,
+            "expectativa_rota": "Esperábamos que a mayor importancia de conseguir empleo, mayor asistencia a los talleres. Observamos un cluster mayoritario (62%) con máxima importancia y cero acción.",
             "severidad": "Alta",
             "justificacion_severidad": "Afecta la variable central de la pregunta de investigación: si la importancia no predice participación, el modelo mental del programa está equivocado",
-            "sorpresa": "Alta",
-            "justificacion_sorpresa": "Contradice la creencia fundamental de que el residente no participa porque no le importa la alimentación saludable",
+            "sorpresa": "Media",
+            "justificacion_sorpresa": "Contradice la creencia fundamental de que el residente no asiste porque no le importa conseguir empleo. La expectativa es inferida por el agente (bloque con `expectativa_inferida: true`), por lo que la sorpresa tope es Media.",
             "hipotesis_valor": "Si se reduce la fricción de la primera visita (sesión guiada de 30 min sin compromiso), entonces la tasa de participación podría aumentar, porque la señal indica que la barrera no es motivación sino fricción inicial.",
             "validacion_pendiente": "Medir si una sesión introductoria guiada incrementa la tasa de primera visita",
             "robustez": "71 de 115 registros (62%). Generalizable a la muestra.",
             "escala_a_fase4": true,
-            "clasificacion_hipotesis_previa": "confirmacion | señal débil | tension",
-            "hipotesis_previa_referenciada": "texto de la hipótesis previa contra la que se clasifica, o null si es señal débil nueva",
-            "exclusiones": ["Se excluyen 4 registros marcados como baja calidad de respuesta", "N efectivo=115 (5 faltantes en variable horas_semana_huerto)"]
+            "clasificacion_hipotesis_previa": "señal débil",
+            "hipotesis_previa_referenciada": null,
+            "ancla": "expectativa_inferida",
+            "exclusiones": ["Se excluyen 4 registros marcados como baja calidad de respuesta", "N efectivo=115 (5 faltantes en variable horas_semana_taller)"]
           }
         ],
         "grafica": {
           "tipo": "heatmap",
           "datos_frecuencias": {
             "eje_x": ["Falta de tiempo", "Lejanía", "No sé cómo"],
-            "eje_y": ["App de recetas", "Comprar en supermercado", "Ninguna"],
+            "eje_y": ["Buscar tutorial en línea", "Preguntar a conocidos", "No he intentado"],
             "eje_x_titulo": "Categoría problema",
             "eje_y_titulo": "Categoría solución",
             "valores": [
@@ -129,7 +134,7 @@ Nota: `hipotesis_previas` no se repite en este archivo; se hereda de `fase0_outp
               [5, 4, 10]
             ]
           },
-          "descripcion": "Heatmap: cruce categoría_problema × categoría_solución. Intensidad de color = frecuencia. Se entregan los datos como matriz de frecuencias en el JSON; Fase 4 lo renderiza como SVG inline (SPEC.md § 6). Nunca se usa chartjs-chart-matrix."
+          "descripcion": "Heatmap: cruce categoría_problema × categoría_solución. Intensidad de color = frecuencia. Se entregan los datos como matriz de frecuencias en el JSON; Fase 4 lo renderiza como SVG inline (SPEC.md sección 6). Nunca se usa chartjs-chart-matrix."
         }
       }
     ],
@@ -200,7 +205,7 @@ Los 7 bloques:
 ```json
 {
   "id": "SD-CUANT-001",
-  "fuente_origen": ["encuesta.csv"],
+  "fuente_origen": ["datos_cuantitativos.csv"],
   "tipo": "Univariante | Multivariante | Temporal | De silencio",
   "dato": "valor exacto con N efectivo",
   "contexto": "N, segmento, condición",
@@ -212,11 +217,12 @@ Los 7 bloques:
   "hipotesis_valor": "Si [cambio], entonces [resultado], porque [mecanismo].",
   "validacion_pendiente": "qué medir para confirmar o descartar",
   "robustez": "N que la sostienen. ¿Generalizable o caso único?",
-  "exclusiones": ["Se excluyen 4 registros marcados como baja calidad de respuesta", "N efectivo=115 (5 faltantes en variable horas_semana_huerto)"],
+  "exclusiones": ["Se excluyen 4 registros marcados como baja calidad de respuesta", "N efectivo=115 (5 faltantes en variable horas_semana_taller)"],
   "escala_a_fase4": true,
   "clasificacion_hipotesis_previa": "confirmacion | señal débil | tension",
   "hipotesis_previa_referenciada": "texto de la hipótesis previa contra la que se clasifica, o null si es señal débil nueva",
-  "ancla": "hipotesis_usuario | expectativa_inferida"
+  "ancla": "hipotesis_usuario | expectativa_inferida",
+  "mecanismo_nuevo": null
 }
 ```
 
@@ -230,6 +236,9 @@ Los 7 bloques:
 - Si un bloque no justifica gráfica, `grafica` es `null`.
 - Los IDs usan prefijo `SD-CUANT-`. En el reporte final se simplificarán a "Señal Débil N".
 - **Regla de heatmap:** cuando un bloque cruza dos variables categóricas con 3+ niveles cada una (ej. B2: categoría_problema × categoría_solución), el heatmap es la visualización obligatoria. Se entregan los datos como matriz de frecuencias en el JSON; Fase 4 lo renderiza como SVG inline. El scatter solo se usa cuando al menos una variable es continua.
-- **Calibración:** `severidad` y `sorpresa` se puntúan contra la rúbrica de SPEC.md § 5, con el campo `ancla` declarado (`hipotesis_usuario` o `expectativa_inferida`). Si el ancla es `expectativa_inferida`, la sorpresa tope es Media.
-- **Regla de tasa base (obligatoria):** toda señal basada en la tasa de un subgrupo se compara contra la tasa base del mismo fenómeno en la población total. Si la tasa del subgrupo no difiere materialmente de la base (diferencia ≤ ~5 puntos porcentuales, o sin evidencia de que la diferencia sea real), el bloque se clasifica `CONSISTENTE`, no señal débil. Ambas tasas se declaran en `dato` con numerador y denominador explícitos (SPEC.md § 5). Un ejemplo: "39.0% (48/123) del segmento X hace Y" con base 38.8% (123/317) es la misma tasa con ruido; no es señal.
-- **SSoT (fuente única de verdad):** los conteos de infraestructura y de señales se calculan con Python contra el CSV; el JSON cita el resultado del cálculo, nunca cifras inventadas. `scripts/verificar_numeros.py` recalcula los conteos y los compara contra este JSON (SPEC.md § 0.2).
+- **Calibración:** `severidad` y `sorpresa` se puntúan contra la rúbrica de SPEC.md sección 5, con el campo `ancla` declarado (`hipotesis_usuario` o `expectativa_inferida`). Si el ancla es `expectativa_inferida`, la sorpresa tope es Media.
+- **Regla de cierre (reclasificación auditable):** si la señal se clasifica "señal débil" con ancla `hipotesis_usuario`, declara `mecanismo_nuevo` (string no vacío) con el mecanismo causal nuevo e independiente que la separa de `confirmacion`/`tension`; sin él, la señal queda `confirmacion`/`tension` y no escala (AGENTE.md regla 13). `scripts/validar_esquema.py` lo exige.
+- **Regla de tasa base (obligatoria):** toda señal basada en la tasa de un subgrupo se compara contra la tasa base del mismo fenómeno en la población total. Si la tasa del subgrupo no difiere materialmente de la base (diferencia ≤ ~5 puntos porcentuales, o sin evidencia de que la diferencia sea real), el bloque se clasifica `CONSISTENTE`, no señal débil. Ambas tasas se declaran en `dato` con numerador y denominador explícitos (SPEC.md sección 5). Un ejemplo: "39.0% (48/123) del segmento X hace Y" con base 38.8% (123/317) es la misma tasa con ruido; no es señal.
+- **Piso de N y significancia (obligatoria):** una diferencia porcentual califica como señal solo si el denominador del subgrupo alcanza **15 registros** Y el **intervalo de Wilson al 95% de la tasa del subgrupo no contiene la tasa base**. Con denominador bajo 15, se clasifica `CONSISTENTE por muestra insuficiente`; si el intervalo contiene la base, se clasifica `CONSISTENTE` (no se descarta el azar). `fase1_analisis.py` aplica ambas y `verificar_numeros.py` reporta WARN si un denominador queda bajo 15 (SPEC.md sección 5).
+- **`poblacion` y `n` por señal (obligatorios):** toda señal declara `poblacion` (universo de Fase 0 al que pertenece su denominador, p. ej. `"encuesta"`) y `n` (denominador propio de la señal). Las usan el piso adaptativo por población de Fase 3 y `verificar_trazabilidad.py`; sin ellas, el verificador cae a heurísticas sobre el texto libre.
+- **SSoT (fuente única de verdad):** los conteos de infraestructura y de señales se calculan con Python contra el CSV; el JSON cita el resultado del cálculo, nunca cifras inventadas. `scripts/verificar_numeros.py` recalcula los conteos y los compara contra este JSON (SPEC.md invariante 0.2).

@@ -19,6 +19,8 @@ import re
 import json
 from pathlib import Path
 from bs4 import BeautifulSoup
+from invariante_clasificacion import (verificar_invariante,
+                                      items_de_fase as invar_items_de_fase)
 
 
 class ValidationError:
@@ -32,7 +34,7 @@ class ValidationError:
 
 def validar(html_path):
     errores = []
-    with open(html_path, encoding="utf-8") as f:
+    with open(html_path, encoding="utf-8-sig") as f:
         html = f.read()
     soup = BeautifulSoup(html, "html.parser")
 
@@ -77,9 +79,15 @@ def validar(html_path):
         ))
 
     # --- 5. Tarjetas de señal: 5 campos esperados ---
-    tarjetas = soup.find_all(class_=re.compile(r"card|tarjeta", re.I))
+    # Se usa word boundary para no confundir 'cards' (contenedor) con 'card'.
+    tarjetas = soup.find_all(class_=re.compile(r"\b(card|tarjeta)\b", re.I))
     campos_esperados = ["dato", "expectativa", "pregunta", "hipótesis", "hipotesis"]
-    señal_cards = [c for c in tarjetas if re.search(r"señal débil \d+", c.get_text(), re.I)]
+    # Solo tarjetas de nivel superior: si una tarjeta anida otra, no se cuenta dos veces.
+    señal_cards = [
+        c for c in tarjetas
+        if re.search(r"señal débil \d+", c.get_text(), re.I)
+        and not any(c in padre for padre in tarjetas if padre is not c)
+    ]
     if señal_cards:
         for i, card in enumerate(señal_cards, start=1):
             texto = card.get_text(" ", strip=True).lower()
@@ -94,9 +102,14 @@ def validar(html_path):
         errores.append(ValidationError("ERROR", "No se encontraron tarjetas de 'Señal Débil N'"))
 
     n_senales = len(señal_cards)
-    if not (3 <= n_senales <= 5):
+    if not (1 <= n_senales <= 5):
         errores.append(ValidationError(
-            "ERROR", f"Número de señales fuera de rango (3-5): se encontraron {n_senales}"
+            "ERROR", f"Número de señales fuera de rango (1-5): se encontraron {n_senales}"
+        ))
+    elif n_senales < 3:
+        errores.append(ValidationError(
+            "WARN", f"Solo {n_senales} señal(es) publicadas (3-5 es el objetivo; "
+                    "con 1-2 la escasez debe declararse en las advertencias)"
         ))
 
     # --- 6. Numeración secuencial de títulos ("Señal Débil N:") ---
@@ -141,12 +154,15 @@ def validar(html_path):
     for tag in soup.find_all(["svg", "script"]):
         tag.decompose()
 
-    # --- 10. Decisiones estratégicas: 2 o 3, referencian señales ---
+    # --- 10. Decisiones estratégicas: proporcionales a señales publicadas ---
     decisiones_texto = soup.get_text()
     n_decisiones = len(re.findall(r"Basado en:\s*Señal Débil", decisiones_texto))
-    if n_decisiones and not (2 <= n_decisiones <= 3):
+    max_decisiones = 3
+    min_decisiones = 1 if n_senales <= 1 else 2
+    if n_decisiones and not (min_decisiones <= n_decisiones <= max_decisiones):
         errores.append(ValidationError(
-            "ERROR", f"Número de decisiones fuera de rango (2-3): se encontraron {n_decisiones}"
+            "ERROR", f"Número de decisiones fuera de rango ({min_decisiones}-{max_decisiones}) "
+                     f"para {n_senales} señal(es): se encontraron {n_decisiones}"
         ))
 
     # --- 11. Footer sin sección de trazabilidad ---
@@ -165,47 +181,22 @@ def validar(html_path):
 def validar_invariante_json(json_paths):
     """Invariantes de AGENTE.md sobre los JSON de Fases 1-3:
     - clasificacion_hipotesis_previa != "señal débil" => escala_a_fase4 = false.
-    - Ningún cruce transpoblacional tiene escala_a_fase4 = true."""
+    - Ningún cruce transpoblacional tiene escala_a_fase4 = true.
+
+    Usa la implementación única en invariante_clasificacion.py, la misma que
+    validar_esquema.py aplica como gate intermedio al cierre de Fases 1-3."""
     errores = []
-    esquemas = {
-        "fase-1-eda-cuantitativo": "senales",
-        "fase-2-eda-cualitativo": "senales",
-        "fase-3-cruce": "cruces",
-    }
-    clasificaciones_validas = {"confirmacion", "señal débil", "tension"}
     for path in json_paths:
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(path, encoding="utf-8-sig") as f:
                 data = json.load(f)
         except (OSError, ValueError) as e:
             errores.append(ValidationError("ERROR", f"No se pudo leer {path}: {e}"))
             continue
-        items_key = esquemas.get(data.get("fase", ""))
-        if not items_key:
+        if not invar_items_de_fase(data):
             continue
-        bloques = data.get("datos", {}).get("bloques", [])
-        for bloque in bloques:
-            for item in bloque.get(items_key, []):
-                clasif = item.get("clasificacion_hipotesis_previa")
-                escala = item.get("escala_a_fase4")
-                item_id = item.get("id", "?")
-                if clasif in ("confirmacion", "tension") and escala is True:
-                    errores.append(ValidationError(
-                        "ERROR",
-                        f"{path}: {item_id} tiene clasificacion '{clasif}' pero escala_a_fase4=true "
-                        f"(Filtro 2 de AGENTE.md: no escala como señal débil)"
-                    ))
-                elif clasif not in clasificaciones_validas and clasif is not None:
-                    errores.append(ValidationError(
-                        "WARN",
-                        f"{path}: {item_id} tiene clasificación inválida '{clasif}'"
-                    ))
-                if item.get("tipo_cruce") == "transpoblacional" and escala is True:
-                    errores.append(ValidationError(
-                        "ERROR",
-                        f"{path}: {item_id} es transpoblacional y tiene escala_a_fase4=true "
-                        f"(blindaje de cruces transpoblacionales)"
-                    ))
+        for nivel, msg in verificar_invariante(data, path):
+            errores.append(ValidationError(nivel, msg))
     return errores
 
 
@@ -214,7 +205,7 @@ def validar_mapeo_completo(json_paths, fase4_path):
     escala_a_fase4=true de fases 1-3 y nada más."""
     errores = []
     try:
-        with open(fase4_path, encoding="utf-8") as f:
+        with open(fase4_path, encoding="utf-8-sig") as f:
             fase4 = json.load(f)
     except (OSError, ValueError) as e:
         errores.append(ValidationError("ERROR", f"No se pudo leer {fase4_path}: {e}"))
@@ -228,7 +219,7 @@ def validar_mapeo_completo(json_paths, fase4_path):
     escala_ids = {}
     for path in json_paths:
         try:
-            with open(path, encoding="utf-8") as f:
+            with open(path, encoding="utf-8-sig") as f:
                 data = json.load(f)
         except (OSError, ValueError) as e:
             errores.append(ValidationError("ERROR", f"No se pudo leer {path}: {e}"))
@@ -241,12 +232,63 @@ def validar_mapeo_completo(json_paths, fase4_path):
                         escala_ids[iid] = path
 
     ids_mapeados = set(mapeo.values())
-    for iid, path in escala_ids.items():
-        if iid not in ids_mapeados:
+
+    # Corte estructurado (fase-4-entrega.md): bloque datos.corte con score compuesto.
+    datos_f4 = fase4.get("datos") if isinstance(fase4.get("datos"), dict) else {}
+    corte = datos_f4.get("corte") if isinstance(datos_f4.get("corte"), dict) else None
+    corte_valido = bool(
+        corte and corte.get("aplicado") is True
+        and isinstance(corte.get("score"), dict) and corte["score"])
+    # Fallback (legado): prosa en advertencias.
+    tope5 = (len(ids_mapeados) <= 5 and (corte_valido or any(
+        isinstance(adv, str) and re.search(
+            r"corte\s+de\s+tope\s*5|tope\s+de\s*5\s+se[ñn]ales|score\s+compuesto", adv, re.I)
+        for adv in fase4.get("advertencias", []))))
+
+    if corte_valido:
+        # Verificar coherencia del score compuesto (SPEC seccion 5) y top-5.
+        try:
+            ranked = sorted(
+                ((iid, float(sc.get("score", 0)))
+                 for iid, sc in corte["score"].items() if isinstance(sc, dict)),
+                key=lambda t: t[1], reverse=True)
+            top5 = [iid for iid, _ in ranked[:5]]
+        except (TypeError, ValueError):
+            top5 = []
+        excluidas = set(corte.get("excluidas") or [])
+        if top5:
+            no_top = [iid for iid in ids_mapeados if iid not in top5 and iid not in excluidas]
+            if no_top:
+                errores.append(ValidationError(
+                    "ERROR",
+                    f"mapeo_html incluye {sorted(no_top)} que no estan en el top-5 por "
+                    f"score compuesto de datos.corte (SPEC seccion 5)"))
+        fuera_declaradas = [iid for iid in escala_ids
+                            if iid not in ids_mapeados and iid not in excluidas]
+        if fuera_declaradas:
             errores.append(ValidationError(
                 "ERROR",
-                f"{iid} (escala_a_fase4=true en {path}) no aparece en mapeo_html"
-            ))
+                f"{sorted(fuera_declaradas)} tienen escala_a_fase4=true, no estan en mapeo_html "
+                f"y no se declaran en datos.corte.excluidas"))
+
+    fuera_por_tope = []
+    for iid, path in escala_ids.items():
+        if iid not in ids_mapeados:
+            if tope5:
+                fuera_por_tope.append(iid)
+            else:
+                errores.append(ValidationError(
+                    "ERROR",
+                    f"{iid} (escala_a_fase4=true en {path}) no aparece en mapeo_html. "
+                    f"Con mas de 5 candidatos debe declararse el corte de tope 5 por "
+                    f"score compuesto (datos.corte o advertencias de fase4, SPEC seccion 5)"
+                ))
+    if fuera_por_tope and not corte_valido:
+        errores.append(ValidationError(
+            "WARN",
+            f"{len(escala_ids)} items escalan y mapeo_html publica {len(ids_mapeados)}; "
+            f"corte de tope 5 declarado en fase4. Fuera del reporte: {sorted(fuera_por_tope)}"
+        ))
     for k, v in mapeo.items():
         if v not in escala_ids:
             errores.append(ValidationError(
@@ -256,10 +298,55 @@ def validar_mapeo_completo(json_paths, fase4_path):
     return errores
 
 
+def extraer_graficas_html(html):
+    """Extrae el dict window.REPORT_GRAFICAS del HTML generado."""
+    m = re.search(r"window\.REPORT_GRAFICAS\s*=\s*(\{.*?\});", html, re.DOTALL)
+    if not m:
+        return {}
+    try:
+        graficas = json.loads(m.group(1))
+        return graficas if isinstance(graficas, dict) else {}
+    except (ValueError, TypeError):
+        return {}
+
+
+def validar_n_etiquetas(html):
+    """Verifica coherencia de N en etiquetas de gráficas (SPEC seccion 7):
+    si el título de la gráfica declara N=<total> y TODAS las etiquetas llevan
+    (n=<valor>), la suma de los n debe coincidir con N. Scope acotado a este
+    caso para evitar falsos positivos (consenso: no parsear texto narrativo)."""
+    errores = []
+    for cid, cfg in extraer_graficas_html(html).items():
+        title = (cfg.get("options", {}).get("plugins", {}).get("title", {}).get("text") or "")
+        labels = (cfg.get("data", {}) or {}).get("labels") or []
+        m_n = re.search(r"N\s*=\s*(\d+)", str(title))
+        if not m_n:
+            continue
+        n_total = int(m_n.group(1))
+        ns = []
+        for lbl in labels:
+            if isinstance(lbl, list):
+                lbl = " ".join(lbl)
+            if isinstance(lbl, str):
+                m = re.search(r"\(?\s*n\s*=\s*(\d+)\s*\)?", lbl)
+                if m:
+                    ns.append(int(m.group(1)))
+        if ns and len(ns) == len(labels) and sum(ns) != n_total:
+            errores.append(ValidationError(
+                "WARN",
+                f"{cid}: la suma de n en etiquetas ({sum(ns)}) no coincide con "
+                f"N={n_total} declarado en el título de la gráfica"))
+    return errores
+
+
 def main():
+    if "-h" in sys.argv[1:] or "--help" in sys.argv[1:]:
+        print(__doc__)
+        sys.exit(0)          # la ayuda pedida no es un error
     if len(sys.argv) < 5:
         print("Uso: python validar_reporte.py reporte_ejecutivo.html "
-              "fase1_output.json fase2_output.json fase3_output.json [fase4_output.json]")
+              "fase1_output.json fase2_output.json fase3_output.json [fase4_output.json]",
+              file=sys.stderr)
         sys.exit(1)
 
     html_path = sys.argv[1]
@@ -281,6 +368,8 @@ def main():
         errores.extend(validar_invariante_json(json_paths))
     if fase4_path:
         errores.extend(validar_mapeo_completo(json_paths, fase4_path))
+    with open(html_path, encoding="utf-8-sig") as f:
+        errores.extend(validar_n_etiquetas(f.read()))
 
     if not errores:
         print("Reporte valido. No se encontraron problemas.")

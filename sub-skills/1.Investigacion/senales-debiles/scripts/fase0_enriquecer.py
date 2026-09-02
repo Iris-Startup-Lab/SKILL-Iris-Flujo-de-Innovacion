@@ -6,24 +6,34 @@ Enriquecimiento determinístico del dataset cuantitativo para la skill
 hipotesis) y produce un CSV enriquecido con columnas derivadas:
 
   - Normalización de espacios en columnas categóricas/texto.
-  - Codificación ligera de columnas de texto según reglas semánticas.
-  - Normalización de métodos de pago (si se detecta una columna de pago).
-  - Flags binarios opcionales (p. ej. 'tiene_app').
+  - Codificación ligera de columnas de texto SEGÚN reglas semánticas declaradas.
+  - Detección de variables binarias (0/1, Sí/No, verdadero/falso, etc.).
   - Métricas de calidad de respuesta y advertencias.
+
+Este script NO aplica reglas de dominio por defecto: la codificación ligera
+depende de las reglas que la Fase 0 declare (o de --rules). Si una columna
+temática no tiene reglas, se advierte y se preserva el valor original
+(passthrough) en lugar de inventar categorías de un dominio ajeno.
 
 Uso:
     python fase0_enriquecer.py <csv_limpio> <fase0_output.json> -o <csv_enriquecido> [--update-fase0]
 
 El parámetro --update-fase0 actualiza el mismo fase0_output.json con:
-  - dataset_enriquecido
-  - codificacion_ligera
+  - dataset_enriquecido (incluye variables_binarias)
+  - codificacion_ligera (resultados; conserva reglas)
   - calidad_respuesta
   - advertencias (append)
 
-Reglas de codificación:
-  - Se leen de fase0_output.json['codificacion_ligera']['reglas'] si existen.
-  - Si no, se usan reglas por defecto para pequeño comercio en español.
-  - El usuario puede sobreescribir con --rules <json>.
+Reglas de codificación (estructura JSON):
+  {
+    "problem":   [["categoria_1", ["keyword1", ...]], ...],
+    "solution":  [["categoria_1", ["keyword1", ...]], ...],
+    "segment":   [["categoria_1", ["keyword1", ...]], ...]
+  }
+  Se leen, en orden de prioridad:
+  1. --rules <json> (explícito de línea de comandos)
+  2. fase0_output.json['datos']['codificacion_ligera']['reglas']
+  3. sin reglas: no se codifica; passthrough + advertencia.
 """
 import argparse
 import json
@@ -36,76 +46,6 @@ import pandas as pd
 
 
 # ---------------------------------------------------------------------------
-# Reglas por defecto: encuestas de pequeño comercio en español.
-# Cada regla es (categoría, [lista de keywords]). La primera coincidencia gana.
-# ---------------------------------------------------------------------------
-DEFAULT_PROBLEM_RULES = [
-    ("sin_dificultad", ["ningun", "nada", "no hay", "no tiene", "gusta",
-                        "no se me hace", "todo en orden", "ninguno", "ninguna",
-                        "hasta ahorita nada", "no se me dificulta"]),
-    ("surtido_proveedores", ["surtir", "proveed", "abasto", "central",
-                              "pedido", "comprar", "abastecer"]),
-    ("clientes_ventas", ["cliente", "venta", "baja", "afluencia", "llegan",
-                          "atraer", "vender"]),
-    ("cobro_pagos", ["cobr", "pag", "fiado", "deuda", "crédit", "credit",
-                      "tarjeta", "transfer", "cambio", "terminal", "qr"]),
-    ("precios_costos", ["precio", "caro", "cost", "gast", "barato",
-                         "inversión", "inversion", "mayoreo"]),
-    ("tiempo_horario", ["tiempo", "horario", "hora", "turno", "jornada"]),
-    ("competencia", ["competencia", "compet", "oxxo", "aurrera", "seven",
-                      "walmart"]),
-    ("administracion", ["administr", "organiz", "control", "inventar",
-                          "contab", "cuentas"]),
-    ("inseguridad", ["insegur", "robo", "asalt", "delincuencia", "extorsión",
-                      "ladrones"]),
-    ("infraestructura", ["espacio", "local", "infraestr", "equip",
-                           "mobiliario", "refri"]),
-    ("no_especificado", ["no especificado", "no s", "no lo se", "no lo sé"]),
-]
-
-DEFAULT_SOLUTION_RULES = [
-    ("no_especificado", ["no especificado", "no s", "no lo se", "no lo sé"]),
-    ("organizacion", ["organiz", "planific", "administr", "control",
-                        "contab", "cuentas"]),
-    ("surtido_compras", ["surtir", "proveed", "abasto", "central",
-                          "comprar", "mercancía"]),
-    ("estrategia_precios", ["preci", "promoci", "ofert", "descuent",
-                              "mayoreo", "abarroter"]),
-    ("esfuerzo_personal", ["trabaj", "esfuer", "dedic", "empeno",
-                             "esmero"]),
-    ("tecnologia", ["app", "aplicaci", "tecnol", "digital", "sistema",
-                     "software", "plataforma"]),
-    ("medios_pago", ["transfer", "tarjeta", "pago", "cobr", "terminal",
-                      "qr", "spei"]),
-    ("personal", ["person", "gente", "emple", "ayudante", "familia",
-                   "trabajador"]),
-]
-
-DEFAULT_GIRO_RULES = [
-    ("abarrotes_tienda", ["abarrot", "tienda", "tiendita", "miscelán",
-                            "miscelan", "minisuper", "super", "abarrotera"]),
-    ("alimentos_bebidas", ["comida", "aliment", "restaur", "taco", "fonda",
-                             "cocina", "torta", "antoj", "bebida", "cremería",
-                             "panadería", "carnicería", "lonja"]),
-    ("ropa_calzado", ["ropa", "textil", "boutique", "zapato", "calzado",
-                       "paca"]),
-    ("papeleria_merceria", ["papelería", "papeler", "merceria"]),
-    ("farmacia", ["farm", "medic"]),
-    ("estetica_belleza", ["estética", "estetica", "belleza", "salon",
-                            "peluq", " SPA", "spa"]),
-    ("no_especificado", ["no especificado", "no s", "no lo se", "no lo sé"]),
-]
-
-PAYMENT_KEYWORDS = ["efectivo", "tarjeta", "transfer", "digital", "qr",
-                    "spei", "vales"]
-
-APP_BANK_KEYWORDS = ["app", "aplicación", "banco", "bbva", "banamex",
-                     "santander", "bancomer", "azteca", "clip",
-                     "mercado pago", "baz", "banorte", "bancoppel",
-                     "hsbc", "t-conecta", "bimbo"]
-
-
-# ---------------------------------------------------------------------------
 # Utilidades
 # ---------------------------------------------------------------------------
 def normalize_whitespace(val):
@@ -115,7 +55,8 @@ def normalize_whitespace(val):
 
 
 def categorize_text(val, rules):
-    """Aplica reglas de keyword a un valor de texto."""
+    """Aplica reglas de keyword a un valor de texto. La primera coincidencia
+    gana; si ninguna coincide devuelve 'otro'."""
     if pd.isna(val):
         return np.nan
     v = str(val).lower()
@@ -125,39 +66,36 @@ def categorize_text(val, rules):
     return "otro"
 
 
-def normalize_payment(val):
-    """Normaliza una cadena de método de pago a categorías estándar."""
-    if pd.isna(val):
-        return np.nan
-    v = str(val).lower()
-    has_cash = "efectivo" in v or "cash" in v
-    has_digital = any(k in v for k in ["tarjeta", "transfer", "digital",
-                                         "qr", "spei"])
-    if has_cash and has_digital:
-        return "efectivo_digital"
-    if has_digital:
-        return "solo_digital"
-    if has_cash:
-        return "solo_efectivo"
-    return "otro"
+BINARIO_STR = {
+    "1": 1, "0": 0, "1.0": 1, "0.0": 0,
+    "true": 1, "false": 0, "verdadero": 1, "falso": 0,
+    "si": 1, "sí": 1, "no": 0, "s": 1, "n": 0, "y": 1,
+}
 
 
-def looks_like_payment_column(series, threshold=0.30):
-    """Heurística: ¿esta serie parece una columna de métodos de pago?"""
-    non_null = series.dropna().astype(str).str.lower()
-    if len(non_null) == 0:
+def es_binaria(series):
+    """True si la serie es binaria: valores no nulos ⊆ {0,1} numéricos o
+    pares booleanos típicos (Sí/No, verdadero/falso, s/n, y/n)."""
+    s = series.dropna()
+    if len(s) == 0:
         return False
-    hits = non_null.apply(lambda x: any(k in x for k in PAYMENT_KEYWORDS))
-    return hits.mean() >= threshold
+    valores = set(s.astype(str).str.strip().str.lower())
+    if valores.issubset({"0", "1", "0.0", "1.0"}):
+        return True
+    return valores.issubset(BINARIO_STR)
 
 
-def looks_like_appbank_column(series, threshold=0.30):
-    """Heurística: ¿esta serie parece contener nombres de apps/bancos?"""
-    non_null = series.dropna().astype(str).str.lower()
-    if len(non_null) == 0:
-        return False
-    hits = non_null.apply(lambda x: any(k in x for k in APP_BANK_KEYWORDS))
-    return hits.mean() >= threshold
+def coerce_binaria(series):
+    """Devuelve una serie numérica 0/1 si la columna es binaria; si la
+    columna ya es numérica 0/1 la devuelve tal cual; si un valor cae en
+    BINARIO_STR lo convierte; si algo no es binario devuelve None."""
+    s = series.dropna()
+    if len(s) == 0:
+        return None
+    valores = set(s.astype(str).str.strip().str.lower())
+    if not valores.issubset(BINARIO_STR):
+        return None
+    return s.map(lambda x: BINARIO_STR[str(x).strip().lower()])
 
 
 def object_columns(df):
@@ -168,14 +106,12 @@ def object_columns(df):
 def build_quality_report(df):
     """Construye métricas de calidad de respuesta."""
     total = len(df)
-    # Respuestas abiertas monosílabas / genéricas en columnas de texto
     generic = ["no", "nada", "ninguno", "na", ".", "-", "--", "...", "x"]
     baja_calidad = 0
     for col in object_columns(df):
         for val in df[col].dropna().astype(str).str.strip().str.lower():
             if len(val) <= 2 or val in generic:
                 baja_calidad += 1
-    # Duplicados exactos
     dupes = df.duplicated().sum()
     return {
         "baja_calidad": int(baja_calidad),
@@ -190,8 +126,7 @@ def missingness_advertencias(df, threshold=0.40):
     """Genera advertencias para columnas con alta tasa de missingness."""
     advs = []
     for col in df.columns:
-        # Evitar advertencias duplicadas para columnas derivadas
-        if col.endswith("_Cat") or col == "tiene_app":
+        if col.endswith("_Cat"):
             continue
         pct = df[col].isna().mean()
         if pct >= threshold:
@@ -201,101 +136,94 @@ def missingness_advertencias(df, threshold=0.40):
 
 
 # ---------------------------------------------------------------------------
+# Codificación ligera (solo por reglas declaradas; nunca reglas de dominio)
+# ---------------------------------------------------------------------------
+def codificar_columna(df, col, col_key, reglas, advertencias, columnas_nuevas,
+                      codificacion_ligera, procesadas):
+    """Crea {col}_Cat según las reglas declaradas para el rol. Sin reglas:
+    passthrough del valor original y advertencia (nunca categorías de un
+    dominio ajeno)."""
+    new_col = f"{col}_Cat"
+    if new_col in procesadas or col not in df.columns:
+        return
+    procesadas.add(new_col)
+    rules = reglas.get(col_key)
+    if rules:
+        df[new_col] = df[col].apply(lambda x: categorize_text(x, rules))
+        criterio = "reglas semánticas por keyword (declaradas)"
+    else:
+        cardinalidad = df[col].dropna().nunique()
+        if cardinalidad <= 25:
+            df[new_col] = df[col].astype("string")
+            criterio = ("sin reglas declaradas: passthrough del valor original "
+                        "(revisar en Fase 0 con codificacion_ligera.reglas)")
+        else:
+            df[new_col] = df[col].apply(lambda x: np.nan if pd.isna(x) else "otro")
+            criterio = ("sin reglas declaradas y cardinalidad alta: valor propio "
+                        "no aplicable, marcado 'otro' (declarar reglas en Fase 0)")
+        advertencias.append(
+            f"{col}: sin reglas de codificación declaradas en "
+            "codificacion_ligera.reglas; columna generada sin categorización "
+            "semántica. Revisa y declara reglas en Fase 0."
+        )
+    columnas_nuevas.append(new_col)
+    codificacion_ligera[new_col] = {
+        "variable_original": col,
+        "criterio": criterio,
+        "categorias": df[new_col].value_counts().to_dict(),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Función principal
 # ---------------------------------------------------------------------------
 def enriquecer(csv_path, fase0_path, output_csv, update_fase0=False,
                rules_path=None):
-    df = pd.read_csv(csv_path, encoding="utf-8")
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
     n_original = len(df)
 
-    with open(fase0_path, encoding="utf-8") as f:
+    with open(fase0_path, encoding="utf-8-sig") as f:
         fase0 = json.load(f)
 
     roles = fase0.get("datos", {}).get("roles", {})
-    notas = fase0.get("datos", {}).get("notas_semanticas", {})
 
-    # Cargar reglas personalizadas si existen
-    custom_rules = None
+    # Reglas: --rules primero, luego las declaradas en Fase 0.
+    reglas = {}
     if rules_path:
-        with open(rules_path, encoding="utf-8") as f:
-            custom_rules = json.load(f)
+        with open(rules_path, encoding="utf-8-sig") as f:
+            reglas = json.load(f)
+    cod_fase0 = fase0.get("datos", {}).get("codificacion_ligera", {})
+    if isinstance(cod_fase0, dict) and isinstance(cod_fase0.get("reglas"), dict):
+        reglas = dict(cod_fase0["reglas"], **reglas if rules_path else {})
 
-    problem_rules = custom_rules.get("problem", DEFAULT_PROBLEM_RULES) if custom_rules else DEFAULT_PROBLEM_RULES
-    solution_rules = custom_rules.get("solution", DEFAULT_SOLUTION_RULES) if custom_rules else DEFAULT_SOLUTION_RULES
-    giro_rules = custom_rules.get("giro", DEFAULT_GIRO_RULES) if custom_rules else DEFAULT_GIRO_RULES
-
-    codificacion_ligera = {}
     columnas_nuevas = []
+    codificacion_ligera = {}
+    advertencias = []
 
     # Normalizar espacios en columnas de texto
-    text_cols = object_columns(df)
-    for col in text_cols:
+    for col in object_columns(df):
         df[col] = df[col].apply(normalize_whitespace)
 
-    # Detectar columnas que contienen nombres de apps/bancos (no son temáticas)
-    appbank_cols = set()
-    for role_key in ("categoria_problema", "categoria_solucion", "segmento_perfil"):
-        for col in roles.get(role_key, []):
-            if col in df.columns and looks_like_appbank_column(df[col]):
-                appbank_cols.add(col)
-
-    # Derivar flag tiene_app si aplica
-    if appbank_cols and "tiene_app" not in df.columns:
-        df["tiene_app"] = df[list(appbank_cols)[0]].notna()
-        columnas_nuevas.append("tiene_app")
+    # Variables binarias (0/1, Sí/No, verdadero/falso) sobre columnas originales
+    binarias = [c for c in df.columns if es_binaria(df[c])]
 
     # Codificación ligera según roles
+    procesadas = set()
     for col in roles.get("categoria_problema", []):
-        if col not in df.columns or col in appbank_cols:
-            continue
-        new_col = f"{col}_Cat"
-        df[new_col] = df[col].apply(lambda x: categorize_text(x, problem_rules))
-        columnas_nuevas.append(new_col)
-        codificacion_ligera[new_col] = {
-            "variable_original": col,
-            "criterio": "reglas semánticas por keyword",
-            "categorias": df[new_col].value_counts().to_dict(),
-        }
+        codificar_columna(df, col, "problem", reglas, advertencias,
+                          columnas_nuevas, codificacion_ligera, procesadas)
 
     for col in roles.get("categoria_solucion", []):
-        if col not in df.columns or col in appbank_cols:
-            continue
-        new_col = f"{col}_Cat"
-        df[new_col] = df[col].apply(lambda x: categorize_text(x, solution_rules))
-        columnas_nuevas.append(new_col)
-        codificacion_ligera[new_col] = {
-            "variable_original": col,
-            "criterio": "reglas semánticas por keyword",
-            "categorias": df[new_col].value_counts().to_dict(),
-        }
+        codificar_columna(df, col, "solution", reglas, advertencias,
+                          columnas_nuevas, codificacion_ligera, procesadas)
 
-    # Segmento/perfil: intentar normalizar métodos de pago y giros
     for col in roles.get("segmento_perfil", []):
-        if col not in df.columns or col in appbank_cols:
-            continue
-        if looks_like_payment_column(df[col]):
-            new_col = f"{col}_Cat"
-            df[new_col] = df[col].apply(normalize_payment)
-            columnas_nuevas.append(new_col)
-            codificacion_ligera[new_col] = {
-                "variable_original": col,
-                "criterio": "normalización de método de pago",
-                "categorias": df[new_col].value_counts().to_dict(),
-            }
-        # Giro: si el nombre de columna sugiere giro o los valores parecen giros
-        if "giro" in col.lower() or "negocio" in col.lower() or "tipo" in col.lower():
-            new_col = f"{col}_Cat"
-            df[new_col] = df[col].apply(lambda x: categorize_text(x, giro_rules))
-            columnas_nuevas.append(new_col)
-            codificacion_ligera[new_col] = {
-                "variable_original": col,
-                "criterio": "reglas semánticas por keyword (giro)",
-                "categorias": df[new_col].value_counts().to_dict(),
-            }
+        codificar_columna(df, col, "segment", reglas, advertencias,
+                          columnas_nuevas, codificacion_ligera, procesadas)
 
     # Calidad de respuesta
     calidad = build_quality_report(df)
-    advertencias = missingness_advertencias(df)
+    advertencias += missingness_advertencias(df)
     if calidad["duplicados_exactos"]:
         advertencias.append(
             f"{calidad['duplicados_exactos']} registros duplicados exactos."
@@ -311,10 +239,17 @@ def enriquecer(csv_path, fase0_path, output_csv, update_fase0=False,
             "path": str(Path(output_csv).name),
             "n_registros_original": n_original,
             "n_registros_final": len(df),
-            "columnas_originales": list(df.columns[:len(df.columns) - len(columnas_nuevas)]),
+            "columnas_originales": [
+                c for c in df.columns if c not in columnas_nuevas
+            ],
             "columnas_nuevas": columnas_nuevas,
+            "variables_binarias": binarias,
         }
-        fase0["datos"]["codificacion_ligera"] = codificacion_ligera
+        cod_out = fase0["datos"].get("codificacion_ligera", {})
+        if not isinstance(cod_out, dict):
+            cod_out = {}
+        cod_out.update(codificacion_ligera)
+        fase0["datos"]["codificacion_ligera"] = cod_out
         fase0["datos"]["calidad_respuesta"] = calidad
         fase0["advertencias"] = fase0.get("advertencias", []) + advertencias
         with open(fase0_path, "w", encoding="utf-8") as f:
@@ -324,6 +259,9 @@ def enriquecer(csv_path, fase0_path, output_csv, update_fase0=False,
     print(f"CSV enriquecido guardado en: {output_csv}")
     print(f"Registros: {len(df)} | Columnas nuevas: {len(columnas_nuevas)}")
     for c in columnas_nuevas:
+        print(f"  - {c}")
+    print(f"Variables binarias detectadas: {len(binarias)}")
+    for c in binarias:
         print(f"  - {c}")
     if update_fase0:
         print(f"fase0_output.json actualizado: {fase0_path}")

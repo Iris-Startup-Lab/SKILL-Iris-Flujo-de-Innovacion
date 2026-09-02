@@ -19,6 +19,35 @@ import re
 import pandas as pd
 
 
+BINARIO_STR = {
+    "1": 1, "0": 0, "1.0": 1, "0.0": 0,
+    "true": 1, "false": 0, "verdadero": 1, "falso": 0,
+    "si": 1, "sí": 1, "no": 0, "s": 1, "n": 0, "y": 1,
+}
+
+
+def es_binaria(series):
+    s = series.dropna()
+    if len(s) == 0:
+        return False
+    valores = set(s.astype(str).str.strip().str.lower())
+    return valores.issubset(BINARIO_STR)
+
+
+def get_binaria_columns(df, fase0):
+    declaradas = (fase0.get("datos", {})
+                       .get("dataset_enriquecido", {})
+                       .get("variables_binarias", []))
+    cols = [c for c in declaradas if c in df.columns and es_binaria(df[c])]
+    if not cols:
+        for c in df.columns:
+            if c.endswith("_Cat"):
+                continue
+            if es_binaria(df[c]):
+                cols.append(c)
+    return list(dict.fromkeys(cols))
+
+
 _CODIFICACION_LIGERA = None
 
 
@@ -81,8 +110,8 @@ def heatmap_matrix(df, col_y, col_x):
 
 def preparar(csv_path, fase0_path, output_path):
     global _CODIFICACION_LIGERA
-    df = pd.read_csv(csv_path, encoding="utf-8")
-    with open(fase0_path, encoding="utf-8") as f:
+    df = pd.read_csv(csv_path, encoding="utf-8-sig")
+    with open(fase0_path, encoding="utf-8-sig") as f:
         fase0 = json.load(f)
 
     roles = fase0.get("datos", {}).get("roles", {})
@@ -92,9 +121,9 @@ def preparar(csv_path, fase0_path, output_path):
     cat_role_cols = []
     for role_name in ["categoria_problema", "categoria_solucion", "segmento_perfil"]:
         cat_role_cols.extend(get_role_columns(df, roles, role_name))
-    # Añadir flag tiene_app si existe
-    if "tiene_app" in df.columns:
-        cat_role_cols.append("tiene_app")
+    # Añadir variables binarias detectadas/declaradas si existen
+    binarias = get_binaria_columns(df, fase0)
+    cat_role_cols.extend(binarias)
     cat_role_cols = list(dict.fromkeys(cat_role_cols))
 
     frecuencias_univariadas = {col: frecuencias(df, col) for col in cat_role_cols}
@@ -121,12 +150,13 @@ def preparar(csv_path, fase0_path, output_path):
                 "titulo": f"{soluciones[0]} x {seg_col}",
                 **heatmap_matrix(df, soluciones[0], seg_col),
             })
-    if "tiene_app" in df.columns and segmentos:
+    if binarias and segmentos:
         for seg_col in segmentos:
-            otros_heatmaps.append({
-                "titulo": f"tiene_app x {seg_col}",
-                **heatmap_matrix(df, "tiene_app", seg_col),
-            })
+            for bcol in binarias:
+                otros_heatmaps.append({
+                    "titulo": f"{bcol} x {seg_col}",
+                    **heatmap_matrix(df, bcol, seg_col),
+                })
 
     resultado = {
         "metadatos": {
@@ -135,6 +165,7 @@ def preparar(csv_path, fase0_path, output_path):
                 "categoria_problema": problemas,
                 "categoria_solucion": soluciones,
                 "segmento_perfil": segmentos,
+                "variables_binarias": binarias,
             },
         },
         "frecuencias_univariadas": frecuencias_univariadas,

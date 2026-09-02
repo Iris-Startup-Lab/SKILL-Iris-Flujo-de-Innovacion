@@ -67,9 +67,7 @@ header.report{
 ```
 - Mancha decorativa: `::after` con `radial-gradient(circle, rgba(232,185,62,.16), transparent 65%)`, 420×420px, esquina superior derecha.
 - Contenido: título del reporte (Sora 800), fecha de generación, pregunta de investigación (texto exacto), resumen ejecutivo de 2-3 líneas (Inter 400).
-- **Logo oficial de IRIS**: se incluye en un `.logo-chip` (contenedor blanco, `border-radius:12px`, padding `8px 14px`, `box-shadow: var(--shadow-md)`), alineado al inicio del header. La imagen se **embebe en base64** (`data:image/png;base64,...`) para que el reporte siga siendo autocontenido. Imagen: `height:40px`, `width:auto`, `display:block`.
-  - Obtener el data URI con: `python scripts/logo_base64.py assets/logo.png`.
-- No lleva botones ni stats (siguen sin aplicar al reporte de señales débiles).
+- No lleva logo, botones ni stats: esos son elementos del catálogo de agentes de otro producto y no aplican aquí.
 
 ### 3.2 Encabezado de sección
 - Título en Sora 700, con un icono cuadrado de color (`--purple-600` para Sección 1, `--gold-500` para Sección 2).
@@ -78,10 +76,10 @@ header.report{
 ### 3.3 Tarjeta de señal (`.card`)
 - Fondo blanco, borde `--line`, `border-radius: var(--radius)`, padding 18px, layout en columna con `gap: 9px`.
 - **Ocupa una fila completa (una señal por línea)**: cada tarjeta de señal tiene `width: 100%` dentro de un contenedor de una sola columna. Contenedor de señales: `display:grid; grid-template-columns:1fr; gap:20px;` — nunca `repeat(auto-fit,minmax(...))`, que agrupa varias señales por fila.
-- **Altura auto-ajustada al contenido**: sin `height` fija ni `max-height`. La tarjeta crece con su texto y, si aplica, con su gráfica. La gráfica no excede el ancho de la tarjeta (`max-width:100%`).
+- **Altura auto-ajustada al contenido**: sin `height` fija ni `max-height` en la tarjeta (crece con su texto). **Las gráficas Chart.js son la excepción**: el contenedor `.chart-wrap` de cada gráfica recibe una **altura ancla** calculada por `scripts/generar_reporte.py` — `min_h = max(260, n_categorías × 48)` px — aplicada como `height` inline. Sin esa altura ancla, `maintainAspectRatio: false` + contenedor auto entra en un **bucle infinito de resize** de Chart.js (la gráfica crece sin fin); las barras horizontales lo amplifican porque su altura crece con el número de categorías. La gráfica nunca excede el ancho de la tarjeta (`max-width:100%`).
 - Hover: `transform: translateY(-3px)` + `box-shadow: var(--shadow-md)`.
 - No colapsable, no expandible, sin badges de color ni de severidad.
-- Contiene exactamente los 5 campos definidos en `SPEC.md` § Estructura del reporte.
+- Contiene exactamente los 5 campos definidos en `SPEC.md` sección 1.
 - El bloque de "Hipótesis de valor" lleva tratamiento visual destacado: fondo `--purple-050`, borde izquierdo `--purple-600` (3px), padding 12px.
 - Gráfica opcional (`<canvas>` o `<svg>`) va dentro de la misma tarjeta, nunca en sección aparte.
 
@@ -91,8 +89,8 @@ header.report{
 
 ### 3.5 Heatmap SVG inline
 - Grid de `<rect>` coloreados por frecuencia, escala purpura de 5 niveles: `#D9CCEF` (mínimo) → `#B8A3D9` → `#7A4E96` → `#5A3A8C` → `#3D2766` (máximo).
-- Celdas de 50px mínimo (56px si el grid es ≤6×6). Ver especificación técnica completa en `SPEC.md` § Heatmap.
-- El margen inferior del viewBox debe ser dinámico (derivado de la etiqueta más larga), no fijo, para que las etiquetas de eje X rotadas 45° nunca se recorten. Regla en `SPEC.md` § 6.
+- Celdas de 50px mínimo (56px si el grid es ≤6×6). Ver especificación técnica completa en `SPEC.md` sección 6.
+- El margen inferior del viewBox debe ser dinámico (derivado de la etiqueta más larga), no fijo, para que las etiquetas de eje X rotadas 45° nunca se recorten. Regla en `SPEC.md` sección 6.
 - Ejes etiquetados en `<text>`, rotados 45° si las etiquetas superan 8 caracteres.
 - Tooltip vía atributo `<title>` en cada `<rect>`.
 
