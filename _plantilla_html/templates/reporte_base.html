@@ -227,6 +227,15 @@
   table.pf-tabla .num span{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--purple-700);color:#fff;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700}
   table.pf-tabla .metrica{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:.78rem}
   table.pf-tabla .ctx{display:block;margin-top:4px;font-size:.76rem;color:var(--ink-soft)}
+
+  /* ---------- Bloque `tabla`: tabla genérica de un item ---------- */
+  /* Para lo que es una tabla de verdad y se leía mal como texto: la matriz
+     criterio → puntaje → justificación del score, una proyección por año, un
+     desglose por buyer persona. Reusa los estilos de `pf-tabla`. */
+  .tabla-bloque table.pf-tabla{min-width:480px}
+  .tabla-bloque tr.total td{font-weight:700;background:var(--purple-050);border-top:2px solid var(--purple-200)}
+  .tabla-bloque td.num-col{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tabla-bloque .tabla-nota{font-size:.76rem;color:var(--ink-soft);margin-top:9px;line-height:1.45}
   .pf-nota{margin-top:10px;font-size:.78rem;color:var(--ink-soft);border-left:3px solid var(--purple-200);padding-left:10px}
   .pf-badge{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
   .pf-badge.si{color:#15803D;background:#DCFCE7}
@@ -534,6 +543,14 @@ window.REPORT_DATA = __REPORT_DATA__;
   const ESTADO_LABEL = {completado:"completado", omitido:"omitido", pendiente:"pendiente",
                         en_curso:"en curso", fallido:"falló", actual:"este reporte"};
 
+  // Procedencia de los datos DE ESTE PASO, cuando el proyecto arrastra la marca de
+  // simulación de un paso anterior. No apaga la marca global: la matiza.
+  const ORIGEN_DATOS = {
+    reales: "está construido con datos reales de campo, no simulados",
+    simulados: "está construido con datos simulados",
+    mixtos: "combina datos reales y simulados",
+  };
+
   function renderFlujo(){
     const railEl = document.getElementById('flow-rail');
     const wrapEl = document.getElementById('contexto-wrap');
@@ -617,13 +634,27 @@ window.REPORT_DATA = __REPORT_DATA__;
     const body = document.getElementById('ctx-body');
     body.innerHTML = '';
 
-    // 0. Datos simulados: lo primero que se lee, porque condiciona todo lo demás
+    // 0. Datos simulados: lo primero que se lee, porque condiciona todo lo demás.
+    //
+    // La marca es del PROYECTO: en cuanto un paso simula, se enciende y viaja a todos los
+    // reportes siguientes. Eso es correcto —quien lea el paso 9 tiene que saber que hay
+    // simulación detrás— pero en el uso real dejó un hueco: un proyecto con 42 entrevistas
+    // REALES que simuló solo las encuestas arrastraba la marca a los pasos 4-11, y en cada
+    // uno había que escribir a mano «este paso está construido con entrevistas reales».
+    // `meta.origen_datos` declara la procedencia DE ESTE PASO sin apagar la marca global,
+    // y la aclaración se escribe sola.
     const sim = flujo.simulacion;
     if(sim && sim.activo){
       const det = ['<li><span>'+esc(sim.nota||NOTA_SIM_DEFECTO)+'</span></li>'];
       if(sim.opcion){
         det.push('<li><span class="id">'+esc(pasoLbl(sim.desde||''))+'</span><span><span class="k">'
           + esc(sim.nodo||'Decisión')+'</span> → '+esc(sim.opcion)+'</span></li>');
+      }
+      const org = meta.origen_datos;
+      if(org && ORIGEN_DATOS[org.tipo]){
+        det.push('<li><span class="k">Este paso en concreto</span><span>'
+          + esc(ORIGEN_DATOS[org.tipo])
+          + (org.nota ? ' — '+esc(org.nota) : '') + '</span></li>');
       }
       body.appendChild(caja('Datos simulados — esto no es evidencia de campo',
                             det.join(''), null, 'warn full'));
@@ -910,7 +941,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       if(activeVerdict && it.veredicto!==activeVerdict) return false;
       if(activeTags.size && !(it.tags||[]).some(t=>activeTags.has(t))) return false;
       if(q){
-        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),(it.tags||[]).join(' '),textoPersona(it.persona),textoPSF(it.psf)].join(' ').toLowerCase();
+        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),(it.tags||[]).join(' '),textoPersona(it.persona),textoPSF(it.psf),textoTabla(it)].join(' ').toLowerCase();
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -958,8 +989,52 @@ window.REPORT_DATA = __REPORT_DATA__;
     if(it.persona && Object.keys(it.persona).length) return true;
     if(it.psf && Object.keys(it.psf).length) return true;
     if((it.body||[]).length) return true;
+    if(tablasDeItem(it).length) return true;
     if(chartDeItem(it)) return true;
     return false;
+  }
+
+  // ---------- Bloque `tabla` ----------
+  // Un item puede traer una tabla o una lista de tablas. Existe porque hay contenido
+  // que como párrafo se lee mal: la matriz criterio → puntaje → justificación del score
+  // del Dimensionador (que antes solo viajaba en la conversación, no al HTML), una
+  // proyección año a año, un desglose por buyer persona.
+  function tablasDeItem(it){
+    if(!it || !it.tabla) return [];
+    return Array.isArray(it.tabla) ? it.tabla.filter(Boolean) : [it.tabla];
+  }
+
+  function buildTabla(t){
+    const cols = t.columnas || [];
+    const filas = t.filas || [];
+    if(!cols.length || !filas.length) return '';
+    // `fila_total: true` marca la última fila como TOTAL y la resalta.
+    const iTotal = t.fila_total ? filas.length - 1 : -1;
+    const head = cols.map(c => '<th>'+esc(c)+'</th>').join('');
+    const cuerpo = filas.map((fila, i) => {
+      const celdas = (fila||[]).map(v => {
+        // Una celda numérica se alinea con cifras tabulares; el texto, normal.
+        const numerica = typeof v === 'number'
+          || (typeof v === 'string' && /^[\s$%+\-.,0-9:]+$/.test(v) && /[0-9]/.test(v));
+        return '<td'+(numerica ? ' class="num-col"' : '')+'>'+esc(v)+'</td>';
+      }).join('');
+      return '<tr'+(i === iTotal ? ' class="total"' : '')+'>'+celdas+'</tr>';
+    }).join('');
+    return '<div class="pf-box full tabla-bloque">'
+      + (t.titulo ? '<h5>'+esc(t.titulo)+'</h5>' : '')
+      + '<div class="pf-tabla-wrap"><table class="pf-tabla"><thead><tr>'+head+'</tr></thead>'
+      + '<tbody>'+cuerpo+'</tbody></table></div>'
+      + (t.nota ? '<p class="tabla-nota">'+esc(t.nota)+'</p>' : '')
+      + '</div>';
+  }
+
+  // Texto plano de las tablas, para que el buscador encuentre lo que hay dentro
+  // (una justificación del score, por ejemplo).
+  function textoTabla(it){
+    return tablasDeItem(it).map(t =>
+      [t.titulo, t.nota, (t.columnas||[]).join(' '),
+       (t.filas||[]).map(f => (f||[]).join(' ')).join(' ')].filter(Boolean).join(' ')
+    ).join(' ');
   }
 
   function buildCard(it){
@@ -1005,6 +1080,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     (it.body||[]).forEach(b => {
       body += '<div class="dblock"><div class="db-label">'+esc(b.label||'')+'</div><div class="db-text">'+esc(b.texto||'')+'</div></div>';
     });
+    tablasDeItem(it).forEach(t => { body += buildTabla(t); });
     if(chartDeItem(it)) body += '<div class="chart-wrap"><div class="ct">'+esc(chartDeItem(it).titulo||'')+'</div><canvas></canvas></div>';
     body += '</div>';
     det.innerHTML = head + body;

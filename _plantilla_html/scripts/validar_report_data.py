@@ -22,6 +22,7 @@ VEREDICTOS = {"perseverar", "pivotear", "descartar"}
 TIPOS_CHART = {"bar", "horizontalBar", "line", "doughnut", "pie", "scatter"}
 ESTADOS_RUTA = {"pendiente", "en_curso", "completado", "omitido", "fallido", "actual"}
 COBERTURA = {"si", "sí", "parcial", "no"}       # psf.problemas[].cubre
+ORIGENES_DATOS = {"reales", "simulados", "mixtos"}   # meta.origen_datos.tipo
 
 
 class Hallazgo:
@@ -116,12 +117,14 @@ def validar(data, exigir_flujo=True):
                             h.append(Hallazgo("ERROR", f"{ruta_i}.body[{k}]",
                                               "cada bloque necesita `texto`"))
             if (not body and not _texto(it.get("subtitulo"))
-                    and not it.get("persona") and not it.get("psf")):
+                    and not it.get("persona") and not it.get("psf")
+                    and not it.get("tabla")):
                 h.append(Hallazgo("WARN", ruta_i,
                                   "sin `body` ni `subtitulo`: la tarjeta se expande vacía"))
             h.extend(_validar_chart(it.get("chart"), f"{ruta_i}.chart"))
             h.extend(_validar_persona(it.get("persona"), f"{ruta_i}.persona"))
             h.extend(_validar_psf(it.get("psf"), f"{ruta_i}.psf"))
+            h.extend(_validar_tablas(it.get("tabla"), f"{ruta_i}.tabla"))
 
     if total_items == 0 and secciones:
         h.append(Hallazgo("ERROR", "secciones", "ninguna sección tiene items"))
@@ -176,7 +179,51 @@ def validar(data, exigir_flujo=True):
     # ----------------------------------------------------------------- flujo
     h.extend(_validar_flujo(data.get("flujo"), exigir_flujo))
     h.extend(_validar_simulacion(data))
+    h.extend(_validar_score_justificado(data))
     return h
+
+
+def _validar_score_justificado(data):
+    """Un puntaje sin explicación de dónde sale.
+
+    Viene de una fricción real del uso: «no me quedó claro de dónde sacó los datos
+    que estoy marcando (urgencia, diferenciación, escalabilidad…)». El puntaje
+    aparecía en la tarjeta y su desglose se quedaba en la conversación. Es un aviso
+    agregado —uno por reporte, no uno por idea— para no sepultar el resto.
+    """
+    sin_justificar = []
+    for sec in data.get("secciones") or []:
+        for item in (sec or {}).get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            if not isinstance(item.get("score"), (int, float)) or isinstance(
+                item.get("score"), bool
+            ):
+                continue
+            tablas = item.get("tabla")
+            tablas = tablas if isinstance(tablas, list) else ([tablas] if tablas else [])
+            en_tabla = any(
+                any("justific" in str(c).lower() for c in (t or {}).get("columnas") or [])
+                for t in tablas if isinstance(t, dict)
+            )
+            en_body = any(
+                "justific" in str(b.get("label", "")).lower()
+                or "criterio" in str(b.get("label", "")).lower()
+                for b in item.get("body") or [] if isinstance(b, dict)
+            )
+            if not en_tabla and not en_body:
+                sin_justificar.append(str(item.get("titulo") or "sin título"))
+    if not sin_justificar:
+        return []
+    muestra = ", ".join(sin_justificar[:3])
+    resto = f" (y {len(sin_justificar) - 3} más)" if len(sin_justificar) > 3 else ""
+    return [Hallazgo(
+        "WARN", "secciones[].items[].score",
+        f"{len(sin_justificar)} item(s) con puntaje y sin decir de dónde sale: "
+        f"{muestra}{resto}",
+        "añade un bloque `tabla` con las columnas criterio / puntaje / justificación "
+        "—o un `body` con label «Justificación»—, para que el desglose viaje al HTML "
+        "y no se quede solo en la conversación")]
 
 
 def _validar_simulacion(data):
@@ -196,8 +243,45 @@ def _validar_simulacion(data):
         h.append(Hallazgo("ERROR", "meta.simulado",
                           "debe ser true o false (marca de datos simulados)"))
 
+    # Procedencia de los datos DE ESTE PASO. La marca de simulación es del proyecto y
+    # viaja a todos los reportes posteriores; esto permite decir «este paso en concreto
+    # es real» sin apagarla, en vez de escribirlo a mano en cada reporte.
+    org = meta.get("origen_datos")
+    if org is not None:
+        if not isinstance(org, dict):
+            h.append(Hallazgo("ERROR", "meta.origen_datos",
+                              "debe ser un objeto {tipo, nota}",
+                              f"tipo es uno de: {', '.join(sorted(ORIGENES_DATOS))}"))
+        else:
+            tipo = org.get("tipo")
+            if tipo not in ORIGENES_DATOS:
+                h.append(Hallazgo("ERROR", "meta.origen_datos.tipo",
+                                  f"«{tipo}» no es válido",
+                                  f"usa uno de: {', '.join(sorted(ORIGENES_DATOS))}"))
+            elif tipo in ("reales", "mixtos") and not _texto(org.get("nota")):
+                h.append(Hallazgo(
+                    "WARN", "meta.origen_datos.nota",
+                    f"declara «{tipo}» pero no dice con qué",
+                    "escribe la evidencia concreta (p. ej. «42 entrevistas reales de tres "
+                    "perfiles»): la afirmación sin el dato no se puede comprobar"))
+
     if not activo:
+        if org is not None:
+            h.append(Hallazgo(
+                "WARN", "meta.origen_datos",
+                "el proyecto no arrastra marca de simulación, así que este campo no se "
+                "renderiza",
+                "solo se pinta cuando hay simulación en el proyecto y hay que aclarar la "
+                "procedencia de este paso en concreto"))
         return h
+
+    if org is None:
+        h.append(Hallazgo(
+            "WARN", "meta.origen_datos",
+            "el proyecto arrastra marca de simulación y este reporte no declara de dónde "
+            "salen SUS datos",
+            "añade meta.origen_datos = {tipo: reales|simulados|mixtos, nota: \"…\"}; si no, "
+            "el lector supone que todo el paso es simulado"))
 
     advertencias = data.get("advertencias")
     textos = [str(a) for a in advertencias] if isinstance(advertencias, list) else []
@@ -398,6 +482,66 @@ def _validar_psf(p, ruta):
         h.append(Hallazgo("WARN", f"{ruta}.jtbd",
                           "sin JTBD: el análisis pierde el «trabajo» que el usuario "
                           "intenta resolver"))
+    return h
+
+
+def _validar_tablas(tabla, ruta):
+    """Bloque `tabla`: una tabla o una lista de tablas dentro de un item.
+
+    Existe para el contenido que como párrafo se lee mal —la matriz criterio →
+    puntaje → justificación del score, una proyección año a año, un desglose por
+    buyer persona—. Una fila con menos celdas que columnas sale desalineada sin
+    que el HTML se queje, así que eso es error, no aviso.
+    """
+    if tabla is None:
+        return []
+    tablas = tabla if isinstance(tabla, list) else [tabla]
+    if isinstance(tabla, list) and not tablas:
+        return [Hallazgo("WARN", ruta, "lista de tablas vacía")]
+    h = []
+    for i, t in enumerate(tablas):
+        r = ruta if not isinstance(tabla, list) else f"{ruta}[{i}]"
+        if not isinstance(t, dict):
+            h.append(Hallazgo("ERROR", r, "debe ser un objeto "
+                                          "{titulo, columnas, filas}"))
+            continue
+        cols = t.get("columnas")
+        if not isinstance(cols, list) or not cols:
+            h.append(Hallazgo("ERROR", f"{r}.columnas",
+                              "debe ser una lista no vacía de encabezados"))
+            cols = []
+        else:
+            for j, c in enumerate(cols):
+                if not _texto(c):
+                    h.append(Hallazgo("WARN", f"{r}.columnas[{j}]",
+                                      "encabezado vacío"))
+        filas = t.get("filas")
+        if not isinstance(filas, list) or not filas:
+            h.append(Hallazgo("ERROR", f"{r}.filas",
+                              "debe ser una lista no vacía de filas",
+                              "cada fila es una lista de celdas, en el orden de "
+                              "`columnas`"))
+            continue
+        for j, fila in enumerate(filas):
+            if not isinstance(fila, list):
+                h.append(Hallazgo("ERROR", f"{r}.filas[{j}]",
+                                  "debe ser una lista de celdas"))
+                continue
+            if cols and len(fila) != len(cols):
+                h.append(Hallazgo("ERROR", f"{r}.filas[{j}]",
+                                  f"{len(fila)} celdas contra {len(cols)} columnas",
+                                  "la tabla sale desalineada; usa \"\" en las celdas "
+                                  "que no apliquen"))
+            for k, celda in enumerate(fila):
+                if isinstance(celda, (dict, list)):
+                    h.append(Hallazgo("ERROR", f"{r}.filas[{j}][{k}]",
+                                      f"es un {type(celda).__name__}; en una celda "
+                                      "van texto o números"))
+        if t.get("fila_total") is not None and not isinstance(t["fila_total"], bool):
+            h.append(Hallazgo("ERROR", f"{r}.fila_total",
+                              "debe ser true o false (resalta la última fila)"))
+        if t.get("nota") is not None and not _texto(t.get("nota")):
+            h.append(Hallazgo("WARN", f"{r}.nota", "nota vacía"))
     return h
 
 

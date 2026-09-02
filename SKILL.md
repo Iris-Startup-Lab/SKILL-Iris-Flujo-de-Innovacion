@@ -138,6 +138,40 @@ pasarlo a texto.
 Pídele que pegue el texto resultante o lo adjunte como `.txt`/`.docx` y continúa el
 flujo con ese texto.
 
+### Cuando el usuario aporta material: acúsalo recibo antes de analizarlo
+
+Fricción real del uso: alguien subió en un solo paso varios ZIP con las transcripciones de sus
+entrevistas, por perfil, y el flujo las tragó sin preguntar nada. Es evidencia de campo —lo más
+valioso que va a entrar en todo el proceso— y el agente ni la reconoció ni confirmó qué era.
+Después, esa persona no sabía qué parte del análisis venía de sus entrevistas y qué parte de
+supuestos.
+
+**Antes de analizar cualquier archivo que aporte el usuario, devuélvele lo que entendiste y
+espera confirmación.** En una sola intervención, no en un interrogatorio:
+
+> Recibí 3 archivos: `reclutadores.zip` (18 transcripciones), `candidatos.zip` (14) y
+> `formadores.zip` (10). Lo que entiendo: son entrevistas reales, ya transcritas, de tres
+> perfiles distintos, 42 en total. Voy a usarlas como evidencia del paso 3 en lugar de simular
+> respuestas. ¿Es correcto? ¿Alguno de esos perfiles NO debería entrar en el análisis?
+
+Cinco cosas que la confirmación tiene que dejar fijadas:
+
+1. **Cuántos archivos y cuántas piezas** hay dentro (entrevistas, respuestas, notas).
+2. **Qué son:** entrevistas, encuesta, notas de campo, investigación de terceros, datos internos.
+3. **De qué perfiles o segmentos**, y si alguno se queda fuera.
+4. **Si son datos reales o material para simular.** Esto cambia el flujo: material real
+   **desactiva** la simulación de ese paso, y hay que registrarlo en la decisión correspondiente
+   (`¿Ejecución de entrevistas?` en el paso 2, `Origen de las respuestas` en el paso 3).
+5. **Qué se pierde si el material es parcial**: si hay transcripciones de dos perfiles de tres,
+   el tercero se cubre con supuestos marcados `*` y eso se declara en `advertencias`.
+
+Lo que entró declárarlo en el `reporte.json` del paso —en `advertencias` o en el
+`contexto_usado` del contrato JSON— con el conteo. Así, cuando alguien lea el HTML seis semanas
+después, sabe cuánto del análisis descansa en evidencia y cuánto en estimación.
+
+Y si el material contradice algo ya decidido, dilo en vez de encajarlo: «estas entrevistas
+apuntan a un problema distinto del que registramos en el paso 2, ¿ajustamos la hipótesis?».
+
 ---
 
 ## El ciclo de un paso
@@ -386,6 +420,39 @@ python scripts/generar_indice.py --estado <dir>/flujo_estado.json   # index.html
 Si el usuario pausa y en la misma sesión decide seguir, continúa sin ceremonia: no repitas el
 briefing completo del proyecto.
 
+## Los pasos que corren sobre una sola opción
+
+Dos pasos trabajan sobre **una** de varias fichas de persona: el 5 (Problem-Solution Fit) y el 6
+(Journey Builder), los dos con la ficha que se eligió en el nodo «Elección de la ficha de
+persona». Está bien que sea así —analizar tres perfiles a la vez diluye el foco—, pero en el uso
+real produjo un hueco: el usuario pidió después el encaje y el journey de los otros dos perfiles,
+el agente los generó **fuera del flujo** y quedaron cuatro HTML huérfanos, sin riel, sin contexto
+del proyecto, sin marca de simulación y sin aparecer en el histórico. Análisis válidos que nadie
+va a encontrar dentro del proyecto.
+
+Tres reglas:
+
+1. **Al registrar la elección, di lo que arrastra.** «Trabajo el encaje y el journey sobre
+   *Formadores*; *Reclutadores* y *Candidatos* se quedan fuera de estos dos pasos.» Que el usuario
+   sepa lo que está eligiendo, no solo lo que elige.
+2. **Ofrece los demás perfiles como anexo, en el momento de elegir**, no seis pasos después:
+   «¿quieres que además analice los otros dos perfiles como anexo?». Si dice sí, se generan
+   ahí mismo.
+3. **Un anexo se genera CON el contexto del flujo.** Aunque sea después de cerrar el paso o
+   incluso después de cerrar el proyecto:
+
+   ```bash
+   python _plantilla_html/scripts/generar_html.py --data anexo_psf_reclutadores.json \
+       --estado <dir>/flujo_estado.json --paso html_5 -o anexo_psf_reclutadores.html
+   ```
+
+   Y decláralo en los outputs del paso (`completar --outputs`, o volviendo a cerrar el paso con
+   la lista completa) para que exista en el histórico. **Nunca con `--sin-flujo`**: eso es lo que
+   produce el HTML huérfano, sin riel ni herencia.
+
+Vale igual para cualquier otro caso donde el usuario quiera «lo mismo pero para otro segmento»:
+si sale del proyecto, sale con el contexto del proyecto.
+
 ## Empezar desde un paso intermedio
 
 El usuario puede querer empezar desde un paso que no es el primero (por ejemplo, ya
@@ -518,6 +585,46 @@ Nunca inventes cifras. Estimado → `*` o `[REFERENCIA DE INDUSTRIA]`; sin dato 
 la interpretación, no las cifras. **Y explícale al usuario qué quiere decir cada marca**
 (ver «Cómo nombrar las cosas ante el usuario»).
 
+### La estadística se explica, siempre
+
+Vale para cualquier número que salga de un script del flujo: una `p`, un intervalo de confianza,
+un margen de error, un `n` requerido, un CAGR, un CLV:CAC, un coeficiente. **Ninguno se entrega
+desnudo.** La audiencia del flujo va de gente que domina análisis a gente que no ha visto un
+intervalo de confianza en su vida, y un número sin lectura no se discute: se cree o se ignora.
+Las dos cosas son peores que no darlo.
+
+Cada valor va con tres cosas:
+
+1. **Qué significa, en una frase de lenguaje llano.** «p = 0.03» → «si no hubiera ninguna
+   diferencia real, un resultado así aparecería 3 veces de cada 100 por pura casualidad».
+   «IC95 42%–76%» → «si repitiéramos el estudio 100 veces, en 95 el resultado caería en ese
+   rango». Los scripts ya traen esa frase escrita en `explicacion[].lectura` y
+   `explicacion[].formula_palabras`: úsala, no la reescribas peor.
+2. **La fórmula en las dos versiones:** la de libro (`p̂ = k/n`) y la de palabras («de cada 100
+   personas que lo vieron, cuántas hicieron lo que se medía»). La de libro sola es para quien ya
+   sabe; la de palabras sola no se puede verificar.
+3. **Lo que el número NO dice.** Un CLV es una expectativa sobre supuestos, no caja. Un score
+   /25 ordena ideas entre sí, no promete resultados. Una significancia estadística no es
+   relevancia de negocio. Un intervalo ancho no es un defecto del cálculo: es la información
+   que hay.
+
+**Y la honestidad metodológica no se espera a que alguien pregunte.** Si encuentras una falla de
+método o una muestra que no sostiene la cifra —aunque el script no lo advierta— dilo **en el
+resumen y en la conversación**, con su impacto en la decisión. No enterrado en `advertencias`.
+Lo que hay que declarar sin que nadie lo pida:
+
+- sesgos del instrumento (preguntas que sugieren la respuesta, orden de las opciones);
+- ausencia de grupo control (comparar contra una referencia de industria no es comparar);
+- un `n` que no sostiene el porcentaje («3 de 4» no es «el 75%»);
+- muestras de conveniencia (se preguntó a quien estaba a mano, o a gente ya convencida);
+- comparaciones múltiples sin corregir (con muchas variantes, alguna «gana» por azar);
+- datos simulados presentados junto a datos reales sin separarlos.
+
+**Si un método necesita un gráfico para entenderse, el gráfico lo genera el script**, desde los
+datos calculados: barras con su intervalo, curva de saturación, matriz Importancia ×
+Satisfacción, trayectoria TAM/SAM/SOM. Nunca lo dibujes a mano ni lo omitas por comodidad. Los
+scripts del flujo devuelven el bloque `chart` listo para el `reporte.json`.
+
 ---
 
 ## Referencias
@@ -551,15 +658,36 @@ que el agente tiene que hacer. Primero pregunta, luego ejecuta.
 
 **Primero, pregunta — no lo des por hecho.** Ofrece el cierre en opciones:
 
-> ¿Cierro el proyecto? Puedo hacer: **(a)** auditar que el recorrido respetó el flujo,
-> **(b)** generar el tablero de navegación (`index.html`) y **(c)** medir el consumo de tokens y
-> su costo, con la gráfica de barras por paso. ¿Las tres, o prefieres solo alguna?
+> ¿Cierro el proyecto? Puedo hacer: **(a)** el **resumen ejecutivo de insights** de todo el
+> recorrido, **(b)** auditar que el recorrido respetó el flujo, **(c)** generar el tablero de
+> navegación (`index.html`) y **(d)** medir el consumo de tokens y su costo, con la gráfica de
+> barras por paso. ¿Las cuatro, o prefieres solo alguna?
 
-- La auditoría (a) y el tablero (b) van siempre que haya algo cerrado, salvo que el usuario diga
+- **El resumen ejecutivo (a) se ofrece siempre, al cerrar el paso 11.** Antes no estaba en el
+  cierre: a un usuario se le generó porque el agente lo hizo por iniciativa propia y a otra
+  persona no, y tuvo que pedirlo. Que aparezca o no dependía del azar, y es el entregable que
+  más gente va a leer.
+- La auditoría (b) y el tablero (c) van siempre que haya algo cerrado, salvo que el usuario diga
   que no los quiere.
-- La medición (c) se hace **solo si la pide**. Si la quiere, pregúntale el modelo que usó la
+- La medición (d) se hace **solo si la pide**. Si la quiere, pregúntale el modelo que usó la
   sesión (si no lo sabe, mira `README.md` § «Modelo recomendado por herramienta»). Si no la
   quiere, no la vuelques.
+
+**El resumen ejecutivo de insights** es una página que se lee sin abrir ningún HTML. Sale de los
+`reporte.json` y los resúmenes que ya están en el estado, no de volver a analizar nada:
+
+1. **La decisión de fondo**, en dos líneas: seguir, ajustar o parar, y por qué.
+2. **Los 3 a 5 insights** que sostienen esa decisión, cada uno con **de qué paso salió** y con
+   qué evidencia (`N entrevistas`, `k/n del experimento`, `SIMULADO`).
+3. **Lo que quedó sin validar**: los pasos omitidos con su impacto, los supuestos marcados `*` y
+   los intervalos que no alcanzaron para concluir.
+4. **El siguiente paso concreto**, con lo que haría falta para decidirlo (por ejemplo, «el
+   experimento necesita ~350 visitas en total y va por 100»).
+5. **Si hubo datos simulados, en el primer párrafo, no al final.** Un resumen ejecutivo es lo
+   que se reenvía sin contexto: si la marca de simulación no viaja ahí, se pierde.
+
+Genéralo como su propio HTML con la plantilla (`--sin-flujo` no; usa `--estado` y el paso 11
+para que lleve el riel y el contexto) y decláralo en los outputs del proyecto.
 
 **Segundo, ejecuta** lo que aceptó:
 

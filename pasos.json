@@ -183,7 +183,7 @@
         {
           "nodo": "Elección de la ficha de persona",
           "tipo": "unica",
-          "descripcion": "Si el paso 4 produjo más de una ficha de persona, hay que elegir sobre cuál se trabaja el encaje problema-solución. Di con qué criterio se prioriza, no solo el nombre del criterio.",
+          "descripcion": "Si el paso 4 produjo más de una ficha de persona, hay que elegir sobre cuál se trabaja el encaje problema-solución. Di con qué criterio se prioriza, no solo el nombre del criterio. Advierte al usuario de que esta elección arrastra también al paso 6 (Journey Builder): los dos pasos corren sobre la ficha elegida. Si quiere las demás, se generan como anexo del proyecto, no fuera de él (SKILL.md § «Los pasos que corren sobre una sola opción»).",
           "opciones": [
             { "opcion": "Por problema más grande", "efecto": "Se prioriza la persona con el dolor más intenso, aunque su mercado sea pequeño." },
             { "opcion": "Por mayor tamaño en mercado", "efecto": "Se prioriza la persona con mayor volumen potencial, aunque su dolor sea menos agudo." },

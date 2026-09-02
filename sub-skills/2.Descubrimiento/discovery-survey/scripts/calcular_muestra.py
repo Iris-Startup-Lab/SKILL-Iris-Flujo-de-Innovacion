@@ -17,8 +17,10 @@ Uso:
 import argparse
 import json
 import math
+from statistics import NormalDist
 
-# Valores Z por nivel de confianza común.
+# Valores Z por nivel de confianza común. Se conservan como referencia legible y para
+# comprobar el cálculo; el Z que se usa sale de `NormalDist().inv_cdf`.
 VALORES_Z = {
     0.80: 1.2816,
     0.85: 1.4395,
@@ -30,8 +32,19 @@ VALORES_Z = {
 
 
 def valor_z(confianza):
-    clave = min(VALORES_Z, key=lambda c: abs(c - confianza))
-    return VALORES_Z[clave], clave
+    """Z exacto para cualquier nivel de confianza, no el de la tabla más cercano.
+
+    Antes se elegía la entrada más próxima de `VALORES_Z`, así que un `--confianza 0.93`
+    calculaba en silencio con el Z de 0.95 y devolvía una muestra mayor que la pedida sin
+    decirlo. Para 95% y 99% daba igual; para el resto, no. `inv_cdf` es de la stdlib y es
+    lo que ya usa `email-campaign/scripts/calcular_significancia.py`.
+    """
+    if not 0 < confianza < 1:
+        raise ValueError(
+            f"el nivel de confianza ({confianza}) debe estar entre 0 y 1: "
+            f"0.95 es 95%, no 95")
+    z = NormalDist().inv_cdf(1 - (1 - confianza) / 2)
+    return round(z, 4), confianza
 
 
 def calcular(N, confianza, error, tasa_respuesta, p=0.5):
@@ -87,7 +100,11 @@ def main(argv=None):
     parser.add_argument("-o", "--output", default="muestra.json", help="Ruta de salida JSON")
     args = parser.parse_args(argv)
 
-    resultado = calcular(args.N, args.confianza, args.error, args.tasa_respuesta, args.p)
+    try:
+        resultado = calcular(args.N, args.confianza, args.error, args.tasa_respuesta, args.p)
+    except ValueError as exc:
+        print(f"Entrada inválida: {exc}")
+        return 2
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(resultado, f, ensure_ascii=False, indent=2)

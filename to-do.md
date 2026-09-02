@@ -25,11 +25,20 @@ Esto solo lo actualiza la persona no el agente
 pasos anteriores y el riel navega dentro del propio documento, no entre archivos.
 Detalle en «Hecho el 28/08/2026».
 
-**Nuevo el 01/09** el salto entre pasos **ya funciona dentro de Claude Desktop**. El ancla interna
-(`#paso-N`) que resolvía el caso del 28/08 la interceptaba la pasarela y abría el diálogo «Estás
-saliendo de Claude»; ahora el salto va con `<button>` + `data-salto`, sin `href`. Detalle en «Hecho
-el 01/09/2026». **Te toca:** re-empaquetar el ZIP (el cambio está en la plantilla), regenerar
-`CLAUDE.md` y confirmar el clic en Claude Desktop.
+**Nuevo el 01/09** el salto entre pasos **ya funciona dentro de Claude Desktop** —confirmado por
+el usuario—. El ancla interna (`#paso-N`) que resolvía el caso del 28/08 la interceptaba la
+pasarela y abría el diálogo «Estás saliendo de Claude»; ahora el salto va con `<button>` +
+`data-salto`, sin `href`. Detalle en «Hecho el 01/09/2026».
+
+**Nuevo el 01/09 (segunda ronda)** cerradas las **9 fricciones del uso real** y los **8 puntos de
+la evaluación estadística**: cinco scripts nuevos (`calcular_tam_sam_som.py`,
+`calcular_modelo.py`, `calcular_score.py`, `analizar_resultados.py` ×6 skills,
+`ordenar_patrones.py`), un bloque `tabla` en la plantilla, `meta.origen_datos` para declarar la
+procedencia de un paso dentro de un proyecto que simuló algo, y la regla transversal de explicar
+la estadística. 156 casos de prueba, 0 fallos. Los pendientes 9 (punto 2) y 10 quedan cerrados.
+
+**Te toca:** re-empaquetar el ZIP (los cambios están en la plantilla y en 12 sub-skills),
+regenerar `CLAUDE.md` con `.\actualizar_claude.ps1`, y las pruebas de uso real con colegas.
 
 **Nuevo el 19/08:** las 5 skills simuladoras de entrevistas se integraron al flujo como
 **sub-sub-skills** (`<skill>/simulador/SIMULADOR.md`), con estadística calculada por script y la
@@ -173,15 +182,24 @@ Dos cosas encadenadas, para otro día:
    PSF/Journey de perfiles no elegidos que quedan huérfanos fuera del flujo. Cada fricción trae
    su idea de solución en la tabla de esa sección.
 
-   El orden de trabajo queda igual: la sub-skill de datos abiertos va primero porque es la pieza
-   que robustece; los arreglos de las fricciones 1–9 vienen después, ya con esa pieza puesta.
+   **Las 9 fricciones se arreglaron el 01/09/2026** — ver «Las 9 fricciones del uso real,
+   arregladas». Queda pendiente solo el punto 1 de arriba: la sub-skill de datos abiertos.
 
-### 10. Evaluar los métodos estadísticos y construir los scripts que faltan
+### 10. Evaluar los métodos estadísticos y construir los scripts que faltan — CERRADO el 01/09
 
-**Evaluación hecha el 01/09/2026** — ver «Evaluación de los métodos estadísticos — 01/09/2026»
-más abajo. Veredicto: la estadística ya scripteada es correcta (muestras, Wilson, Kano, Berger,
-saturación, EDA de señales débiles, SSoT); lo que falta es convertir a cálculo determinista
-todo lo que hoy hace el LLM a mano:
+**Evaluación hecha el 01/09/2026** (ver «Evaluación de los métodos estadísticos — 01/09/2026»
+más abajo) **y los ocho puntos implementados el mismo día** (ver «Los métodos estadísticos: de
+juicio del LLM a cálculo determinista»). Los cinco scripts nuevos están escritos y probados
+—156 casos, 0 fallos— y enganchados en los `AGENTE.md` que los tienen que usar.
+
+Lo único que queda de esta línea es una **decisión del usuario**, no trabajo pendiente:
+enriquecer `catalogo-patrones.md` con los indicadores numéricos del Business Model Navigator
+exigiría inventar cifras que la fuente no trae, así que se hizo la otra mitad —el desempate
+determinista por script— y los indicadores siguen siendo estimación declarada del analista. Si
+algún día aparece una fuente con esos números, el catálogo se puede enriquecer y el script no
+cambia.
+
+El diagnóstico original, para referencia:
 
 1. **`calcular_tam_sam_som.py`** — TAM/SAM/SOM con reducciones top-down y proyección 1/3/5 + CAGR
    (`benchmark-mercado`, `dimensionador-estrategico`).
@@ -287,6 +305,119 @@ clic en Claude Desktop con un reporte recién generado.
 `scripts/generar_indice.py` se dejó como está: su `index.html` enlaza archivos del disco, y esa
 navegación solo tiene sentido con el proyecto descargado. Dentro de la pasarela no hay arreglo
 posible, y para eso está el historial embebido.
+
+**Confirmado por el usuario en Claude Desktop:** el clic funciona.
+
+### Las 9 fricciones del uso real, arregladas
+
+Cierra el pendiente 9, punto 2. Las fricciones salieron de las notas de Diana (Reclutalia) y
+Jonathan (Divisas) y de leer los HTML de `real_examples/`. Ninguna era un bug del script: eran
+huecos de diseño.
+
+| # | Fricción | Qué se hizo |
+| --- | --- | --- |
+| 1 | Los ZIP de transcripciones entraron sin protocolo | `SKILL.md` § «Cuando el usuario aporta material: acúsalo recibo antes de analizarlo»: el agente devuelve qué entendió (cuántos archivos, qué son, de qué perfiles, reales o para simular, qué se pierde si es parcial) y espera confirmación **antes** de analizar. Material real desactiva la simulación de ese paso y hay que registrarlo en la decisión |
+| 2 | Enlaces del HTML que daban error | Ya cubierto por el `data-salto` de la primera ronda. Los HTML de `real_examples/` se quedan como muestra del antes |
+| 3 | Lista de problemas del PSF en desorden | `problem-solution-fit`: `psf.problemas` se ordena por importancia ↓ y, a igual importancia, por peor satisfacción; el criterio se declara en `psf.base` o en el `subtitulo`; conversación y HTML llevan **el mismo orden** |
+| 4 | `html_9` sin justificación del score | Tres piezas: `calcular_score.py` **exige** justificación por criterio (sale con código 2 si falta), devuelve la matriz criterio → puntaje → justificación dentro de un bloque `tabla`, y el validador avisa si un item trae `score` sin decir de dónde sale |
+| 5 | El resumen ejecutivo solo salía si lo pedías | `SKILL.md` § cierre: es la opción **(a)** del cierre y se ofrece siempre, con su contenido definido (decisión de fondo, 3–5 insights con su paso y su evidencia, lo que quedó sin validar, siguiente paso, y la marca de simulación en el primer párrafo) |
+| 6 | PSF/Journey de otros perfiles fuera del flujo | `SKILL.md` § «Los pasos que corren sobre una sola opción» + `descripcion` del nodo en `pasos.json`: se avisa de que la elección arrastra al paso 6, se ofrecen los demás perfiles como anexo **en el momento de elegir**, y un anexo se genera con `--estado`, nunca con `--sin-flujo` |
+| 7 | Marca de simulación global y binaria | `meta.origen_datos = {tipo: reales\|simulados\|mixtos, nota}`. **No apaga la marca del proyecto**: añade una línea en la caja ámbar («Este paso en concreto está construido con datos reales de campo — 42 entrevistas reales»). Antes había que escribirlo a mano en cada reporte |
+| 8 | Orden de las ideas del `html_9` | `calcular_score.py` devuelve `posicion` (por score ↓) y `numero_original` por separado, y la regla queda escrita: el número de la idea viaja como dato, nunca como posición |
+| 9 | Prompts de imagen que no dan para el arte | `online-ads` § «El prompt de imagen es una dirección de arte, no una descripción»: 8 campos obligatorios (sujeto, composición, luz, paleta con hex, estilo con referencia verificable, ambiente, formato técnico, qué evitar), una variante por campaña, qué herramienta y por qué, y el prompt final en una línea lista para copiar |
+
+**Decisión de diseño en la fricción 7, por si quieres cambiarla.** Se mantuvo la marca a nivel de
+**proyecto** en lugar de moverla al paso, porque quien abre un reporte suelto necesita saber que
+hay simulación aguas arriba: quitarla del paso 9 porque el paso 9 sea real esconde que su ficha
+de persona salió, en parte, de encuestas simuladas. `origen_datos` matiza sin ocultar. Si
+prefieres que la marca sea del paso, se cambia en un sitio (`estado_flujo.py`, al construir
+`flujo.simulacion`).
+
+### Los métodos estadísticos: de juicio del LLM a cálculo determinista
+
+Cierra el pendiente 10. Cinco scripts nuevos, todos con la misma forma: `--plantilla` imprime el
+esqueleto de entrada, código de salida 2 con un mensaje concreto si la entrada no permite
+calcular, y `--seccion-reporte` escribe una sección de `REPORT_DATA` lista para pegar —con sus
+tablas y su gráfica ya armadas—. Esto último es lo que impide que la justificación se quede en la
+conversación: viene dentro del entregable.
+
+| Script | Skill(s) | Qué calcula que antes hacía el LLM |
+| --- | --- | --- |
+| `calcular_tam_sam_som.py` | `dimensionador-estrategico` | TAM → SAM por reducciones (se multiplican, no se suman) → SOM por cuota objetivo, proyección 1–5 con crecimiento de mercado, CAGR, penetración, y **contraste top-down vs. bottom-up** |
+| `calcular_modelo.py` | `dimensionador-estrategico` | CLV bruto/neto/ajustado, cross-selling como valor esperado, CAC de la mezcla de canales, CLV:CAC con su calificación, payback, ROI, ROAS, ARPU, clientes por cohortes, MRR/ARR 1–5, punto de equilibrio, EBITDA aproximado |
+| `calcular_score.py` | `dimensionador-estrategico` | Score /25, umbrales, orden por score, y la matriz de justificación **obligatoria** |
+| `analizar_resultados.py` | `landing-page` + las 5 de Validación | Tasa con IC de **Wilson**, prueba contra umbral o contra control, veredicto por intervalo, **n para concluir**, corrección de Bonferroni, y `--n-requerido` para dimensionar antes de correr |
+| `ordenar_patrones.py` | `business-model-navigator` | El orden de las reglas (alineación ↓, evidencia ↓, costo ↑, configuración ↑, ejecución ↑) y **qué criterio decidió cada posición** |
+
+**Lo que estos scripts detectan y nadie veía a ojo** — es la parte que más valor tiene, más que
+la aritmética:
+
+- **Payback mayor que la vida del cliente.** El cliente se va antes de haber pagado su
+  adquisición: el CLV:CAC y ese dato no pueden ser ciertos a la vez.
+- **Vida declarada que no cuadra con el churn** (1/churn). Son dos formas de decir lo mismo, así
+  que una de las dos está mal y el CLV entero depende de cuál.
+- **SAM bottom-up que no se parece al top-down.** Presentar solo uno de los dos es elegir el que
+  conviene.
+- **Un veredicto decidido por el intervalo, no por la tasa.** Un 8.8% contra un umbral del 6% no
+  dice nada si el intervalo va del 6.5% al 11.9%.
+- **Comparaciones múltiples.** Con m variantes o m temas, ~5% de los intervalos falla por diseño;
+  ahora se dice en `discovery-survey` y `encuesta-kano`, y `analizar_resultados.py` aplica
+  Bonferroni.
+- **Empates de score y bordes de umbral.** Un punto en un solo criterio cambia el veredicto.
+
+Además:
+
+- **Grupo control (la nota «no se tienen grupos control»).** Las 6 skills que diseñan
+  experimentos llevan la sección «Grupo control y lectura del resultado»: la Testing Card declara
+  el control **o** declara explícitamente que no lo hay, con el motivo y la consecuencia (lectura
+  exploratoria). No hay tercera opción; callarlo es lo que convierte una lectura exploratoria en
+  una conclusión que nadie midió.
+- **`calcular_muestra.py`: Z exacto.** Antes se elegía el Z de la tabla más cercano, así que
+  `--confianza 0.93` calculaba en silencio con el de 0.95. Ahora sale de `NormalDist().inv_cdf`,
+  como ya hacía `calcular_significancia.py`. Comprobado que los seis niveles comunes dan
+  exactamente el valor de la tabla, así que no hay regresión.
+- **`n_requerido_ab` coincide con `calcular_significancia.py`** al dígito (746 por brazo en el
+  caso de prueba): los dos scripts de `email-campaign` no se contradicen. Uno se corre antes
+  (cuánta muestra hace falta) y el otro después (qué dicen los datos).
+- **La regla transversal de explicar la estadística** está en `SKILL.md` § «La estadística se
+  explica, siempre» y en `AGENTS.md` §4: cada valor con su fórmula de libro, su fórmula en
+  palabras y lo que el número **no** dice; la honestidad metodológica sin esperar a que la pidan;
+  y los gráficos generados por script. Los cinco scripts emiten ya `explicacion` y `advertencias`
+  con ese formato.
+
+### Un bloque `tabla` en la plantilla
+
+Lo necesitaban las fricciones 4 y 8: una matriz criterio → puntaje → justificación no se lee como
+párrafo. Un item puede llevar `tabla` (un objeto o una lista) con `columnas`, `filas`, y
+opcionalmente `titulo`, `fila_total` y `nota`. Se renderiza dentro del detalle de la tarjeta con
+scroll horizontal propio, las celdas numéricas se alinean solas y **el buscador mira dentro**, así
+que una justificación escrita ahí es encontrable. Una fila con menos celdas que columnas es
+**error**, no aviso: saldría desalineada sin que el HTML se queje.
+
+Verificado con Chrome headless: 4 tarjetas, tabla en el detalle con sus 3 columnas, 6 filas (5
+criterios + TOTAL), la fila total resaltada, el wrapper con scroll, la tabla resumen con 9
+columnas y su gráfica, y el buscador encontrando texto que solo existe dentro de la tabla.
+
+### Verificación de esta ronda
+
+- **44 scripts del repo compilan**, 0 errores de sintaxis.
+- **156 casos de prueba, 0 fallos**: 20 de `calcular_score`, 26 de `calcular_tam_sam_som`, 43 de
+  `calcular_modelo`, 44 de `analizar_resultados`, 23 de `ordenar_patrones`. Incluyen aritmética
+  contra valores calculados a mano (Wilson de 37/420 = 6.46%–11.91%, n para concluir = 350, CAC de
+  la mezcla, CLV:CAC ponderado), las barreras de entrada y la comprobación de que cada sección
+  generada **pasa `validar_report_data.py` sin errores**.
+- Las **6 copias** de `analizar_resultados.py` son idénticas (mismo hash), según la regla de
+  autonomía de `AGENTS.md` §4.
+- Los dos simuladores tocados corren de punta a punta con un plan real
+  (`discovery`: 149 filas · 40 encuestados · 8 temas; `kano`: 240 filas · 6 features).
+- Los 17 HTML de `output/` regenerados sin fallos, y la sonda de navegación en iframe **sigue
+  dando 0 anclas internas**: los cambios de esta ronda no rompieron el arreglo de la primera.
+
+**Dos avisos de mis propias herramientas que eran falsos positivos** (anotados para no volver a
+caer): mi chequeo casero de MD032 se dispara en las líneas de continuación de viñetas multilínea
+—marcó 119 líneas preexistentes por todo el repo— y una comparación de tolerancia 1e-9 contra un
+`alpha` que el script guarda redondeado a 6 decimales. En los dos casos el código estaba bien y la
+prueba mal.
 
 ---
 

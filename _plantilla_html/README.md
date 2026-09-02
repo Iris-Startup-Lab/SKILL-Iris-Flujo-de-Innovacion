@@ -71,7 +71,11 @@ _plantilla_html/
     "resumen": "Resumen ejecutivo (2-3 líneas)",
     "fecha": "2026-08-12",
     "metodologia": "Opcional: texto para el modal de metodología",
-    "simulado": false          // opcional: marca datos simulados en una skill suelta
+    "simulado": false,         // opcional: marca datos simulados en una skill suelta
+    "origen_datos": {          // opcional: procedencia de los datos DE ESTE PASO
+      "tipo": "reales",        // reales | simulados | mixtos
+      "nota": "42 entrevistas reales de tres perfiles"
+    }
   },
   "kpis": [
     { "label": "Keywords analizadas", "value": "12", "accent": false }
@@ -97,6 +101,14 @@ _plantilla_html/
             "labels": ["Ene","Feb","Mar"],
             "datasets": [ { "label": "huerto urbano", "data": [20,28,38] } ]
           },
+          "tabla": {                                     // opcional: una tabla, o una lista
+            "titulo": "Criterio → puntaje → justificación",
+            "columnas": ["Criterio", "Puntaje", "Justificación"],
+            "filas": [["Urgencia", "5/5", "6 de 6 entrevistados lo mencionan"],
+                      ["TOTAL", "21/25", "PROTOTIPAR"]],
+            "fila_total": true,                          // resalta la última fila
+            "nota": "Cómo leer la tabla"
+          },
           "fuentes": ["Google Trends (pytrends)"],
           "persona": { },                                // opcional: ficha de persona
           "psf": { }                                     // opcional: análisis Problem-Solution Fit
@@ -111,6 +123,38 @@ _plantilla_html/
   "fuentes": ["Fuente 1", "Fuente 2"]
 }
 ```
+
+### El bloque `tabla` (tabla genérica de un item)
+
+Para el contenido que como párrafo se lee mal: la matriz criterio → puntaje → justificación de
+un score, una proyección año a año, un desglose por buyer persona, un resultado por variante.
+Se renderiza dentro del detalle de la tarjeta, con scroll horizontal propio si no cabe.
+
+| Campo | Obligatorio | Qué es |
+| --- | --- | --- |
+| `columnas` | sí | Lista de encabezados |
+| `filas` | sí | Lista de filas; cada fila es una lista de celdas **en el orden de `columnas`** |
+| `titulo` | no | Encabezado de la tabla |
+| `fila_total` | no | `true` resalta la última fila como TOTAL |
+| `nota` | no | Cómo leer la tabla, debajo |
+
+- `tabla` acepta **un objeto o una lista de objetos**: un item puede llevar varias tablas.
+- **Una fila con menos celdas que columnas es error**, no aviso: la tabla saldría desalineada
+  sin que el HTML se queje. Usa `""` en las celdas que no apliquen.
+- Las celdas van con texto o números, nunca objetos ni listas.
+- Las celdas numéricas se alinean solas con cifras tabulares (se detectan por su contenido).
+- El buscador del reporte **mira dentro de las tablas**, así que una justificación escrita ahí
+  es encontrable.
+
+Existe por una fricción concreta del uso real: el score de una idea aparecía en la tarjeta y su
+desglose criterio por criterio se quedaba en la conversación, así que el lector del HTML no
+sabía de dónde salía el número. Los scripts del Dimensionador
+(`calcular_score.py`, `calcular_modelo.py`, `calcular_tam_sam_som.py`) y
+`analizar_resultados.py` de las skills de validación devuelven la sección con estas tablas ya
+armadas, con `--seccion-reporte`.
+
+El validador avisa (WARN, agregado, uno por reporte) si un item trae `score` y no trae ni una
+tabla con columna «Justificación» ni un `body` con ese label: un puntaje sin decir de dónde sale.
 
 ### Bloques especializados de item: `persona` y `psf`
 
@@ -218,6 +262,16 @@ Se renderiza como:
   **ninguna skill tiene que acordarse de etiquetar**. Una skill que corre suelta, sin contexto
   de flujo, consigue lo mismo con `meta.simulado: true`. Convención completa:
   `sub-skills/SIMULACION.md`.
+  - **`meta.origen_datos` matiza la marca sin apagarla.** La marca es del **proyecto**: en
+    cuanto un paso simula, viaja a todos los reportes siguientes, y eso es lo correcto. Pero en
+    el uso real un proyecto con 42 entrevistas **reales** que simuló solo las encuestas
+    arrastraba la marca a los pasos 4–11, y en cada reporte había que escribir a mano «este paso
+    está construido con entrevistas reales». Con
+    `meta.origen_datos = {tipo: "reales"|"simulados"|"mixtos", nota: "…"}` esa aclaración se
+    escribe sola, como una línea más de la caja ámbar: «Este paso en concreto está construido
+    con datos reales de campo, no simulados — 42 entrevistas reales de tres perfiles». Solo se
+    renderiza cuando hay simulación en el proyecto; el validador avisa si hay simulación y el
+    reporte no declara su procedencia.
 
 `estado` admite: `pendiente`, `en_curso`, `completado`, `omitido`, `fallido`, `actual`
 (solo uno puede ser `actual`).

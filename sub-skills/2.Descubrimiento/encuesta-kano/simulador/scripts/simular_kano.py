@@ -367,6 +367,19 @@ def reportar(filas, plan, params, ruta_csv):
                 f"enunciado ambiguo; aquí significa que el ruido ({params['ruido']:.0%}) o el "
                 f"patrón declarado no son coherentes."
             )
+
+    # Comparaciones múltiples: se clasifica cada feature por separado y se comprueba
+    # contra su categoría declarada. Con muchas features, algunas fallan por azar sin
+    # que el modelo tenga nada mal — y, al revés, entre muchas siempre habrá una con un
+    # resultado llamativo. Los avisos individuales de arriba no dicen esto.
+    m_feats = len(plan["features"])
+    avisos.append(
+        f"comparaciones múltiples: se clasificaron {m_feats} features de forma "
+        f"independiente, con un IC del 95% cada una, así que ~{m_feats * 0.05:.1f} "
+        f"desviaciones se esperan por puro azar (un IC del 95% falla 1 de cada 20 veces "
+        f"por diseño). No elijas la feature con el resultado más favorable entre las "
+        f"{m_feats} y la presentes como hallazgo: con suficientes features siempre hay una."
+    )
     print()
     print(f"  Categoría declarada recuperada en {recuperadas}/{len(plan['features'])} "
           f"características.")

@@ -324,6 +324,7 @@ def reportar(filas, menciones, menciones_seg, plan, params, ruta_csv):
     print("TEMAS (proporción sobre los", n, "encuestados)")
     print(f"  {'tema':<38} {'tipo':<6} {'k/n':>7} {'obs':>7} {'declarada':>10} "
           f"{'IC95':<18} señal")
+    fuera_del_ic = 0
     for t in plan["temas"]:
         k = len(menciones.get(t["tema"], ()))
         p_obs = k / n
@@ -331,6 +332,8 @@ def reportar(filas, menciones, menciones_seg, plan, params, ruta_csv):
         p_dec = t["prevalencia"]
         p_ef = _p_efectiva(p_dec, params["ruido"])
         dentro = lo <= p_ef <= hi
+        if not dentro:
+            fuera_del_ic += 1
         marca = " " if dentro else "!"
         print(f"{marca} {t['tema'][:38]:<38} {t['tipo']:<6} {k:>3}/{n:<3} "
               f"{p_obs * 100:6.1f}% {p_dec * 100:9.0f}% "
@@ -352,6 +355,24 @@ def reportar(filas, menciones, menciones_seg, plan, params, ruta_csv):
                 f"«{t['tema']}»: 0 menciones pese a una prevalencia declarada de "
                 f"{p_dec:.0%}. Revisa el plan o sube n."
             )
+
+    # Comparaciones múltiples: el aviso de arriba es por tema y con muchos temas se
+    # dispara solo. Un IC del 95% falla 1 de cada 20 veces POR DISEÑO, así que con 20
+    # temas se espera ~1 fallo sin que nada esté mal. Sin este agregado, una lista de
+    # avisos individuales se lee como «la simulación está rota».
+    m_temas = len(plan["temas"])
+    esperados_por_azar = m_temas * 0.05
+    avisos.append(
+        f"comparaciones múltiples: se comprobaron {m_temas} temas contra su IC del 95%, "
+        f"así que ~{esperados_por_azar:.1f} caerían fuera por puro azar aunque el modelo "
+        f"fuese perfecto (un IC del 95% falla 1 de cada 20 veces por diseño). "
+        f"Cayeron fuera {fuera_del_ic}: "
+        + ("está dentro de lo esperado, no lo leas como un error del muestreo."
+           if fuera_del_ic <= max(1, round(esperados_por_azar))
+           else "son más de los esperados; revisa las prevalencias del plan o el ruido.")
+        + " Y al revés: no vayas a buscar el tema con el porcentaje más llamativo entre "
+          "muchos y presentarlo como hallazgo — con suficientes temas siempre hay uno."
+    )
     print()
 
     # --- Señal vs. hipótesis ------------------------------------------------

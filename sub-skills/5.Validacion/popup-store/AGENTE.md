@@ -51,6 +51,59 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»).
 2. Compliance de permisos, fiscal, categorías reguladas, seguridad y privacidad.
 3. Captura de datos in situ estructurada y sin influir en el visitante.
 
+## Grupo control y lectura del resultado (obligatorio)
+
+Dos huecos que salieron de la evaluación metodológica del flujo, y que se cierran aquí.
+
+### 1. La Testing Card declara un baseline o un grupo control
+
+Un umbral de industria (`[REFERENCIA DE INDUSTRIA]`) o un objetivo declarado **no es un
+control**: se midió en otro mercado, en otro momento y con otra gente, así que una diferencia
+contra él no se puede atribuir al cambio. Toda Testing Card lleva, además del umbral, una de
+estas dos cosas:
+
+- **El control**, cuando se puede medir a la vez: la versión actual sin el cambio, un segmento
+  que no ve el experimento, una campaña espejo con el mismo presupuesto y audiencia.
+- **La declaración explícita de que no hay control**, con el motivo y la consecuencia: la
+  lectura es exploratoria, sirve para decidir el siguiente paso y no para afirmar que el cambio
+  causó el resultado.
+
+No hay una tercera opción. Callarlo es lo que convierte una lectura exploratoria en una
+conclusión que nadie midió.
+
+### 2. El resultado se lee con script, no a ojo
+
+El flujo diseñaba los experimentos pero no sabía leerlos: «visita que compra: 37 de 420» se comparaba
+de cabeza contra el umbral y se decidía sin intervalo. Cuando el usuario vuelva con los datos:
+
+```bash
+# contra el umbral de la Testing Card
+python sub-skills/5.Validacion/popup-store/scripts/analizar_resultados.py \
+    --k 37 --n 420 --umbral 0.06 --metrica "visita que compra" \
+    --experimento "<nombre del experimento>" --seccion-reporte seccion.json
+
+# contra un control medido en el mismo experimento (siempre que exista)
+python sub-skills/5.Validacion/popup-store/scripts/analizar_resultados.py \
+    --k 37 --n 420 --control-k 12 --control-n 400 --metrica "visita que compra"
+```
+
+Devuelve la tasa con **intervalo de confianza de Wilson**, la prueba contra el umbral o contra
+el control, el veredicto (`perseverar` / `pivotear` / `descartar`) y —cuando no alcanza para
+concluir— **cuántos visitantes más harían falta**. Con `--datos` acepta varias variantes a la vez.
+
+Tres reglas al usarlo:
+
+- **El veredicto se decide con el intervalo, no con la tasa puntual.** Un 8.8% observado contra
+  un umbral del 6% no dice nada si el intervalo va del 6.5% al 11.9%: hay que mirar dónde caen
+  los dos extremos.
+- **Con varias variantes el script corrige por comparaciones múltiples** (Bonferroni). Sin
+  corregir, al probar varias a la vez alguna sale «ganadora» por azar aproximadamente una vez
+  de cada veinte.
+- **Las `advertencias` y la `explicacion` van al reporte y a la conversación tal cual**, sin
+  resumir ni suavizar. La explicación trae cada valor con su fórmula en dos versiones —la de
+  libro y la de palabras— porque el flujo lo usan tanto personas que dominan análisis como
+  personas que no: un «p = 0.03» sin lectura no se discute, se cree o se ignora.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

@@ -28,6 +28,26 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Scripts de cálculo
+
+`scripts/analizar_resultados.py` lee el experimento cuando el usuario vuelve con los datos:
+tasa con **intervalo de confianza de Wilson**, prueba contra el umbral de la Testing Card o
+contra el grupo control, veredicto (`perseverar` / `pivotear` / `descartar`) y —si no alcanza
+para concluir— cuántos intentos más harían falta. Con varias variantes corrige por comparaciones
+múltiples (Bonferroni).
+
+```bash
+# después del experimento
+python sub-skills/5.Validacion/feature-stub/scripts/analizar_resultados.py \
+    --k 37 --n 420 --umbral 0.06 --seccion-reporte seccion.json
+# antes: muestra por brazo para detectar 3 puntos sobre una base del 3%
+python sub-skills/5.Validacion/feature-stub/scripts/analizar_resultados.py --n-requerido 0.03 0.03
+```
+
+Solo stdlib, así que funciona con la skill suelta. El mismo archivo está copiado en las seis
+skills que diseñan experimentos (las cinco de Validación y `landing-page`), según la regla de
+autonomía de `AGENTS.md` §4: ninguna skill importa scripts de otra.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

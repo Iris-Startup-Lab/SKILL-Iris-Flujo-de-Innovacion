@@ -28,6 +28,23 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Scripts de cálculo
+
+`scripts/ordenar_patrones.py` aplica el orden de priorización de las reglas —alineación con la
+hipótesis y, para desempatar, evidencia ↓ · costo ↑ · configuración ↑ · ejecución ↑— de forma
+determinista, y dice **qué criterio decidió cada posición**.
+
+```bash
+python sub-skills/3.Ideacion/business-model-navigator/scripts/ordenar_patrones.py --plantilla > candidatos.json
+python sub-skills/3.Ideacion/business-model-navigator/scripts/ordenar_patrones.py \
+    --datos candidatos.json --top 5 -o orden_patrones.json
+```
+
+Los indicadores siguen siendo estimación del analista: el catálogo no los trae y rellenarlo con
+cifras inventadas iría contra la regla de integridad. Un indicador que no se pueda sostener se
+deja **sin declarar**, y el script coloca a ese candidato al final de su nivel en vez de
+inventarle un valor medio.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

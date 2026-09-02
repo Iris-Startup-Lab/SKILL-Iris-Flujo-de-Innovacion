@@ -71,9 +71,73 @@ Una lista numerada de ideas, con título, descripción breve, o ambas.
 - Módulos 9 y 10 → una vez por idea (evaluación y riesgos consolidados)
 Si la lista de ideas es larga (5+), prioriza cubrir bien las primeras ideas con todo el detalle antes que cubrir superficialmente todas. Usa `ask_user_input_v0` para preguntar cómo prefiere que proceses: "Todas de un jalón (puede recortar detalle)", "En tandas de 2-3 ideas", u "Otro / quiero escribirlo".
 
+## Los números los calcula un script, no tú
+
+Regla de integridad del flujo: **si un script puede calcularlo, lo calcula el script.** Tú
+aportas el juicio —la base de mercado con su fuente, los porcentajes de reducción, las
+métricas unitarias, los cinco puntajes del score y su justificación—; la aritmética y las
+comprobaciones cruzadas las hace el script. Tres razones prácticas: un número hecho a mano no
+se puede auditar (si el CLV:CAC sale 4.2 no se sabe si falló el supuesto o la multiplicación),
+los scripts detectan contradicciones entre supuestos que nadie ve a ojo (una vida del cliente
+que no cuadra con el churn declarado, un SAM bottom-up que no se parece al top-down), y la
+salida trae el bloque del reporte ya armado, así que la justificación **no se puede quedar solo
+en la conversación**.
+
+| Módulo | Script | Qué entrega |
+| --- | --- | --- |
+| 1 — Mercado | `scripts/calcular_tam_sam_som.py` | TAM/SAM/SOM, proyección 1/3/5, CAGR, penetración y contraste top-down vs. bottom-up |
+| 3–8 — Modelo | `scripts/calcular_modelo.py` | CLV, cross-sell, CAC por canal, CLV:CAC, payback, ROI, ARPU, MRR/ARR 1–5, punto de equilibrio, EBITDA aproximado |
+| 9 — Score | `scripts/calcular_score.py` | Score /25, umbrales, orden por score y la matriz criterio → puntaje → justificación |
+
+Los tres funcionan igual:
+
+```bash
+# 1. mira qué hay que rellenar
+python sub-skills/3.Ideacion/dimensionador-estrategico/scripts/calcular_score.py --plantilla > ideas.json
+# 2. rellénalo con los supuestos y sus fuentes, y calcula
+python sub-skills/3.Ideacion/dimensionador-estrategico/scripts/calcular_score.py \
+    --datos ideas.json -o score.json --seccion-reporte seccion_score.json
+```
+
+- **Salen con código 2 si la entrada no permite calcular** y dicen exactamente qué falta.
+  `calcular_score.py` rechaza un criterio sin justificación: eso es deliberado, es la barrera
+  que corrige la fricción «no me quedó claro de dónde salió el puntaje».
+- **`--seccion-reporte` escribe una sección de `REPORT_DATA` lista para pegar** en tu
+  `reporte.json`, con las tablas y la gráfica ya construidas. Úsala: es lo que hace que la
+  matriz de justificación y las proyecciones viajen al HTML del paso y no solo al chat.
+- **Cada script emite `explicacion`** con cada valor en dos versiones —fórmula de libro y
+  fórmula en palabras— y una `lectura` en lenguaje de usuario. Eso va al reporte y a la
+  conversación tal cual: ver «Explicar la estadística» más abajo.
+- **Cada script emite `advertencias`.** No las resumas ni las suavices: son las fallas
+  metodológicas que el propio cálculo detectó.
+- `scripts/xlsx_generator.py` **dibuja** el modelo, no lo calcula. Aliméntalo con la salida de
+  `calcular_modelo.py`, nunca con cifras escritas a mano.
+
+## Explicar la estadística (obligatorio)
+
+Ningún valor calculado se entrega desnudo. Cada vez que aparezca un CLV, un CLV:CAC, un CAGR,
+un payback, un intervalo de confianza o una `p`, va acompañado de:
+
+1. **Qué significa, en una frase de lenguaje llano.** «CLV:CAC de 4:1» → «cada peso invertido
+   en conseguir un cliente devuelve cuatro a lo largo de su vida». El campo
+   `explicacion[].formula_palabras` de la salida ya lo trae escrito.
+2. **La fórmula, en las dos versiones:** la de libro y la de palabras. La audiencia del flujo va
+   de gente que domina análisis a gente que no, y un número sin lectura se cree o se ignora,
+   pero no se discute.
+3. **Lo que el número NO dice.** El CLV es una expectativa sobre supuestos, no caja; el score
+   /25 ordena ideas entre sí, no promete resultados; un CAGR aplana los saltos.
+4. **Honestidad metodológica sin que nadie la pida.** Si hay una falla de método o la muestra
+   no sostiene la cifra —aunque el script no lo advierta— dilo en el resumen y en la
+   conversación, con su impacto en la decisión. No en una nota al pie: quien lee decide con
+   esto.
+
 ## Módulos de análisis
 
 ### Módulo 1 — Dimensionamiento de mercado (una vez por idea)
+
+**Cálculo:** `scripts/calcular_tam_sam_som.py` (ver arriba). Tú declaras el mercado base con su
+fuente, los porcentajes de reducción y la cuota objetivo a 1/3/5 años; el script hace el resto y
+compara el top-down contra el bottom-up.
 
 Doble metodología:
 
@@ -113,6 +177,16 @@ Escala de amenaza: 🔴 Alta (competidor con recursos, mismo mercado, producto s
 
 ### Módulos 3–8 — Por cada buyer persona
 
+**Cálculo:** `scripts/calcular_modelo.py` (ver arriba). Declara por buyer persona las métricas
+unitarias —ticket, frecuencia, vida, margen, CAC, clientes del año 1, crecimiento, churn,
+cross-selling y canales— y el script deriva CLV, CLV ajustado, CLV:CAC con su calificación,
+payback, ROI, ROAS, ARPU, la proyección de clientes por cohortes, MRR/ARR año 1 a 5, el punto
+de equilibrio y el EBITDA aproximado. **No escribas ninguno de esos números a mano.**
+
+Dos comprobaciones que hace el script y conviene mirar antes de seguir: si el payback es mayor
+que la vida del cliente, y si la vida declarada cuadra con la que implica el churn (1/churn).
+Las dos aparecen en `advertencias` y las dos significan que hay supuestos que se contradicen.
+
 Repite el bloque completo para CADA buyer persona definido en el Paso 0C, con el encabezado `── BUYER PERSONA [N]: [Nombre] ──`. Al terminar todos, presenta la tabla de consolidación (ver abajo).
 
 **Módulo 3 — Métricas unitarias y CLV.** Ticket promedio, frecuencia de compra anual, tiempo de vida del cliente, CLV bruto (ticket × frecuencia × vida), margen bruto, CLV neto (CLV bruto × margen), tasa de recompra, NPS de referencia de industria — todo con supuesto explícito.
@@ -137,7 +211,16 @@ Repite el bloque completo para CADA buyer persona definido en el Paso 0C, con el
 
 Seguida de una fila TOTAL/PROMEDIO, y observaciones: ¿qué BP tiene el CLV:CAC más atractivo?, ¿cuál se beneficia más del cross-selling?, ¿hay sinergia entre buyer personas?, recomendación de priorización de segmento para prototipado.
 
+La consolidación la calcula `calcular_modelo.py` y trae ya respondidas las dos primeras
+preguntas (`buyer_persona_mas_atractivo`, `buyer_persona_mas_beneficiado_por_cross_sell`). Un
+detalle que importa: **el CLV:CAC consolidado se pondera por clientes, no se promedia.** El
+promedio de dos ratios no corresponde a ningún negocio real, y con segmentos de tamaño distinto
+la diferencia es grande.
+
 ### Módulo 9 — Score de atractivo (/25)
+
+**Cálculo:** `scripts/calcular_score.py`. Tú das los cinco puntajes **con su justificación**; el
+script suma, aplica los umbrales, ordena las ideas por score y devuelve la matriz completa.
 
 | Criterio | Puntaje /5 | Justificación |
 | --- | --- | --- |
@@ -151,6 +234,20 @@ Seguida de una fila TOTAL/PROMEDIO, y observaciones: ¿qué BP tiene el CLV:CAC 
 Ajusta la narrativa (no la escala numérica) según el objetivo del Paso 0A: "Incrementar mercado" pondera más Escalabilidad y Velocidad al mercado; "Incrementar CLV" pondera más Diferenciación y Fit estratégico; "Otro" se ajusta según lo indicado por el usuario.
 
 Umbrales de veredicto: **20–25 → PROTOTIPAR** · **13–19 → VALIDAR MÁS ANTES DE PROTOTIPAR** · **≤12 → DESCARTAR / REPLANTEAR**.
+
+**Tres reglas que no son opcionales** (salen de fricciones del uso real):
+
+1. **La justificación de cada criterio va al HTML, no solo al chat.** El script la exige (sale
+   con código 2 si falta) y la entrega dentro de un bloque `tabla` con las columnas
+   Criterio / Puntaje / Justificación. Pégala en el `reporte.json` del paso. Un usuario real
+   preguntó «no me quedó claro de dónde sacó urgencia, diferenciación, escalabilidad…»: pasaba
+   porque la tabla se quedaba en la conversación.
+2. **Las ideas se presentan ordenadas por score descendente**, y el número original de la idea
+   —el del paso de ideación— viaja como dato, nunca como posición. En un proyecto real salieron
+   como 1, 2, 3, 7, 4, 6, 11… y se leía como desorden en vez de priorización. El script ya
+   devuelve `posicion` y `numero_original`.
+3. **La tabla resumen de scores es una sección visible del HTML**, no un `subtitulo`. El script
+   la devuelve como su último item, con su gráfica de barras.
 
 ### Módulo 10 — Riesgos críticos y supuestos
 

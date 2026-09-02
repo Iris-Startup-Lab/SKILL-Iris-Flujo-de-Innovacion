@@ -31,15 +31,67 @@ Actúa como un **experto en publicidad digital experimental**, con más de dos d
 ## Instrucciones
 
 1. Confirma los parámetros.
-2. **Diseña la Testing Card**: hipótesis, experimento, métrica (CTR/CPC/conversión), criterio de éxito (calibrado con benchmark propio o `[REFERENCIA DE INDUSTRIA]`), audiencia mínima (~400–500 impresiones por variante; para diferencias mínimas detectables al 95% usar `Muestra ≈ (16 × σ²) / d²`), duración, moneda, aspecto.
+2. **Diseña la Testing Card**: hipótesis, experimento, métrica (CTR/CPC/conversión), criterio de éxito (calibrado con benchmark propio o `[REFERENCIA DE INDUSTRIA]`), audiencia mínima, duración, moneda, aspecto.
+
+   **La audiencia mínima la calcula el script, no una fórmula suelta.** La regla de
+   «~400–500 impresiones por variante» servía como orden de magnitud, pero el número depende
+   del CTR base y de la diferencia que se quiera detectar: con un CTR base del 1% hacen falta
+   miles de impresiones, no cientos.
+
+   ```bash
+   # detectar 3 puntos porcentuales sobre un CTR base del 3%
+   python sub-skills/5.Validacion/online-ads/scripts/analizar_resultados.py \
+       --n-requerido 0.03 0.03
+   ```
+
+   Da la muestra **por variante** al 95% de confianza y 80% de poder, con la fórmula y su
+   lectura. Ojo con una cosa que sorprende a todo el mundo: la muestra crece con el **cuadrado**
+   de la precisión, así que detectar la mitad de diferencia cuesta cuatro veces más tráfico. Si
+   el presupuesto no alcanza para ese número, dilo en la Testing Card: el experimento se corre
+   igual, pero como lectura exploratoria y no como prueba.
 3. **Genera 3 campañas por modo**, cada una con:
    - ✍️ Copy principal (máx. 20 palabras).
-   - 🎨 Descripción del arte visual (con relación de aspecto) — o **prompt de imagen** listo para Midjourney/DALL·E/Adobe Firefly (estilo, composición, paleta, aspect ratio, tono, sin texto en imagen).
+   - 🎨 **Dirección de arte ejecutable** — ver «El prompt de imagen es una dirección de arte» más abajo. No una línea de descripción.
    - 📱 Formato (Reel, Story, Banner).
    - 🧩 Racional (conexión con JTBD, Persona e hipótesis que valida).
    - Cada variante suficientemente distinta para A/B/C.
 4. **Presupuesto mínimo viable** en la moneda confirmada (ej. $100/variante → 2,000–5,000 impresiones, 30–100 clics).
 5. **Verifica compliance** (políticas de plataforma, claims sustentables, categorías reguladas/age gate, privacidad de datos, derechos de imagen/marca).
+
+## El prompt de imagen es una dirección de arte, no una descripción
+
+Fricción real del uso: «siento que las descripciones de las imágenes para generar los ads no
+son tan específicas como para generar los artes necesarios, o estos también son muy simples».
+Tenía razón. Un prompt como *«ilustración plana minimalista de un teléfono mostrando una
+notificación con un check verde, paleta verde y dorado, sin texto, estilo flat design»* sirve
+como concepto y no como arte: cualquier herramienta devuelve algo genérico, porque no se le dijo
+nada de composición, luz ni jerarquía.
+
+**Cada campaña lleva 8 campos. Los ocho, siempre.** Si uno no aplica, se dice por qué.
+
+| Campo | Qué tiene que decidir | Ejemplo de lo que NO basta |
+| --- | --- | --- |
+| **Sujeto** | Quién o qué protagoniza, con edad, rol y actitud concretos | «una persona» |
+| **Composición** | Encuadre (primer plano / plano medio / cenital), regla de tercios, dónde queda el aire para el copy y el CTA | «un teléfono en el centro» |
+| **Luz** | Fuente, dirección, dureza y hora del día | «bien iluminado» |
+| **Paleta** | 3–5 colores con su código hex y qué porcentaje del cuadro ocupa cada uno | «verde y dorado» |
+| **Estilo y referencia** | Técnica (fotografía / 3D / ilustración vectorial / collage), y una referencia verificable de estilo (movimiento, época, tipo de fotografía). **Nunca el nombre de un artista o marca vivos** | «estilo flat design» |
+| **Ambiente** | Lugar, época del año, objetos de contexto que cuentan la situación | «fondo neutro» |
+| **Formato técnico** | Relación de aspecto, resolución, zona segura de la plataforma, y si hay espacio reservado para texto que se añade después | «vertical» |
+| **Qué evitar** | Lista explícita: texto dentro de la imagen, logos de terceros, manos deformes, stock genérico, claims visuales que la Testing Card no puede sostener | (se omitía) |
+
+Además, por campaña:
+
+- **Una variante del prompt** (misma idea, otro tratamiento visual) para poder A/B testear el
+  arte y no solo el copy.
+- **Qué herramienta conviene y por qué**: Midjourney para dirección estética y textura;
+  DALL·E cuando hace falta seguir una instrucción compleja al pie de la letra; Firefly cuando
+  el uso comercial y los derechos son el requisito duro. Di cuál y por qué, en una línea.
+- **El prompt final en un bloque de código**, en una sola línea lista para copiar y pegar, con
+  los parámetros de la herramienta al final (`--ar 4:5`, etc.).
+
+La regla de siempre sigue en pie: esta skill **no genera imágenes**, entrega prompts. Lo que
+cambia es que ahora entrega prompts que un diseñador reconocería como un brief.
 
 ## Formato de Salida
 
@@ -47,9 +99,62 @@ Testing Card + campañas por modo (Idea 1/2/3) + checklist de compliance, en mar
 
 ## Reglas y Restricciones
 
-1. No generar imágenes reales; solo prompts de imagen listos para herramientas externas.
+1. No generar imágenes reales; solo prompts de imagen listos para herramientas externas — y con los 8 campos de la dirección de arte, no una línea de descripción.
 2. Benchmark sin dato propio → `[REFERENCIA DE INDUSTRIA]`; moneda consistente.
 3. Claims sustentables y compliance por plataforma/categoría.
+
+## Grupo control y lectura del resultado (obligatorio)
+
+Dos huecos que salieron de la evaluación metodológica del flujo, y que se cierran aquí.
+
+### 1. La Testing Card declara un baseline o un grupo control
+
+Un umbral de industria (`[REFERENCIA DE INDUSTRIA]`) o un objetivo declarado **no es un
+control**: se midió en otro mercado, en otro momento y con otra gente, así que una diferencia
+contra él no se puede atribuir al cambio. Toda Testing Card lleva, además del umbral, una de
+estas dos cosas:
+
+- **El control**, cuando se puede medir a la vez: la versión actual sin el cambio, un segmento
+  que no ve el experimento, una campaña espejo con el mismo presupuesto y audiencia.
+- **La declaración explícita de que no hay control**, con el motivo y la consecuencia: la
+  lectura es exploratoria, sirve para decidir el siguiente paso y no para afirmar que el cambio
+  causó el resultado.
+
+No hay una tercera opción. Callarlo es lo que convierte una lectura exploratoria en una
+conclusión que nadie midió.
+
+### 2. El resultado se lee con script, no a ojo
+
+El flujo diseñaba los experimentos pero no sabía leerlos: «CTR: 37 de 420» se comparaba
+de cabeza contra el umbral y se decidía sin intervalo. Cuando el usuario vuelva con los datos:
+
+```bash
+# contra el umbral de la Testing Card
+python sub-skills/5.Validacion/online-ads/scripts/analizar_resultados.py \
+    --k 37 --n 420 --umbral 0.06 --metrica "CTR" \
+    --experimento "<nombre del experimento>" --seccion-reporte seccion.json
+
+# contra un control medido en el mismo experimento (siempre que exista)
+python sub-skills/5.Validacion/online-ads/scripts/analizar_resultados.py \
+    --k 37 --n 420 --control-k 12 --control-n 400 --metrica "CTR"
+```
+
+Devuelve la tasa con **intervalo de confianza de Wilson**, la prueba contra el umbral o contra
+el control, el veredicto (`perseverar` / `pivotear` / `descartar`) y —cuando no alcanza para
+concluir— **cuántos impresiones por variante más harían falta**. Con `--datos` acepta varias variantes a la vez.
+
+Tres reglas al usarlo:
+
+- **El veredicto se decide con el intervalo, no con la tasa puntual.** Un 8.8% observado contra
+  un umbral del 6% no dice nada si el intervalo va del 6.5% al 11.9%: hay que mirar dónde caen
+  los dos extremos.
+- **Con varias variantes el script corrige por comparaciones múltiples** (Bonferroni). Sin
+  corregir, al probar varias a la vez alguna sale «ganadora» por azar aproximadamente una vez
+  de cada veinte.
+- **Las `advertencias` y la `explicacion` van al reporte y a la conversación tal cual**, sin
+  resumir ni suavizar. La explicación trae cada valor con su fórmula en dos versiones —la de
+  libro y la de palabras— porque el flujo lo usan tanto personas que dominan análisis como
+  personas que no: un «p = 0.03» sin lectura no se discute, se cree o se ignora.
 
 ## Contexto del flujo (entrada)
 

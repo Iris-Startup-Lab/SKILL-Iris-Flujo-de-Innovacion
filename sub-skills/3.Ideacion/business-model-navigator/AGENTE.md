@@ -33,7 +33,33 @@ Profesional, corporativo, claro y persuasivo. Orientado a la acción táctica. C
 
 **Paso 1 — Onboarding:** saluda y solicita `{{hipotesis}}` y `{{exclusiones}}`. No continúes hasta tener ambas respuestas.
 
-**Paso 2 — Análisis (interno):** revisa el catálogo, aplica las reglas y selecciona los 5 mejores patterns/experimentos.
+**Paso 2 — Análisis (interno):** revisa el catálogo, evalúa los candidatos y **deja que el
+script aplique el orden**:
+
+```bash
+python sub-skills/3.Ideacion/business-model-navigator/scripts/ordenar_patrones.py --plantilla > candidatos.json
+# rellena los indicadores de cada candidato y ordena
+python sub-skills/3.Ideacion/business-model-navigator/scripts/ordenar_patrones.py \
+    --datos candidatos.json --top 5 -o orden_patrones.json
+```
+
+Por qué no lo ordenas tú: son cinco criterios encadenados (alineación → evidencia → costo →
+configuración → ejecución) sobre cinco candidatos, y encadenarlos de cabeza sale mal sin que
+nadie lo note. El script además **dice qué criterio decidió cada posición**
+(`desempate_frente_al_anterior`), así que la entrega puede justificar el orden en vez de
+afirmarlo.
+
+Dos cosas que el script no hace y siguen siendo tuyas:
+
+- **Los indicadores los estimas tú.** El `catalogo-patrones.md` no los trae, y rellenarlo con
+  cifras inventadas iría contra la regla de integridad del repositorio. Decláralos como
+  estimación (`origen_indicadores`) y dilo en la entrega.
+- **Si un indicador no se puede sostener, déjalo sin declarar.** El script coloca a ese
+  candidato al final de su nivel —un dato ausente no adelanta a uno medido— y lo dice en las
+  advertencias. Es mejor que inventar un 3 de 5, que es lo que pasaba antes.
+
+Escala (la misma del formato de entrega): **costo, configuración y ejecución van de 1 = el más
+bajo o rápido a 5 = el más alto o lento; evidencia y alineación, de 1 = débil a 5 = fuerte.**
 
 **Paso 3 — Entrega:** presenta las 5 recomendaciones con este formato exacto para cada una:
 ```

@@ -35,6 +35,33 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## Scripts de cálculo
+
+Los números del análisis **los calcula un script**, no el modelo. Cada uno acepta
+`--plantilla` (imprime el esqueleto de entrada), sale con código 2 y un mensaje concreto si la
+entrada no permite calcular, y con `--seccion-reporte` escribe una sección de `REPORT_DATA`
+lista para pegar en el `reporte.json` —con sus tablas y su gráfica ya armadas—.
+
+| Script | Módulo | Qué calcula |
+| --- | --- | --- |
+| `scripts/calcular_tam_sam_som.py` | 1 | TAM/SAM/SOM con reducciones top-down, proyección 1/3/5, CAGR, penetración y **contraste contra el SAM bottom-up** |
+| `scripts/calcular_modelo.py` | 3–8 | CLV, cross-selling, CAC por canal, CLV:CAC con su calificación, payback, ROI, ROAS, ARPU, clientes por cohortes, MRR/ARR 1–5, punto de equilibrio y EBITDA aproximado |
+| `scripts/calcular_score.py` | 9 | Score /25, umbrales de veredicto, orden por score y la matriz criterio → puntaje → **justificación obligatoria** |
+
+```bash
+python sub-skills/3.Ideacion/dimensionador-estrategico/scripts/calcular_score.py --plantilla > ideas.json
+python sub-skills/3.Ideacion/dimensionador-estrategico/scripts/calcular_score.py \
+    --datos ideas.json -o score.json --seccion-reporte seccion_score.json
+```
+
+Los tres emiten `explicacion` (cada valor con su fórmula de libro, su fórmula en palabras y su
+lectura) y `advertencias` con las contradicciones que detectan entre supuestos: una vida del
+cliente que no cuadra con el churn, un payback mayor que la vida del cliente, un SAM bottom-up
+que no se parece al top-down. Van al reporte tal cual, sin suavizar.
+
+`scripts/xlsx_generator.py` **dibuja** el modelo financiero; no calcula nada. Aliméntalo con la
+salida de `calcular_modelo.py`.
+
 ## Uso independiente
 
 Esta skill es un paso del flujo IRIS, pero no depende de él para funcionar. Para usarla

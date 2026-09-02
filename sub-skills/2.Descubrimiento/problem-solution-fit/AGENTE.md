@@ -66,8 +66,25 @@ cambia el texto visible, no las claves.
    - **El trabajo que quiere hacer (Job To Be Done):** ¿qué "trabajo" intenta resolver el
      usuario y cómo mejorarlo?
    - **Blue Ocean:** oportunidades de diferenciación y propuesta de valor única.
-4. **Numera los problemas.** El problema 2 de la tabla es el punto 2 de la matriz: van como
-   un solo array de objetos (`psf.problemas`), no como listas paralelas.
+4. **Numera los problemas y ordénalos por importancia descendente.** El problema 2 de la tabla
+   es el punto 2 de la matriz: van como un solo array de objetos (`psf.problemas`), no como
+   listas paralelas.
+
+   **El orden es parte del análisis, así que se declara.** En el uso real un usuario escribió:
+   «en la conversación generó un listado pero lo hizo en desorden; en el html sí vienen bien los
+   números consecutivos, pero supongo que los ordenó así porque los descarta como solución». Es
+   decir: había un orden, no era evidente, y la persona tuvo que adivinarlo. Tres reglas:
+
+   - **Ordena `psf.problemas` por `importancia` de mayor a menor.** Si dos empatan, desempata por
+     menor `satisfaccion` (dolor más grande peor resuelto va primero) y, si siguen empatados, por
+     número de menciones.
+   - **Di el criterio en `psf.base` o en el `subtitulo` del item**, con una frase: «los cinco
+     problemas van ordenados por importancia (1–5) y, a igual importancia, por peor satisfacción
+     con la solución actual».
+   - **La conversación y el HTML llevan el mismo orden.** Si en el chat los presentas agrupados
+     por otra cosa —por ejemplo los que la solución no cubre—, dilo explícitamente y aclara que
+     el orden del reporte es por importancia. Dos órdenes distintos sin avisar se leen como un
+     error.
 5. **Puntúa solo lo que la evidencia sostiene.** Si `importancia` o `satisfaccion` no se
    pudieron derivar, déjalas fuera: el problema sale en la tabla pero no en la matriz, y se
    declara en `advertencias`. No escribas un bloque `chart`: la matriz la dibuja la

@@ -122,6 +122,38 @@ Lo que sí le toca a cada skill que trabaje con datos simulados:
   externa del punto 3.
 - El CSV simulado se declara en `output.archivos_generados`.
 
+### 4.1 La marca es del proyecto; `meta.origen_datos` dice qué es este paso
+
+La marca se enciende en el paso que simula y **viaja a todos los siguientes**. Eso es correcto:
+quien lea el paso 9 tiene que saber que hay simulación en la cadena. Pero es global y binaria, y
+en el uso real produjo una fricción de credibilidad: un proyecto con **42 entrevistas reales**
+que simuló solo las encuestas del paso 3 arrastró la marca a los pasos 4–11, y en cada reporte
+hubo que escribir a mano «este paso está construido 100% con entrevistas reales».
+
+Desde ahora, **cualquier skill que corra con la marca encendida declara la procedencia de sus
+propios datos** en el `reporte.json`:
+
+```jsonc
+"meta": {
+  "origen_datos": {
+    "tipo": "reales",                                  // reales | simulados | mixtos
+    "nota": "42 entrevistas reales de tres perfiles"   // la evidencia concreta
+  }
+}
+```
+
+- **No apaga la marca global.** Añade una línea dentro de la misma caja ámbar: «Este paso en
+  concreto está construido con datos reales de campo, no simulados — 42 entrevistas reales de
+  tres perfiles».
+- `tipo: "mixtos"` es para el caso honesto de verdad: parte real, parte simulado. La `nota` dice
+  qué parte es cada cosa.
+- El validador avisa si el proyecto arrastra simulación y el reporte **no** declara su
+  procedencia, y también si se declara `reales` o `mixtos` sin decir con qué evidencia.
+- Se decidió mantener la marca a nivel de proyecto —y no moverla al paso— porque un lector que
+  llega a un reporte suelto necesita saber que hay simulación aguas arriba. Quitarla del paso 9
+  porque el paso 9 sea real esconde que su ficha de persona salió, en parte, de encuestas
+  simuladas.
+
 ## 5. Cómo se invoca dentro del flujo
 
 En el paso 2 («Decisión — Entrevistas») el usuario decide si ejecuta las entrevistas o las
