@@ -73,10 +73,16 @@ python sub-skills/2.Descubrimiento/encuesta-kano/scripts/clasificar_kano.py \
 Reglas cuando trabajas con ese CSV:
 
 1. **No redactes conteos ni categorías.** La clasificación la hace el script con la matriz
-   oficial; el simulador imprime además el intervalo de Wilson, los coeficientes de Berger y la
-   tasa de respuestas descartables. Cítalos tal cual.
-2. **Todo porcentaje va con su denominador y su intervalo.** Un «45% Must-be» suelto de una
-   muestra simulada es la forma más rápida de que alguien lo cite como real.
+   oficial; el simulador imprime además el intervalo de Wilson, los coeficientes de Berger
+   (nómbralos «coeficiente de satisfacción/insatisfacción» en el texto visible, `berger_cs` /
+   `berger_ci` no cambian) y la tasa de respuestas descartables. Cítalos tal cual — pero no en
+   la cabecera de la tarjeta (ver regla 2).
+2. **La cifra completa no sustituye a la lectura.** `item.subtitulo` es una frase en lenguaje
+   llano («La mayoría la da por sentada, no la nota como plus»), nunca un «45% Must-be» suelto
+   ni la cifra con su denominador e intervalo — eso, exacto y sin suavizar, va en un bloque de
+   `item.body` con `label` «Detalle estadístico». Las dos conviven: la lectura no reemplaza al
+   dato, solo decide cuál va primero. Ver `_plantilla_html/README.md` § «Guía para que el
+   reporte se lea sin manual».
 3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
    llevan `SIMULADO`.
 4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.

@@ -91,9 +91,13 @@ Reglas cuando trabajas con ese CSV:
 
 1. **No redactes conteos, porcentajes ni intervalos.** El simulador imprime la proporción de
    cada tema con su intervalo de Wilson, el `n` requerido para el margen declarado y la prueba z
-   entre segmentos. Cítalos tal cual.
-2. **Todo porcentaje va con denominador e intervalo:** «18 de 30 (60%, IC95 42-76%)», nunca
-   «60% de los usuarios».
+   entre segmentos. Cítalos tal cual — pero no en la cabecera de la tarjeta (ver regla 2).
+2. **La cifra completa no sustituye a la lectura.** `item.subtitulo` es una frase en lenguaje
+   llano que cualquiera entiende sin saber qué es un IC95 (ej. «Poco más de la mitad lo
+   mencionó»); la cifra exacta con su denominador e intervalo («18 de 30 (60%, IC95 42-76%)»,
+   nunca «60% de los usuarios» a secas) va en un bloque de `item.body` con `label` «Detalle
+   estadístico». Las dos conviven — la honestidad no se pierde, se mueve al detalle. Ver
+   `_plantilla_html/README.md` § «Guía para que el reporte se lea sin manual».
 3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
    llevan `SIMULADO`.
 4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.

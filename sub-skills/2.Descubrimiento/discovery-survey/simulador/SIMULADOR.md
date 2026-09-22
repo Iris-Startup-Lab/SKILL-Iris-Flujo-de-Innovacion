@@ -162,8 +162,12 @@ en el contexto, advertencia automática y línea en el pie). Lo que te toca:
 3. `advertencias` recoge `n`, la semilla, el ruido, el margen de error real y el límite de
    validez externa.
 4. El CSV se declara en `output.archivos_generados` y en `--outputs` al cerrar el paso.
-5. **Los porcentajes se escriben con su denominador y su intervalo:** «18 de 30 (60%, IC95
-   42-76%)», nunca «60% de los usuarios».
+5. **La cifra completa —con denominador e intervalo, «18 de 30 (60%, IC95 42-76%)», nunca
+   «60% de los usuarios» a secas— no va en la cabecera de la tarjeta.** Va íntegra en
+   `item.body` («Detalle estadístico»); `item.subtitulo` lleva la misma información en una
+   frase legible («Poco más de la mitad lo mencionó»). Ver `_plantilla_html/README.md` §
+   «Guía para que el reporte se lea sin manual» — la responsabilidad de esa traducción es de
+   `discovery-survey`, el simulador solo garantiza que el número exista.
 
 ## Contrato JSON (salida)
 
@@ -196,8 +200,10 @@ en el contexto, advertencia automática y línea en el pie). Lo que te toca:
 1. **Nunca redactes conteos, porcentajes ni intervalos.** Los calcula el script; tú los citas.
 2. **Un CSV, nada más.** Ni HTML ni `reporte.json` ni cierre de paso.
 3. **El nombre del archivo termina en `_SIMULADO.csv`.**
-4. **Todo porcentaje va con denominador e intervalo.** Un porcentaje suelto de una muestra
-   simulada es la forma más rápida de que alguien lo cite como si fuera real.
+4. **Todo porcentaje va con denominador e intervalo, siempre — pero en el detalle, no en la
+   cabecera.** Un porcentaje suelto de una muestra simulada es la forma más rápida de que
+   alguien lo cite como si fuera real; una cabecera en jerga estadística es la forma más
+   rápida de que nadie la entienda. `discovery-survey` decide dónde va cada una.
 5. **Registra la semilla** en `parametros` y en el resumen del paso.
 6. **No presentes la prueba z como evidencia de mercado** (ver el malentendido de arriba).
 

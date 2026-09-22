@@ -103,6 +103,15 @@ Reglas:
     `.\empaquetar_skill.ps1 -SubSkill "<fase>/<skill>"` (o `--sub-skill` en el `.sh`):
     su carpeta + `_plantilla_html/`, nada más.
 - **Integridad de datos:** nunca inventar cifras. Los datos estimados se marcan `*` o `[REFERENCIA DE INDUSTRIA]`; si no hay dato, `[no disponible]`. Si un script puede calcularlo, el script lo calcula (el LLM redacta interpretación, no cifras).
+- **La estadística se explica.** Todo script que emita un valor estadístico —`p`, intervalo de
+  confianza, margen de error, `n` requerido, CAGR, CLV:CAC— devuelve además un bloque
+  `explicacion` con, por valor: la fórmula **de libro**, la fórmula **en palabras** y una
+  `lectura` en lenguaje de usuario. Y un bloque `advertencias` con las fallas metodológicas que
+  el propio cálculo detectó (muestra insuficiente, ausencia de control, supuestos que se
+  contradicen). Los dos van al reporte y a la conversación **sin resumir ni suavizar**: el flujo
+  lo usan tanto expertos como personas que no vienen de análisis, y un número sin lectura se
+  cree o se ignora, pero no se discute. Detalle en `SKILL.md` § «La estadística se explica,
+  siempre».
 - **Contrato JSON:** toda skill cierra con el contrato de `sub-skills/CONTRATO_JSON.md` (campos `skill`, `timestamp`, `parametros`, `output`, `decision` con `veredicto` + `siguiente_paso`, `advertencias`).
 
 ## 4.1 Sub-sub-skills: los simuladores
@@ -314,6 +323,10 @@ El tono de los textos debe ser:
 | ¿Cómo se simulan entrevistas/encuestas y cómo se marca? | `sub-skills/SIMULACION.md` |
 | ¿Cómo genero un HTML de salida? | `_plantilla_html/README.md` |
 | ¿Qué se renderiza del contexto del flujo? | `_plantilla_html/README.md` § bloque `flujo` |
+| ¿Cómo meto una tabla de verdad en un reporte? | `_plantilla_html/README.md` § el bloque `tabla` |
+| Un paso con datos reales dentro de un proyecto que simuló algo | `meta.origen_datos` — `sub-skills/SIMULACION.md` §4.1 |
+| ¿Qué calcula un script en vez del LLM? | Dimensionador: `calcular_tam_sam_som.py`, `calcular_modelo.py`, `calcular_score.py` · Validación y `landing-page`: `analizar_resultados.py` · BMN: `ordenar_patrones.py` |
+| ¿Cómo leo el resultado de un experimento? | `<skill>/scripts/analizar_resultados.py` (tasa, IC de Wilson, prueba vs. umbral o control, veredicto, n para concluir) |
 | ¿Cuál es el diseño/logo oficial? | `Designs_files/Design_iris_main_colors.md` + `imagenes_iconos_etc/Logos_GS_Iris_transparent.png` |
 | ¿Dónde veo ejemplos de diseño? | `sub-skills_sample_outputs/` |
 | ¿Cuál es el prompt original de una skill? | `Documentos_prompts_base_md/<fase>/<archivo>.md` |

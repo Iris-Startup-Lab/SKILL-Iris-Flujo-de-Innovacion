@@ -356,6 +356,23 @@ dónde viene** y **qué sigue**. Para eso, al escribir `reporte.json`:
   «Modelo de ingresos», «Interpretación», «Riesgo»). La tarjeta expandida se lee por
   etiquetas.
 
+- **`item.subtitulo` es la lectura, no el dato crudo.** Es lo único de la tarjeta que se
+  ve sin abrir el detalle (junto a `tags`), así que va en una frase que un generalista
+  entienda sin traducir notación. La cifra exacta —fracción, `%`, intervalo de confianza,
+  p-valor— no desaparece: se declara completa (nunca redondeada ni suavizada) en un bloque
+  de `body` con `label` «Detalle estadístico» o similar. Es el mismo principio que ya usan
+  los scripts de validación (`analizar_resultados.py`): el valor lleva su `lectura` en
+  palabras, y las dos versiones conviven — una a la vista, la otra a un clic.
+
+  - Mal (`subtitulo`): «17/32 (53.1%, IC95 36.4%-69.1%)».
+  - Bien (`subtitulo`): «Poco más de la mitad lo mencionó» — y en `body`: `{"label":
+    "Detalle estadístico", "texto": "17 de 32 (53.1%; IC95 de Wilson: 36.4%-69.1%)"}`.
+
+  **`tags` son palabras, no códigos internos.** Un tag es para filtrar, y un generalista
+  filtra por lo que entiende: «confirma la hipótesis», no `valida`; «dolor», no `pain`. Si
+  un campo del JSON de origen usa un código en inglés o una abreviatura técnica, tradúcelo
+  antes de escribirlo en `tags` — el campo del JSON no cambia, solo lo que se ve.
+
 - **`veredicto`**: úsalo solo cuando hay una decisión respaldada. El reporte lo pinta con
   semáforo y lo explica al hover (perseverar = continuar · pivotear = ajustar ·
   descartar = abandonar). Sin veredicto, la tarjeta no lleva semáforo, y está bien.
@@ -365,7 +382,8 @@ dónde viene** y **qué sigue**. Para eso, al escribir `reporte.json`:
 
 Checklist mínimo antes de dar por bueno un `reporte.json`: ¿tiene `resumen`? ¿los KPIs
 resumen el resultado? ¿cada item se entiende por sus `body.label` sin abrir el detalle?
-¿los supuestos están en `advertencias`?
+¿los supuestos están en `advertencias`? ¿el `subtitulo` y los `tags` de cada item se leen
+sin saber estadística ni inglés, y la cifra exacta sigue completa en `body`?
 
 ## Verificación del HTML generado
 
