@@ -1,0 +1,61 @@
+{
+  "_": "Estilos visuales de la landing. El agente elige uno por la categoría del producto y lo ajusta con la marca (marca.colores / marca.tipografias en landing.json); no escribe CSS. generar_landing.py deriva los tonos intermedios y comprueba el contraste de texto (WCAG AA, 4.5:1): una combinación ilegible es error, no aviso. Las fuentes son de Google Fonts y caen a la del sistema sin conexión.",
+  "estilos": {
+    "tecnologico": {
+      "nombre": "Tecnológico",
+      "para": "Apps, software, gadgets, telefonía, servicios digitales, conectividad.",
+      "fuentes": { "titulos": "Space Grotesk", "texto": "Inter" },
+      "colores": { "primario": "#4F46E5", "acento": "#06B6D4", "fondo": "#F7F8FC", "superficie": "#FFFFFF", "tinta": "#0F172A", "tinta_suave": "#475569", "linea": "#E2E8F0" },
+      "radio": 16,
+      "portada": "oscura"
+    },
+    "hogar": {
+      "nombre": "Hogar y cálido",
+      "para": "Muebles, decoración, línea blanca, cocina, jardín, productos para la familia.",
+      "fuentes": { "titulos": "Fraunces", "texto": "Nunito Sans" },
+      "colores": { "primario": "#B45309", "acento": "#15803D", "fondo": "#FBF7F2", "superficie": "#FFFFFF", "tinta": "#292524", "tinta_suave": "#57534E", "linea": "#EADFD3" },
+      "radio": 20,
+      "portada": "clara"
+    },
+    "confianza": {
+      "nombre": "Financiero y confianza",
+      "para": "Crédito, ahorro, seguros, pagos, banca, trámites, salud.",
+      "fuentes": { "titulos": "Manrope", "texto": "Inter" },
+      "colores": { "primario": "#0B5CAD", "acento": "#10B981", "fondo": "#F4F7FB", "superficie": "#FFFFFF", "tinta": "#0B1F33", "tinta_suave": "#4A5B6E", "linea": "#DCE4EE" },
+      "radio": 12,
+      "portada": "clara"
+    },
+    "juvenil": {
+      "nombre": "Juvenil",
+      "para": "Moda, entretenimiento, comida, bebidas, educación para jóvenes, comunidad, redes.",
+      "fuentes": { "titulos": "Poppins", "texto": "DM Sans" },
+      "colores": { "primario": "#DB2777", "acento": "#F59E0B", "fondo": "#FFF7FB", "superficie": "#FFFFFF", "tinta": "#1F1235", "tinta_suave": "#5B4B6B", "linea": "#F5D9E8" },
+      "radio": 24,
+      "portada": "degradado"
+    },
+    "premium": {
+      "nombre": "Premium",
+      "para": "Productos de alto valor, lujo accesible, membresías, experiencias, servicios exclusivos.",
+      "fuentes": { "titulos": "Playfair Display", "texto": "Inter" },
+      "colores": { "primario": "#1C1917", "acento": "#B8862F", "fondo": "#FAF9F7", "superficie": "#FFFFFF", "tinta": "#1C1917", "tinta_suave": "#57534E", "linea": "#E7E5E4" },
+      "radio": 6,
+      "portada": "oscura"
+    },
+    "industrial": {
+      "nombre": "Industrial y logística",
+      "para": "Entregas, transporte, B2B, herramientas, construcción, movilidad, drones.",
+      "fuentes": { "titulos": "Archivo", "texto": "Inter" },
+      "colores": { "primario": "#EA580C", "acento": "#0EA5E9", "fondo": "#F5F5F4", "superficie": "#FFFFFF", "tinta": "#1C1917", "tinta_suave": "#57534E", "linea": "#E2E0DD" },
+      "radio": 10,
+      "portada": "oscura"
+    },
+    "neutro": {
+      "nombre": "Neutro de prueba",
+      "para": "La opción «Una marca neutra de prueba»: sin nombre comercial ni colores de marca, para medir la propuesta sin el peso de ninguna marca.",
+      "fuentes": { "titulos": "Inter", "texto": "Inter" },
+      "colores": { "primario": "#334155", "acento": "#0EA5E9", "fondo": "#F8FAFC", "superficie": "#FFFFFF", "tinta": "#0F172A", "tinta_suave": "#475569", "linea": "#E2E8F0" },
+      "radio": 12,
+      "portada": "clara"
+    }
+  }
+}

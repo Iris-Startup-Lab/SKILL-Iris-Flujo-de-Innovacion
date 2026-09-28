@@ -15,6 +15,7 @@ Los avisos (WARN) no bloquean.
 """
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -23,6 +24,9 @@ TIPOS_CHART = {"bar", "horizontalBar", "line", "doughnut", "pie", "scatter"}
 ESTADOS_RUTA = {"pendiente", "en_curso", "completado", "omitido", "fallido", "actual"}
 COBERTURA = {"si", "sí", "parcial", "no"}       # psf.problemas[].cubre
 ORIGENES_DATOS = {"reales", "simulados", "mixtos"}   # meta.origen_datos.tipo
+SIGNIFICANCIA = {"significativo", "no_significativo", "no_concluyente"}  # item.significancia.estado
+# Labels de `body` que la plantilla manda a «Cómo se calculó» (misma regla que RE_CALC en el JS)
+RE_CALCULO = re.compile(r"\s*(detalle estad|c[oó]mo se calcul|metodolog|f[oó]rmula)", re.I)
 
 
 class Hallazgo:
@@ -121,6 +125,12 @@ def validar(data, exigir_flujo=True):
                     and not it.get("tabla")):
                 h.append(Hallazgo("WARN", ruta_i,
                                   "sin `body` ni `subtitulo`: la tarjeta se expande vacía"))
+            h.extend(_validar_estadistica(it, ruta_i))
+            vp = it.get("vista_previa")
+            if vp is not None:
+                if not isinstance(vp, dict) or not _texto(vp.get("archivo")):
+                    h.append(Hallazgo("ERROR", f"{ruta_i}.vista_previa",
+                                      "debe ser {archivo, titulo} con la ruta del HTML"))
             h.extend(_validar_chart(it.get("chart"), f"{ruta_i}.chart"))
             h.extend(_validar_persona(it.get("persona"), f"{ruta_i}.persona"))
             h.extend(_validar_psf(it.get("psf"), f"{ruta_i}.psf"))
@@ -308,6 +318,56 @@ def _validar_simulacion(data):
             "ningún item lleva el tag SIMULADO",
             "los filtros del reporte se navegan por tags: sin él, un item simulado se "
             "lee igual que uno con evidencia real"))
+    return h
+
+
+def _validar_estadistica(it, ruta):
+    """`significancia` (la etiqueta visible) y `estadistica` (la ventana «Cómo se calculó»).
+
+    La etiqueta responde «¿es real o es azar?» sin cifras; las cifras viajan completas en
+    `estadistica`. Una etiqueta sin su cálculo detrás sería una afirmación que el lector no
+    puede comprobar, así que eso es aviso.
+    """
+    h = []
+    sig = it.get("significancia")
+    if sig is not None:
+        estado = sig.get("estado") if isinstance(sig, dict) else sig
+        if estado not in SIGNIFICANCIA:
+            h.append(Hallazgo("ERROR", f"{ruta}.significancia",
+                              f"«{estado}» no es válido",
+                              f"usa {{estado, lectura}} con estado uno de: "
+                              f"{', '.join(sorted(SIGNIFICANCIA))}"))
+        elif isinstance(sig, dict) and not _texto(sig.get("lectura")):
+            h.append(Hallazgo("WARN", f"{ruta}.significancia.lectura",
+                              "sin lectura: la etiqueta dice el qué pero no de qué",
+                              "una frase sin cifras, p. ej. «Supera el umbral, y la "
+                              "diferencia es demasiado grande para atribuirla a la casualidad»"))
+    est = it.get("estadistica")
+    if est is not None:
+        if not isinstance(est, list):
+            h.append(Hallazgo("ERROR", f"{ruta}.estadistica",
+                              "debe ser una lista de bloques {label, texto}"))
+            est = []
+        for k, b in enumerate(est):
+            if not isinstance(b, dict) or not _texto(b.get("texto")):
+                h.append(Hallazgo("ERROR", f"{ruta}.estadistica[{k}]",
+                                  "cada bloque necesita `texto`"))
+    tablas = it.get("tabla")
+    tablas = tablas if isinstance(tablas, list) else ([tablas] if tablas else [])
+    for k, t in enumerate(tablas):
+        if isinstance(t, dict) and t.get("calculo") is not None \
+                and not isinstance(t["calculo"], bool):
+            h.append(Hallazgo("ERROR", f"{ruta}.tabla.calculo",
+                              "debe ser true o false (true = va a «Cómo se calculó»)"))
+    hay_calculo = bool(est) or any(
+        isinstance(b, dict) and RE_CALCULO.match(str(b.get("label", "")))
+        for b in it.get("body") or []) or any(
+        isinstance(t, dict) and t.get("calculo") for t in tablas)
+    if sig is not None and not hay_calculo:
+        h.append(Hallazgo("WARN", f"{ruta}.significancia",
+                          "etiqueta de significancia sin el cálculo que la respalda",
+                          "añade `estadistica` (lo que devolvió el script: cifras, prueba, "
+                          "fórmulas) para que la ventana «Cómo se calculó» lo muestre"))
     return h
 
 

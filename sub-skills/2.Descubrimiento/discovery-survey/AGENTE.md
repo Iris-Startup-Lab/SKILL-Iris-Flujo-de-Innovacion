@@ -95,9 +95,15 @@ Reglas cuando trabajas con ese CSV:
 2. **La cifra completa no sustituye a la lectura.** `item.subtitulo` es una frase en lenguaje
    llano que cualquiera entiende sin saber qué es un IC95 (ej. «Poco más de la mitad lo
    mencionó»); la cifra exacta con su denominador e intervalo («18 de 30 (60%, IC95 42-76%)»,
-   nunca «60% de los usuarios» a secas) va en un bloque de `item.body` con `label` «Detalle
-   estadístico». Las dos conviven — la honestidad no se pierde, se mueve al detalle. Ver
-   `_plantilla_html/README.md` § «Guía para que el reporte se lea sin manual».
+   nunca «60% de los usuarios» a secas) va en `item.estadistica` como bloque con `label`
+   «Detalle estadístico», junto con la prueba z. El reporte lo muestra en la ventana «Cómo se
+   calculó». Las dos conviven — la honestidad no se pierde, se mueve a un clic.
+   **Y si hubo prueba z entre segmentos, su resultado va a la vista** en `item.significancia`,
+   traducido tal como lo imprimió el simulador, sin reinterpretarlo: `DIFERENCIA` →
+   `significativo`; `sin diferencia` → `no_significativo`; segmento por debajo de 20
+   (prueba «orientativa») → `no_concluyente`. `lectura` dice de qué es, sin cifras
+   («Repartidores y uso personal responden distinto: la diferencia no es casualidad»). Ver
+   `_plantilla_html/README.md` § «La estadística en tres capas».
 3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
    llevan `SIMULADO`.
 4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.

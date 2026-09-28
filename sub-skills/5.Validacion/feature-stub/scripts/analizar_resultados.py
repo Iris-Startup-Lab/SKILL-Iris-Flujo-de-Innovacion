@@ -466,26 +466,67 @@ def _grafica(r):
     }
 
 
+def significancia(v):
+    """Respuesta corta a «¿es real o es azar?», para la etiqueta de la tarjeta.
+
+    No decide nada nuevo: traduce el veredicto que ya calculó `analizar_variante` a una de
+    tres palabras y a una frase sin cifras. Las cifras, intervalos y fórmulas van en
+    `estadistica`, que el reporte muestra en la ventana «Cómo se calculó».
+    """
+    if v["control"]:
+        ref, contra = "el grupo control", "sea distinto del grupo control"
+    elif v["umbral"] is not None:
+        ref, contra = "el umbral", "supere el umbral"
+    else:
+        return {"estado": "no_concluyente",
+                "lectura": "Sin umbral ni grupo control no hay contra qué comparar: el "
+                           "resultado se puede describir, no juzgar."}
+    if v["veredicto"] == "perseverar":
+        return {"estado": "significativo",
+                "lectura": f"Supera {ref}, y la diferencia es demasiado grande para "
+                           f"atribuirla a la casualidad."}
+    if v["veredicto"] == "descartar":
+        return {"estado": "significativo",
+                "lectura": f"Queda por debajo de {ref}, y la diferencia es demasiado grande "
+                           f"para atribuirla a la casualidad."}
+    faltan = v["n_para_concluir"]
+    if faltan and faltan > v["n"]:
+        return {"estado": "no_concluyente",
+                "lectura": f"Con estos datos no se puede afirmar ni descartar que {contra}: "
+                           f"hace falta más muestra."}
+    return {"estado": "no_significativo",
+            "lectura": f"No hay una diferencia clara con {ref}: lo observado cabe dentro "
+                       f"de lo que daría la casualidad."}
+
+
 def seccion_reporte(r):
-    """Sección de REPORT_DATA lista para pegar en el `reporte.json` del paso."""
-    peor = min(r["resultados"]["variantes"],
-               key=lambda v: {"descartar": 0, "pivotear": 1, "perseverar": 2}[v["veredicto"]])
+    """Sección de REPORT_DATA lista para pegar en el `reporte.json` del paso.
+
+    Separa lo que se lee de lo que se verifica: `subtitulo`, `significancia` y el `body`
+    van a la vista; `estadistica` (lectura de cada valor con su fórmula en dos versiones)
+    y la tabla con p e intervalos (`calculo: true`) van a la ventana «Cómo se calculó» del
+    reporte. Nada se resume: cambia de lugar, y al imprimir sale completo.
+    """
+    vs = r["resultados"]["variantes"]
+    peor = min(vs, key=lambda v: {"descartar": 0, "pivotear": 1, "perseverar": 2}[v["veredicto"]])
+    mejor = max(vs, key=lambda v: v["tasa"])
+    tabla = dict(r["tabla"], calculo=True)
     items = [{
         "titulo": f"Resultado — {r['experimento']}",
-        "subtitulo": (
-            f"{r['resultados']['mejor_tasa']['nombre']}: "
-            f"{_pct(r['resultados']['mejor_tasa']['tasa'])} de {r['metrica']} · "
-            f"veredicto {peor['veredicto']}"
-        ),
+        "subtitulo": (f"Mejor resultado: «{mejor['nombre']}», {mejor['k']:g} de "
+                      f"{mejor['n']:g} intentos"),
         "tags": ["validación", r["metrica"]],
         "veredicto": peor["veredicto"],
-        "body": [{"label": e["valor"],
-                  "texto": f"{e['lectura']}\n\nCómo se calcula: {e['formula_palabras']}\n"
-                           f"Fórmula: {e['formula_libro']}"}
-                 for e in r["explicacion"]]
-                + [{"label": "Lectura del veredicto", "texto": v["veredicto_lectura"]}
-                   for v in r["resultados"]["variantes"]],
-        "tabla": r["tabla"],
+        "significancia": significancia(peor),
+        "body": [{"label": f"«{v['nombre']}»" if len(vs) > 1 else "Qué significa",
+                  "texto": significancia(v)["lectura"]} for v in vs],
+        "estadistica": [{"label": e["valor"],
+                         "texto": f"{e['lectura']}\n\nCómo se calcula: {e['formula_palabras']}\n"
+                                  f"Fórmula: {e['formula_libro']}"}
+                        for e in r["explicacion"]]
+                       + [{"label": f"Lectura del veredicto — «{v['nombre']}»",
+                           "texto": v["veredicto_lectura"]} for v in vs],
+        "tabla": tabla,
         "chart": r["grafica"],
     }]
     return {"titulo": "Resultado del experimento", "items": items}

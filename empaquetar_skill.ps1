@@ -2,7 +2,7 @@
 # empaquetar_skill.ps1
 # Empaqueta la skill "iris-flujo-de-innovacion" en un ZIP con los documentos
 # necesarios para ejecutarla, manteniéndose bajo el límite de 30 MB de los
-# gestores de agentes.
+# gestores de agentes y de su tope de 200 archivos.
 #
 # Uso:
 #   .\empaquetar_skill.ps1
@@ -35,6 +35,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $LIMITE_MB = 30
+$LIMITE_ARCHIVOS = 200
 
 # --- Sub-skills disponibles (fase/skill) ----------------------------------
 function Get-SubSkills {
@@ -228,6 +229,32 @@ try {
             }
             Copy-Tree -Src $src -Dest (Join-Path $raiz $d)
         }
+
+        # Dentro de la macro el generador usa siempre el logo oficial
+        # (imagenes_iconos_etc/), así que las 26 copias assets/logo.png de las
+        # sub-skills sobran y cuentan contra el límite de archivos. Solo sirven a una
+        # sub-skill suelta, y su paquete (-SubSkill) las conserva.
+        Get-ChildItem -Path (Join-Path $raiz "sub-skills\*\*\assets\logo.png") -File -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                $dir = $_.Directory
+                Remove-Item -LiteralPath $_.FullName -Force
+                if (-not (Get-ChildItem -LiteralPath $dir.FullName -Force)) {
+                    Remove-Item -LiteralPath $dir.FullName -Force
+                }
+            }
+    }
+
+    # --- Guardia: número de archivos ----------------------------------------
+    # Además de los 30 MB, el gestor rechaza una skill con más de 200 archivos.
+    $nArchivos = (Get-ChildItem -LiteralPath $stage -Recurse -File).Count
+    if ($nArchivos -gt $LIMITE_ARCHIVOS) {
+        Write-Warning ("El ZIP lleva $nArchivos archivos y el gestor admite hasta " +
+                       "$LIMITE_ARCHIVOS. Las carpetas que más aportan:")
+        Get-ChildItem -LiteralPath $raiz -Recurse -File |
+            Group-Object { $_.Directory.FullName.Substring($raiz.Length).TrimStart("\") } |
+            Sort-Object Count -Descending | Select-Object -First 8 |
+            ForEach-Object { Write-Host ("    {0,4}  {1}" -f $_.Count, ($(if ($_.Name) { $_.Name } else { "(raiz)" }))) -ForegroundColor Yellow }
+        Write-Host "    Quita opciones -Include* o saca archivos que no se usan al ejecutar." -ForegroundColor Yellow
     }
 
     # --- Guardia: nombres seguros para el gestor --------------------------
@@ -333,6 +360,9 @@ try {
         Write-Warning "Excede el límite de $LIMITE_MB MB de los gestores de agentes."
     } else {
         Write-Host "OK: bajo el límite de $LIMITE_MB MB."
+    }
+    if ($nArchivos -le $LIMITE_ARCHIVOS) {
+        Write-Host "OK: $nArchivos archivos (tope: $LIMITE_ARCHIVOS)."
     }
 }
 finally {

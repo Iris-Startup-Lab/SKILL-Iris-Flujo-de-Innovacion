@@ -335,7 +335,7 @@
       "etapa": "Prototipado y Validación",
       "titulo": "Prototipado y Validación",
       "objetivo": "Diseñar el experimento que pone la idea frente a usuarios reales.",
-      "nodo_mermaid": ["N30", "N38", "N39", "N25", "N17", "N18", "N7", "N10", "N20", "N12"],
+      "nodo_mermaid": ["N30", "N38", "N40", "N41", "N39", "N25", "N17", "N18", "N7", "N10", "N20", "N12"],
       "predecesores": ["html_10", "html_9", "html_8"],
       "en_ruta_minima": true,
       "omitible": false,
@@ -365,6 +365,31 @@
           "opciones": [
             { "opcion": "La landing page como demo, construida con el contexto del flujo", "efecto": "El agente entrega un archivo HTML autocontenido, listo para abrir y publicar, escrito con la persona, el problema y la propuesta que salieron de los pasos anteriores." },
             { "opcion": "Solo los pasos para construirla en una herramienta externa", "efecto": "El agente entrega el guion —titular, textos, estructura, llamada a la acción y qué medir— para que el usuario lo arme en la herramienta que ya use (Webflow, Framer, WordPress, Unbounce…). No se genera código." }
+          ]
+        },
+        {
+          "nodo": "Marca de la landing",
+          "tipo": "unica",
+          "solo_si": { "nodo": "Entrega de la landing page", "opcion": "La landing page como demo, construida con el contexto del flujo" },
+          "descripcion": "La landing se viste con la marca del producto que se prueba, no con la de IRIS. Pregunta con cuál antes de construirla: cambia el nombre, el logo, los colores y cómo se lee el resultado. Con la marca real, la prueba mide mejor la intención de compra, pero expone la marca; con una nueva o neutra, el riesgo es menor y el resultado dice menos sobre la marca.",
+          "opciones": [
+            { "opcion": "La marca real del producto o de la empresa", "efecto": "El agente te pide el nombre, el logo y los colores. Si no los tienes a mano, los busca en el sitio oficial o en la guía de marca publicada y te los confirma antes de usarlos. Solo para marcas de tu organización o con permiso para usarlas." },
+            { "opcion": "Una marca nueva creada para la prueba", "efecto": "El agente propone un nombre, una paleta y una tipografía para el producto, y tú los apruebas antes de construir. La prueba no depende de la reputación de ninguna marca existente.", "requiere_propuesta": true },
+            { "opcion": "Una marca neutra de prueba", "efecto": "Página sin nombre comercial y con un estilo sobrio: mide el interés en la propuesta sin el peso de ninguna marca." }
+          ]
+        },
+        {
+          "nodo": "Imágenes de la landing",
+          "tipo": "multiple",
+          "minimo": 1,
+          "solo_si": { "nodo": "Entrega de la landing page", "opcion": "La landing page como demo, construida con el contexto del flujo" },
+          "descripcion": "Las imágenes son lo que más separa una landing profesional de una básica. Se pueden combinar: por ejemplo, la foto del producto que aporta el usuario en la portada y maquetas en el resto. Las maquetas de la plantilla son el respaldo cuando una imagen no llega, así que conviene incluirlas siempre.",
+          "glosario": { "maqueta": "Dibujo del producto hecho por la propia plantilla —un celular con la app, una ventana de navegador, un empaque, una ruta de entrega— con los colores de la marca. No necesita archivos ni conexión." },
+          "opciones": [
+            { "opcion": "Las aporta el usuario", "efecto": "Fotos, renders o capturas del producto que adjuntas tú. Se incrustan dentro de la página, así que funciona sin conexión." },
+            { "opcion": "Generadas con inteligencia artificial", "efecto": "El agente escribe las instrucciones para un generador de imágenes. Si la herramienta que usas puede generarlas, las genera; si no, las generas tú con esas instrucciones y las adjuntas. Quedan registradas como imagen generada." },
+            { "opcion": "Fotos de bancos de imágenes libres", "efecto": "El agente busca en bancos gratuitos (Unsplash, Pexels, Pixabay) fotos cuya licencia permita uso comercial y guarda el crédito de cada una. Una foto de banco nunca se presenta como si fuera un cliente real." },
+            { "opcion": "Maquetas e ilustraciones de la plantilla", "efecto": "Celular, navegador, empaque o ruta de entrega dibujados con los colores de la marca. Siempre disponibles y sin archivos externos." }
           ]
         },
         {

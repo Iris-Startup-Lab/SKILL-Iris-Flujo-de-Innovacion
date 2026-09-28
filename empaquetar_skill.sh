@@ -2,7 +2,8 @@
 # ============================================================================
 # empaquetar_skill.sh
 # Empaqueta la skill "iris-flujo-de-innovacion" en un ZIP con los documentos
-# necesarios para ejecutarla, bajo el límite de 30 MB de los gestores de agentes.
+# necesarios para ejecutarla, bajo el límite de 30 MB de los gestores de agentes
+# y de su tope de 200 archivos.
 #
 # Uso:
 #   ./empaquetar_skill.sh
@@ -33,6 +34,7 @@ INCLUDE_FLUJO=0
 INCLUDE_DOCX=0
 INCLUDE_TEMP=0
 LIMITE_MB=30
+LIMITE_ARCHIVOS=200
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -212,6 +214,23 @@ else
     [ -d "$ROOT/$d" ] || continue
     copiar_arbol "$ROOT/$d" "$RAIZ/$d"
   done
+
+  # Dentro de la macro el generador usa siempre el logo oficial (imagenes_iconos_etc/),
+  # así que las 26 copias assets/logo.png de las sub-skills sobran y cuentan contra el
+  # límite de archivos. Solo sirven a una sub-skill suelta, y su paquete las conserva.
+  find "$RAIZ/sub-skills" -mindepth 4 -maxdepth 4 -path '*/assets/logo.png' -type f -delete
+  find "$RAIZ/sub-skills" -mindepth 3 -maxdepth 3 -type d -name assets -empty -delete
+fi
+
+# --- Guardia: número de archivos ------------------------------------------
+# Además de los 30 MB, el gestor rechaza una skill con más de 200 archivos.
+N_ARCHIVOS=$(find "$STAGE" -type f | wc -l | tr -d ' ')
+if [ "$N_ARCHIVOS" -gt "$LIMITE_ARCHIVOS" ]; then
+  echo "AVISO: el ZIP lleva $N_ARCHIVOS archivos y el gestor admite hasta $LIMITE_ARCHIVOS." >&2
+  echo "       Las carpetas que más aportan:" >&2
+  (cd "$RAIZ" && find . -type f | sed 's|/[^/]*$||' | sort | uniq -c | sort -rn | head -8 \
+     | sed 's|^|    |') >&2 || true
+  echo "    Quita opciones --samples/--docx/--temp o saca archivos que no se usan al ejecutar." >&2
 fi
 
 # --- Guardia: nombres seguros para el gestor ------------------------------
@@ -298,4 +317,9 @@ if awk "BEGIN{exit !($SIZE > $LIMITE_MB*1048576)}"; then
   echo "ADVERTENCIA: excede el límite de $LIMITE_MB MB."
 else
   echo "OK: bajo el límite de $LIMITE_MB MB."
+fi
+if [ "$N_ARCHIVOS" -le "$LIMITE_ARCHIVOS" ]; then
+  echo "OK: $N_ARCHIVOS archivos (tope: $LIMITE_ARCHIVOS)."
+else
+  echo "ADVERTENCIA: $N_ARCHIVOS archivos; el tope es $LIMITE_ARCHIVOS."
 fi

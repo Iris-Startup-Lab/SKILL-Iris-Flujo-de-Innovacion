@@ -164,10 +164,11 @@ en el contexto, advertencia automática y línea en el pie). Lo que te toca:
 4. El CSV se declara en `output.archivos_generados` y en `--outputs` al cerrar el paso.
 5. **La cifra completa —con denominador e intervalo, «18 de 30 (60%, IC95 42-76%)», nunca
    «60% de los usuarios» a secas— no va en la cabecera de la tarjeta.** Va íntegra en
-   `item.body` («Detalle estadístico»); `item.subtitulo` lleva la misma información en una
-   frase legible («Poco más de la mitad lo mencionó»). Ver `_plantilla_html/README.md` §
-   «Guía para que el reporte se lea sin manual» — la responsabilidad de esa traducción es de
-   `discovery-survey`, el simulador solo garantiza que el número exista.
+   `item.estadistica` («Detalle estadístico»), que el reporte abre en la ventana «Cómo se
+   calculó»; `item.subtitulo` lleva la misma información en una frase legible («Poco más de la
+   mitad lo mencionó») y el resultado de la prueba z, en `item.significancia`. Ver
+   `_plantilla_html/README.md` § «La estadística en tres capas» — la responsabilidad de esa
+   traducción es de `discovery-survey`, el simulador solo garantiza que el número exista.
 
 ## Contrato JSON (salida)
 

@@ -24,10 +24,11 @@ El paso 11 del flujo trae esta decisión en el nodo «Entrega de la landing page
 skill suelta, pregúntala igual: cambia lo que produces, no solo cómo lo presentas.
 
 - **«La landing page como demo, construida con el contexto del flujo»** — entregas además un
-  **archivo HTML autocontenido**, listo para abrir en el navegador y publicar tal cual: sin
-  dependencias externas, con los textos ya escritos a partir de la persona, el problema y la
-  propuesta de valor que traen los pasos anteriores. Es una demo para enseñar y medir, no un
-  sitio de producción: dilo así.
+  **archivo HTML autocontenido**, listo para abrir en el navegador y publicar tal cual, con los
+  textos ya escritos a partir de la persona, el problema y la propuesta de valor que traen los
+  pasos anteriores. **No lo escribes a mano:** lo arma `scripts/generar_landing.py` desde un
+  `landing.json` (ver «Construir la demo»). Es una demo para enseñar y medir, no un sitio de
+  producción: dilo así.
 - **«Solo los pasos para construirla en una herramienta externa»** — entregas el guion completo
   (titular, subtítulo, beneficios, llamada a la acción, estructura por bloques, qué medir y con
   qué umbral) para que el usuario lo arme donde ya trabaje: Webflow, Framer, WordPress,
@@ -35,6 +36,37 @@ skill suelta, pregúntala igual: cambia lo que produces, no solo cómo lo presen
 
 En los dos casos la Testing Card, el checklist y el plan de ejecución van igual: lo que cambia es
 si el entregable incluye la página construida.
+
+## Construir la demo (solo en modo demo)
+
+La landing se viste con la marca **del producto que se prueba**, no con la de IRIS. El diseño lo
+pone la plantilla (`templates/landing_base.html`); tú decides el contenido en un `landing.json`.
+Esquema, catálogo de bloques y de maquetas, y reglas: **`references/landing.md`**.
+
+1. **Marca** — el paso 11 trae la decisión «Marca de la landing» (si trabajas la skill suelta,
+   pregúntala igual): la marca real (pide nombre, logo y colores; si no los tiene, búscalos en el
+   sitio oficial o la guía de marca y **confírmalos antes de usarlos**), una marca nueva que
+   propones y el usuario aprueba, o una marca neutra de prueba.
+2. **Estilo** — elige uno de `references/estilos.json` por la categoría del producto
+   (`--listar-estilos`) y ajústalo con los colores de la marca.
+3. **Imágenes** — la decisión «Imágenes de la landing» dice de dónde salen: las aporta el
+   usuario, se generan con inteligencia artificial (escribes el prompt; las generas si tu
+   herramienta puede, o las genera el usuario), fotos de bancos libres con licencia comercial y
+   crédito, o las maquetas de la plantilla. Incluye siempre alguna maqueta como respaldo.
+4. **Contenido** — 5 a 7 bloques escritos con lo que heredaste del flujo: la persona, el problema
+   de mayor importancia, el journey, la idea elegida y su modelo. Un solo CTA.
+5. **Genera** desde la raíz del repositorio:
+
+   ```bash
+   python sub-skills/4.Prototipado/landing-page/scripts/generar_landing.py \
+       --data landing.json -o landing_demo.html
+   ```
+
+   Falla a propósito si el texto sale ilegible, si falta el aviso de privacidad o el aviso
+   transparente de una puerta falsa, o si hay prueba social inventada. Corrige el JSON.
+6. **Enséñala en el reporte del paso**: añade al item de la landing
+   `"vista_previa": {"archivo": "landing_demo.html", "titulo": "Landing de validación"}`; el
+   reporte muestra el botón «Ver la landing» y la abre en su ventana.
 
 ## Parámetros de Entrada
 
@@ -61,7 +93,7 @@ si el entregable incluye la página construida.
 - **Estructura de la Landing Page** — por bloques.
 - **Plan de ejecución** — herramienta, duración, tráfico, presupuesto, analítica.
 - **Checklist de Copy y CTA** — marcado de verificación previo al lanzamiento.
-- **La página construida** (`landing_demo.html`) — solo en el modo demo. Archivo autocontenido, sin dependencias externas, con los textos ya escritos. Se declara en los `outputs` del paso junto al reporte.
+- **La página construida** (`landing_demo.html`) — solo en el modo demo. Archivo autocontenido (las imágenes van incrustadas; solo las fuentes y, si se configuran, GA4/GTM se cargan de la red), generado con `scripts/generar_landing.py` desde `landing.json`. Los dos se declaran en los `outputs` del paso junto al reporte.
 
 Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»).
 
@@ -70,6 +102,12 @@ Cierra con el **contrato JSON** (ver la sección «Contrato JSON (salida)»).
 1. Umbrales calibrados con benchmark propio o estimación marcada, nunca arbitrarios sin justificación.
 2. Age gate y disclaimers si la categoría es regulada.
 3. Un solo CTA principal, medible y conectado a analítica.
+4. **Nada de prueba social inventada** en la landing: ni cifras de clientes, ni estrellas, ni
+   testimonios, ni logos de clientes. Un producto en validación todavía no los tiene. Una cifra
+   real de la empresa va en `evidencia` con su fuente.
+5. **La puerta falsa se confiesa:** si el producto aún no existe, el clic lo dice
+   (`aviso_transparente`) y explica qué pasa con los datos.
+6. **Una foto de banco o generada nunca se presenta como un cliente real.**
 
 ## Grupo control y lectura del resultado (obligatorio)
 
@@ -123,6 +161,12 @@ Tres reglas al usarlo:
   resumir ni suavizar. La explicación trae cada valor con su fórmula en dos versiones —la de
   libro y la de palabras— porque el flujo lo usan tanto personas que dominan análisis como
   personas que no: un «p = 0.03» sin lectura no se discute, se cree o se ignora.
+  **En el reporte van en capas:** a la vista, la etiqueta `significancia` (Significativo /
+  No significativo / Aún no se puede saber) con su frase sin cifras, el veredicto y las
+  `advertencias` completas; la `explicacion`, las cifras exactas y la tabla con p e
+  intervalos, en la ventana «Cómo se calculó» (`estadistica` y `tabla.calculo`). No
+  reacomodes a mano: `--seccion-reporte` ya entrega el item repartido así. Ver
+  `_plantilla_html/README.md` § «La estadística en tres capas».
 
 ## Contexto del flujo (entrada)
 
@@ -209,5 +253,9 @@ Toda skill cierra con un JSON de salida con esta estructura (autocontenida; no r
 
 ## Referencias
 
-- Sin scripts ni referencias locales: skill LLM-only.
+- `references/landing.md` — esquema de `landing.json`, bloques, maquetas, marca, imágenes, medición e integridad.
+- `references/estilos.json` — los estilos visuales (`--listar-estilos`).
+- `templates/landing_base.html` — plantilla de la landing (no se edita por proyecto).
+- `scripts/generar_landing.py` — arma la landing, comprueba contraste e integridad, incrusta imágenes.
+- `scripts/analizar_resultados.py` — lectura del resultado del experimento (ver «Grupo control»).
 - Contrato JSON: ver «Contrato JSON (salida)» arriba (autocontenido; `../../CONTRATO_JSON.md` es la versión canónica si existe).

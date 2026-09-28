@@ -28,6 +28,36 @@ El logo se embebe en base64: el oficial del repositorio, o la copia `assets/logo
 esta carpeta si la skill corre fuera del repo. Diseño de referencia:
 `Designs_files/Design_iris_main_colors.md`.
 
+## La landing construida (modo demo)
+
+Cuando el usuario pide la página como demo, no se escribe a mano: `scripts/generar_landing.py`
+la arma desde un `landing.json` con la plantilla `templates/landing_base.html`. El modelo decide
+el contenido (bloques, textos, marca, imágenes) y el script pone el diseño, así que sirve para
+cualquier producto y la calidad no depende de cada ejecución.
+
+```bash
+python sub-skills/4.Prototipado/landing-page/scripts/generar_landing.py \
+    --data landing.json -o landing_demo.html
+python sub-skills/4.Prototipado/landing-page/scripts/generar_landing.py --listar-estilos
+```
+
+- **Marca del producto, no de IRIS:** real (confirmada con el usuario o buscada en su sitio
+  oficial), nueva (propuesta y aprobada) o neutra.
+- **7 estilos** (`references/estilos.json`): tecnológico, hogar, confianza, juvenil, premium,
+  industrial y neutro. Cada uno con paleta, tipografías y forma; los colores de la marca los
+  ajustan y el script comprueba el contraste.
+- **9 bloques** (portada en 3 variantes, problema/solución, beneficios, cómo funciona,
+  destacado, antes/después, comparativa, preguntas, llamada final con formulario).
+- **Maquetas dibujadas por la plantilla** (celular, navegador, empaque, ruta de entrega,
+  ilustración) y **imágenes** del usuario, generadas con IA o de bancos libres, incrustadas con
+  su crédito.
+- **Medición incluida:** eventos para GA4/GTM, parámetros UTM, variante B con `?v=b` y panel de
+  comprobación con `?panel=1`.
+- **Integridad comprobada:** sin prueba social inventada, aviso de privacidad en el formulario y
+  aviso transparente en una prueba de puerta falsa.
+
+Referencia completa: `references/landing.md`.
+
 ## Scripts de cálculo
 
 `scripts/analizar_resultados.py` lee el experimento cuando el usuario vuelve con los datos:
@@ -57,3 +87,7 @@ sola basta con esta carpeta más `_plantilla_html/` al lado, y ejecutar el gener
 Lo que aporta el repositorio completo —y que se pierde al extraerla— es el contexto del
 flujo en el HTML (riel de progreso, decisiones previas, pasos omitidos) y el histórico de
 `flujo_estado.json`. Nada de eso es necesario para producir el entregable.
+
+La landing (`generar_landing.py`) no necesita ni siquiera `_plantilla_html/`: su plantilla y sus
+estilos viajan en esta carpeta (`templates/`, `references/`). Sin el flujo, los textos salen de
+lo que el usuario cuente en la conversación en lugar de heredarse de los pasos anteriores.

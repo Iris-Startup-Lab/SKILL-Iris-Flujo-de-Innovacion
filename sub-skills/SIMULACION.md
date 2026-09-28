@@ -97,6 +97,12 @@ Y el límite, que va escrito en toda salida:
 > mundo se pareciera a las prevalencias declaradas; no dicen que el mundo se les parezca.
 > Ninguna decisión de inversión debe apoyarse solo en esto.
 
+En el reporte, la etiqueta `significancia` de un resultado simulado lleva delante «En la
+simulación:» y la leyenda de «En resumen» explica qué significa: que la diferencia declarada en
+el plan se detectaría con esta muestra, no que exista en el mercado. La plantilla lo añade sola
+cuando el proyecto arrastra la marca; la cifra y la prueba van en «Cómo se calculó»
+(`_plantilla_html/README.md` § «La estadística en tres capas»).
+
 Por eso el criterio de calidad de una simulación no es la significancia, sino **si el plan es
 discutible**: prevalencias que alguien del equipo pueda mirar y decir «esa no, esa es más
 baja». Ahí está el valor — la simulación hace explícitos los supuestos que, sin ella, se

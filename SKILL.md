@@ -620,6 +620,22 @@ Lo que hay que declarar sin que nadie lo pida:
 - comparaciones múltiples sin corregir (con muchas variantes, alguna «gana» por azar);
 - datos simulados presentados junto a datos reales sin separarlos.
 
+**En el HTML, la estadística va en tres capas; ninguna se resume, solo cambia de lugar.** Quien
+lee el reporte quiere saber si el resultado es real o es azar, y casi nunca necesita ver cómo se
+calculó, aunque siempre tiene que poder verlo:
+
+1. **A la vista:** la etiqueta `significancia` de cada resultado (Significativo / No
+   significativo / Aún no se puede saber) con una frase sin cifras, el veredicto, y las fallas
+   de método de la lista de arriba en el `resumen` y en `advertencias`, que siguen completas y
+   visibles.
+2. **En la ventana «Cómo se calculó»:** las cifras exactas con su denominador e intervalo, la
+   prueba, la fórmula en sus dos versiones y la metodología (`estadistica`, `tabla.calculo`,
+   `meta.metodologia`).
+3. **En el PDF:** todo lo anterior, completo, al final.
+
+La etiqueta la decide el script que hizo la prueba, nunca tú. Detalle y campos:
+`_plantilla_html/README.md` § «La estadística en tres capas».
+
 **Si un método necesita un gráfico para entenderse, el gráfico lo genera el script**, desde los
 datos calculados: barras con su intervalo, curva de saturación, matriz Importancia ×
 Satisfacción, trayectoria TAM/SAM/SOM. Nunca lo dibujes a mano ni lo omitas por comodidad. Los

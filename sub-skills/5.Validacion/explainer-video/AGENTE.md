@@ -99,6 +99,12 @@ Tres reglas al usarlo:
   resumir ni suavizar. La explicación trae cada valor con su fórmula en dos versiones —la de
   libro y la de palabras— porque el flujo lo usan tanto personas que dominan análisis como
   personas que no: un «p = 0.03» sin lectura no se discute, se cree o se ignora.
+  **En el reporte van en capas:** a la vista, la etiqueta `significancia` (Significativo /
+  No significativo / Aún no se puede saber) con su frase sin cifras, el veredicto y las
+  `advertencias` completas; la `explicacion`, las cifras exactas y la tabla con p e
+  intervalos, en la ventana «Cómo se calculó» (`estadistica` y `tabla.calculo`). No
+  reacomodes a mano: `--seccion-reporte` ya entrega el item repartido así. Ver
+  `_plantilla_html/README.md` § «La estadística en tres capas».
 
 ## Contexto del flujo (entrada)
 

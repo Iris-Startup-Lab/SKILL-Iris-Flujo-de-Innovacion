@@ -79,10 +79,12 @@ Reglas cuando trabajas con ese CSV:
    la cabecera de la tarjeta (ver regla 2).
 2. **La cifra completa no sustituye a la lectura.** `item.subtitulo` es una frase en lenguaje
    llano («La mayoría la da por sentada, no la nota como plus»), nunca un «45% Must-be» suelto
-   ni la cifra con su denominador e intervalo — eso, exacto y sin suavizar, va en un bloque de
-   `item.body` con `label` «Detalle estadístico». Las dos conviven: la lectura no reemplaza al
-   dato, solo decide cuál va primero. Ver `_plantilla_html/README.md` § «Guía para que el
-   reporte se lea sin manual».
+   ni la cifra con su denominador e intervalo — eso, exacto y sin suavizar, va en
+   `item.estadistica` como bloque con `label` «Detalle estadístico», y el reporte lo muestra en
+   la ventana «Cómo se calculó». Las dos conviven: la lectura no reemplaza al dato, solo decide
+   cuál va primero. La clasificación Kano no es una prueba de significancia: no escribas
+   `item.significancia` salvo que un script haya hecho una prueba. Ver
+   `_plantilla_html/README.md` § «La estadística en tres capas».
 3. **`base` empieza con `SIMULADO · …`** (con el `n` y la semilla) y los `tags` de cada item
    llevan `SIMULADO`.
 4. **Declara el CSV** en `output.archivos_generados` y en `--outputs` al cerrar el paso.

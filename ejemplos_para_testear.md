@@ -306,6 +306,12 @@ python scripts/estado_flujo.py init --proyecto "NutriSmart MX" \
    python scripts/estado_flujo.py decision --paso html_11 \
        --nodo "Entrega de la landing page" \
        --opcion "La landing page como demo, construida con el contexto del flujo"
+   python scripts/estado_flujo.py decision --paso html_11 \
+       --nodo "Marca de la landing" \
+       --opcion "Una marca neutra de prueba"
+   python scripts/estado_flujo.py decision --paso html_11 \
+       --nodo "Imágenes de la landing" \
+       --opcion "Las aporta el usuario" --opcion "Maquetas e ilustraciones de la plantilla"
    ```
 3. **Sub-skills invocadas en paralelo:**
    - [4.Prototipado/landing-page](file:///e:/Users/1167486/Local/scripts/skills_generales/macro_skill_flujo_de_innovacion_iris/sub-skills/4.Prototipado/landing-page/AGENTE.md)

@@ -169,6 +169,36 @@ def anexar_historial(data, estado_path):
     return data
 
 
+MAX_VISTA_PREVIA = 8 * 1024 * 1024
+
+
+def embeber_vistas_previas(data, data_path):
+    """Incrusta en el reporte los HTML declarados en `item.vista_previa.archivo`.
+
+    Es la landing demo del paso 11: el reporte la abre en su ventana con el botón «Ver la
+    landing», así que se lee dentro de la pasarela de Claude, donde no hay archivo vecino que
+    abrir. La ruta se resuelve junto al reporte.json y, si no, desde la carpeta actual. Si el
+    archivo no está, el item se queda sin botón y el validador lo avisa.
+    """
+    base = Path(data_path).resolve().parent
+    for sec in data.get("secciones") or []:
+        for it in (sec or {}).get("items") or []:
+            vp = it.get("vista_previa") if isinstance(it, dict) else None
+            if not isinstance(vp, dict) or not vp.get("archivo") or vp.get("html_b64"):
+                continue
+            ruta = Path(vp["archivo"])
+            for cand in ([ruta] if ruta.is_absolute() else [base / ruta, Path.cwd() / ruta]):
+                if cand.is_file() and cand.stat().st_size <= MAX_VISTA_PREVIA:
+                    vp["html_b64"] = base64.b64encode(cand.read_bytes()).decode("ascii")
+                    break
+            else:
+                print(f"[WARN] vista_previa: no encontré «{vp['archivo']}» junto al reporte.json "
+                      f"(o pesa más de {MAX_VISTA_PREVIA // 1024 // 1024} MB): el reporte no "
+                      f"tendrá el botón «Ver la landing». Genera antes la landing.",
+                      file=sys.stderr)
+    return data
+
+
 def generar(
     data_path,
     output_path,
@@ -197,6 +227,8 @@ def generar(
             file=sys.stderr,
         )
         return 2
+
+    data = embeber_vistas_previas(data, data_path)
 
     if validar_esquema:
         hallazgos = validar(data, exigir_flujo=not sin_flujo)

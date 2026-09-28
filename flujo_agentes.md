@@ -379,6 +379,14 @@ Definir:
   salidas distintas: la página construida como demo con el contexto del flujo, o solo el guion
   —titular, textos, estructura, llamada a la acción y qué medir— para armarla en una herramienta
   externa (Webflow, Framer, WordPress, Unbounce…). En el segundo caso **no se genera código**.
+- **Marca de la landing** — condicional (`solo_si` la entrega es la demo). La landing se viste con
+  la marca del producto, no con la de IRIS: la marca real (el agente pide nombre, logo y colores,
+  o los busca en el sitio oficial y los confirma), una marca nueva que el agente propone y el
+  usuario aprueba, o una marca neutra de prueba.
+- **Imágenes de la landing** — condicional (`solo_si` la entrega es la demo), elección múltiple,
+  **mínimo 1**. Las aporta el usuario, generadas con inteligencia artificial (el agente escribe
+  las instrucciones), fotos de bancos libres con licencia comercial y crédito, o las maquetas de
+  la plantilla, que son el respaldo cuando una imagen no llega.
 - **Origen de la página a analizar** — condicional (`solo_si` incluye *Landing Page UX Analyzer*).
   Este agente analiza algo que ya existe, así que el material va **antes** de arrancar: un enlace
   público, un archivo HTML, capturas de pantalla o la landing recién generada en este mismo paso.
@@ -506,6 +514,8 @@ significa cada campo de un nodo, en su bloque `convenciones_decisiones`.
 | html_8 | Selección de ideas | múltiple, mín. 1 | Las ideas que produjo el paso |
 | html_11 | Selección de agente para validar | múltiple, mín. 1 | Simple Landing Page / Landing Page UX Analyzer / Online Ads / Email Campaign / Explainer Video / Pop-Up Store / Feature Stub |
 | html_11 | Entrega de la landing page | única, `solo_si` | La landing como demo / Solo los pasos para una herramienta externa |
+| html_11 | Marca de la landing | única, `solo_si` | La marca real / Una marca nueva creada para la prueba / Una marca neutra de prueba |
+| html_11 | Imágenes de la landing | múltiple, mín. 1, `solo_si` | Las aporta el usuario / Generadas con IA / Bancos de imágenes libres / Maquetas de la plantilla |
 | html_11 | Origen de la página a analizar | única, `solo_si` | Enlace público / Archivo HTML / Capturas de pantalla / La landing recién generada |
 
 Los pasos 6, 9 y 10 no tienen nodos de decisión: se ejecutan o se omiten.

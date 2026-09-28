@@ -47,8 +47,9 @@ Códigos de salida: `0` ok · `1` error de archivo/uso · `2` esquema o flujo in
 ```
 _plantilla_html/
 ├── templates/
-│   └── reporte_base.html         # HTML interactivo genérico (riel del flujo, contexto,
-│                                 # header, toolbar, cards expandibles, charts, footer)
+│   ├── reporte_base.html         # v2: HTML interactivo genérico (ruta del flujo, índice,
+│   │                             # contexto, cards expandibles, «Cómo se calculó», charts)
+│   └── reporte_base_v1.html      # v1 (diseño anterior), para volver con --template
 ├── scripts/
 │   ├── generar_html.py           # reporte.json + contexto + template + logo -> html
 │   ├── validar_report_data.py    # valida el esquema REPORT_DATA (usable por separado)
@@ -90,9 +91,17 @@ _plantilla_html/
           "tags": ["primaria", "alta demanda"],
           "score": 23,                                  // opcional
           "veredicto": "perseverar",                     // perseverar | pivotear | descartar
+          "significancia": {                             // opcional: lo escribe el SCRIPT de la prueba
+            "estado": "significativo",                   // significativo | no_significativo | no_concluyente
+            "lectura": "Supera el umbral, y la diferencia es demasiado grande para atribuirla a la casualidad."
+          },
           "body": [
             { "label": "Dato", "texto": "Interés relativo 0-100 con delta +12 en 12 meses." },
             { "label": "Interpretación", "texto": "Tendencia creciente sostenida." }
+          ],
+          "estadistica": [                               // opcional: va a la ventana «Cómo se calculó»
+            { "label": "Intervalo de confianza del 95%",
+              "texto": "De 7.9% a 13.6% (± 2.8 puntos)…\n\nCómo se calcula: …\nFórmula: …" }
           ],
           "chart": {                                     // opcional
             "tipo": "line",                              // bar | horizontalBar | line | doughnut | pie
@@ -107,9 +116,14 @@ _plantilla_html/
             "filas": [["Urgencia", "5/5", "6 de 6 entrevistados lo mencionan"],
                       ["TOTAL", "21/25", "PROTOTIPAR"]],
             "fila_total": true,                          // resalta la última fila
-            "nota": "Cómo leer la tabla"
+            "nota": "Cómo leer la tabla",
+            "calculo": false                             // true = va a «Cómo se calculó», no a la vista
           },
           "fuentes": ["Google Trends (pytrends)"],
+          "vista_previa": {                              // opcional: un HTML que el reporte abre en su ventana
+            "archivo": "landing_demo.html",              // ruta relativa al reporte.json; el generador lo incrusta
+            "titulo": "Landing de validación"
+          },
           "persona": { },                                // opcional: ficha de persona
           "psf": { }                                     // opcional: análisis Problem-Solution Fit
         }
@@ -155,6 +169,44 @@ armadas, con `--seccion-reporte`.
 
 El validador avisa (WARN, agregado, uno por reporte) si un item trae `score` y no trae ni una
 tabla con columna «Justificación» ni un `body` con ese label: un puntaje sin decir de dónde sale.
+
+### La estadística en tres capas: `significancia`, `estadistica` y «Cómo se calculó»
+
+La persona que lee el reporte quiere saber **si el resultado es real o es azar**; la mayoría no
+necesita ver cómo se calculó, pero tiene que poder verlo. Por eso la estadística se reparte en
+tres capas, y ninguna se resume ni se suaviza: solo cambia de lugar.
+
+| Capa | Dónde | Qué va |
+| --- | --- | --- |
+| 1. A la vista | Tarjeta y «En resumen» | La etiqueta de `significancia` con su `lectura` sin cifras, el veredicto, y en ámbar las fallas que cambian la decisión: datos simulados y el número de `advertencias` (que siguen completas, visibles, en su sección) |
+| 2. Ventana «Cómo se calculó» | Botón en cada tarjeta y en la barra superior | `estadistica[]`, las tablas con `calculo: true`, los bloques de `body` con label de cálculo y `meta.metodologia` |
+| 3. PDF / impresión | Al final del documento | Todo lo de la capa 2, completo, y los pasos anteriores desplegados |
+
+**`significancia.estado`** — la etiqueta de la tarjeta:
+
+| Estado | Se lee | Cuándo |
+| --- | --- | --- |
+| `significativo` | **Significativo** (verde) | La diferencia con el umbral, el control u otro segmento es demasiado grande para atribuirla al azar |
+| `no_significativo` | **No significativo** (gris) | Con la muestra reunida no hay diferencia clara |
+| `no_concluyente` | **Aún no se puede saber** (ámbar) | La muestra no alcanza para afirmar ni descartar, o no hay contra qué comparar |
+
+- **El estado lo decide el script que hizo la prueba, nunca el modelo.**
+  `analizar_resultados.py --seccion-reporte` lo escribe solo (`significancia()` traduce el
+  veredicto que ya calculó). En los simuladores lo da la prueba z que imprime el script:
+  `DIFERENCIA` → `significativo`; `sin diferencia` → `no_significativo`; segmento por debajo
+  de 20 → `no_concluyente`.
+- **`lectura` va sin cifras** y dice *de qué* es la significancia («Repartidores y uso
+  personal responden distinto: la diferencia no es casualidad»). Las cifras van en `estadistica`.
+- **`estadistica[]`** son bloques `{label, texto}` con lo que devolvió el script tal cual: la
+  cifra exacta con su denominador e intervalo, la prueba, y la fórmula en sus dos versiones.
+- **Compatibilidad:** un bloque de `body` cuyo label empieza por «Detalle estadístico», «Cómo
+  se calculó», «Metodología» o «Fórmula» se trata como `estadistica`. Los reportes escritos
+  antes de este campo pasan a la ventana sin reescribirlos.
+- El validador avisa si un item trae `significancia` sin ningún cálculo detrás: una etiqueta
+  que el lector no puede comprobar.
+- **Con datos simulados** (marca del flujo o `meta.simulado`), la plantilla antepone «En la
+  simulación:» a la lectura y explica en «En resumen» que «significativo» dice que la
+  diferencia declarada en el plan se detectaría con esta muestra, no que exista en el mercado.
 
 ### Bloques especializados de item: `persona` y `psf`
 
@@ -323,14 +375,37 @@ Los rellena `estado_flujo.py completar` con `--resumen`, `--datos` y `--outputs`
 
 ## Componentes interactivos (ya incluidos en la plantilla)
 
-- Header hero con gradiente morado, mancha dorada y **logo oficial**.
-- KPIs en el hero (stat cards translúcidas).
+Diseño v2 («Executive Hub») sobre la paleta oficial: página larga, superficies lavanda,
+tarjetas blancas con borde fino, cápsulas de estado. **Sin Tailwind ni fuentes de iconos**:
+el CSS vive en la plantilla y los iconos son SVG en línea, así que el reporte se ve igual sin
+red y dentro del iframe de la pasarela de Claude.
+
+- **Barra superior fija** con el logo oficial, «Paso N de 11 · título», proyecto, skill, el
+  distintivo «Datos simulados» y los botones **Cómo se calculó** y **Exportar PDF**. En
+  pantallas medianas oculta skill y proyecto (siguen en el pie y en «De dónde viene»); en
+  móvil deja de ser fija.
+- **Ruta del flujo** a todo el ancho: una ficha por paso con su estado (completado, este
+  reporte, omitido, pendiente, falló).
+- **Índice lateral** (en móvil, fila horizontal) con botones `data-ir`, nunca anclas.
+- **KPIs** como tarjetas de métrica; `accent: true` la pinta en morado con cifra dorada.
+- **«En resumen»** con veredictos, recuento de significancia y la franja ámbar de advertencias.
 - Toolbar con **buscador en vivo**, **orden** (original / A–Z / score) y **chips de filtro** por veredicto y por tag.
-- Tarjetas **expandibles inline** (una a la vez) con bloques de detalle y **gráficas Chart.js**.
-- Sección de **Decisiones** con semáforo de veredicto.
-- Secciones de **Advertencias** y **Fuentes**.
-- Modal de **Metodología** (si `meta.metodologia` está definido).
-- Accesibilidad: `aria-*`, foco visible dorado, `prefers-reduced-motion`, responsive.
+- Tarjetas **expandibles inline** (una a la vez, también con teclado) con bloques de detalle y **gráficas Chart.js**.
+- Sección de **Decisiones** con cápsula de veredicto.
+- Secciones de **Advertencias** y **Fuentes**, siempre a la vista.
+- Ventana **«Cómo se calculó»** (ver «La estadística en tres capas»).
+- **«Ver la landing»** (`item.vista_previa`): el generador incrusta el HTML indicado (hasta
+  8 MB) y la tarjeta abre una ventana ancha con la página en un iframe aislado (`sandbox`),
+  con selector Escritorio / Móvil. Así la landing demo del paso 11 se revisa dentro del reporte,
+  también en la pasarela de Claude. Si el archivo no está, el generador avisa y la tarjeta queda
+  sin botón.
+- **Impresión / PDF**: sin barra ni índice, pasos anteriores desplegados y el contenido de la
+  ventana como anexo al final.
+- Accesibilidad: `aria-*`, foco visible dorado, `prefers-reduced-motion`, responsive hasta 320 px.
+
+**Volver al diseño anterior** no requiere tocar nada: la v1 se conserva en
+`templates/reporte_base_v1.html` y se usa con `--template _plantilla_html/templates/reporte_base_v1.html`.
+(La v1 no conoce `significancia` ni `estadistica`: los ignora y muestra `body` como siempre.)
 
 ## Guía para que el reporte se lea sin manual (base generalista)
 
@@ -359,14 +434,15 @@ dónde viene** y **qué sigue**. Para eso, al escribir `reporte.json`:
 - **`item.subtitulo` es la lectura, no el dato crudo.** Es lo único de la tarjeta que se
   ve sin abrir el detalle (junto a `tags`), así que va en una frase que un generalista
   entienda sin traducir notación. La cifra exacta —fracción, `%`, intervalo de confianza,
-  p-valor— no desaparece: se declara completa (nunca redondeada ni suavizada) en un bloque
-  de `body` con `label` «Detalle estadístico» o similar. Es el mismo principio que ya usan
-  los scripts de validación (`analizar_resultados.py`): el valor lleva su `lectura` en
-  palabras, y las dos versiones conviven — una a la vista, la otra a un clic.
+  p-valor— no desaparece: se declara completa (nunca redondeada ni suavizada) en
+  `estadistica`, que el reporte muestra en la ventana «Cómo se calculó» (ver «La estadística
+  en tres capas»). Si hubo una prueba, su resultado a la vista es `significancia`. Es el mismo
+  principio que ya usan los scripts de validación (`analizar_resultados.py`): el valor lleva
+  su `lectura` en palabras, y las dos versiones conviven — una a la vista, la otra a un clic.
 
   - Mal (`subtitulo`): «17/32 (53.1%, IC95 36.4%-69.1%)».
-  - Bien (`subtitulo`): «Poco más de la mitad lo mencionó» — y en `body`: `{"label":
-    "Detalle estadístico", "texto": "17 de 32 (53.1%; IC95 de Wilson: 36.4%-69.1%)"}`.
+  - Bien (`subtitulo`): «Poco más de la mitad lo mencionó» — y en `estadistica`:
+    `{"label": "Detalle estadístico", "texto": "17 de 32 (53.1%; IC95 de Wilson: 36.4%-69.1%)"}`.
 
   **`tags` son palabras, no códigos internos.** Un tag es para filtrar, y un generalista
   filtra por lo que entiende: «confirma la hipótesis», no `valida`; «dolor», no `pain`. Si
@@ -383,7 +459,8 @@ dónde viene** y **qué sigue**. Para eso, al escribir `reporte.json`:
 Checklist mínimo antes de dar por bueno un `reporte.json`: ¿tiene `resumen`? ¿los KPIs
 resumen el resultado? ¿cada item se entiende por sus `body.label` sin abrir el detalle?
 ¿los supuestos están en `advertencias`? ¿el `subtitulo` y los `tags` de cada item se leen
-sin saber estadística ni inglés, y la cifra exacta sigue completa en `body`?
+sin saber estadística ni inglés, y la cifra exacta sigue completa en `estadistica`? ¿la
+`significancia`, si la hay, salió del script y no de una estimación propia?
 
 ## Verificación del HTML generado
 
@@ -393,10 +470,12 @@ archivo a mano, verifica que contenga:
 1. `<!DOCTYPE html>` y las fuentes Sora/Inter.
 2. `window.REPORT_DATA` con los datos y el bloque `flujo`.
 3. El logo embebido como `data:image/png;base64,...`.
-4. El riel del flujo con el paso actual en dorado y los omitidos tachados.
+4. La ruta del flujo con el paso actual en morado con borde dorado y los omitidos tachados.
 5. Los controles interactivos y la(s) gráfica(s) si `chart` está definido.
 6. (Si hay pasos previos) la sección «Pasos anteriores del flujo» con un `<details>`
-   por paso completado, y el riel enlazando a `#paso-N` en vez de a archivos vecinos.
+   por paso completado, y la ruta saltando a él con `data-salto` en vez de a archivos vecinos.
+7. (Si hay `significancia` o `estadistica`) la etiqueta en la tarjeta y el botón «Cómo se
+   calculó» abriendo la ventana; al imprimir, su contenido al final.
 
 Para validar solo el JSON, sin generar HTML:
 

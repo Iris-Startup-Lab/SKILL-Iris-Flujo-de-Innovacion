@@ -4,456 +4,580 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IRIS — Reporte</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<!--
+  Plantilla v2 — diseño «Executive Hub» sobre la paleta oficial
+  (Designs_files/Design_iris_main_colors.md). La v1 sigue en
+  templates/reporte_base_v1.html: `generar_html.py --template` la usa si hay que volver.
+
+  Sin Tailwind ni fuentes de iconos: el CSS va aquí y los iconos son SVG en línea, para que
+  el reporte se lea igual sin red y dentro de la pasarela de Claude (iframe).
+-->
 <style>
   :root{
+    /* Paleta oficial — no se sustituye por los tokens Material del mockup */
     --purple-900:#241B33; --purple-800:#2A2433; --purple-700:#3D2766;
     --purple-600:#5A3A8C; --purple-500:#7A4E96; --purple-200:#D9CCEF;
     --purple-100:#EDE6F7; --purple-050:#F7F3FC;
     --gold-600:#B8862F; --gold-500:#D4A73E; --gold-400:#E8B93E;
-    --ink:#2A2433; --ink-soft:#5C5468; --line:#E4DCEF; --white:#FFFFFF;
-    --risk1:#3E8E5A; --risk2:#7FA84C; --risk3:#C99A2E; --risk4:#C97133; --risk5:#B84A3D;
-    --radius:14px;
-    --shadow-sm:0 1px 3px rgba(42,36,51,.08);
-    --shadow-md:0 6px 20px rgba(61,39,102,.12);
-    --shadow-lg:0 16px 44px rgba(36,27,51,.22);
+    --ink:#241B33; --ink-soft:#5C5468; --line:#E4DCEF; --line-strong:#D8CAEE; --white:#FFFFFF;
+    --risk1:#3E8E5A; --risk5:#B84A3D;
+    /* Estados (DESIGN.md § Strategic Status Indicators) */
+    --ok-bg:#EDF9F0;  --ok-bd:#BCE8C5;  --ok-tx:#137333;
+    --mid-bg:#FDF8EA; --mid-bd:#F4E2B2; --mid-tx:#9A6B0A;
+    --exp-bg:#F2EEFA; --exp-bd:#D8CAEE; --exp-tx:#5A3A8C;
+    --bad-bg:#FDF2F2; --bad-bd:#F8CACA; --bad-tx:#B91C1C;
+    --neu-bg:#F1EFF4; --neu-bd:#DCD7E3; --neu-tx:#5C5468;
+    /* Radios y elevaciones (DESIGN.md § Shapes / Elevation) */
+    --r-sm:4px; --r-md:8px; --r-lg:12px;
+    --e1:0 1px 3px rgba(36,27,51,.04),0 4px 12px rgba(36,27,51,.02);
+    --e2:0 4px 16px rgba(36,27,51,.08),0 1px 3px rgba(36,27,51,.04);
+    --e3:0 12px 36px rgba(36,27,51,.16),0 4px 12px rgba(36,27,51,.06);
+    --gutter:clamp(16px,3vw,40px);
+    --topbar-h:60px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'Inter',system-ui,sans-serif;background:var(--purple-050);color:var(--ink);font-size:16px;line-height:1.55}
-  .font-display{font-family:'Sora','Inter',sans-serif}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--purple-050);color:var(--ink);font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+  h1,h2,h3,h4,h5{font-family:'Sora','Inter',sans-serif;color:var(--purple-700)}
   a{color:var(--purple-600)}
+  button{font-family:inherit}
+  .ico{width:16px;height:16px;flex:0 0 auto;display:inline-block;vertical-align:middle}
+  .lbl-sm{font-size:.69rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 
-  /* ---------- Header ---------- */
-  header.site{background:linear-gradient(135deg,var(--purple-900) 0%,var(--purple-700) 62%,#4A2F7A 100%);color:#fff;padding:28px clamp(20px,4vw,56px) 34px;position:relative;overflow:hidden;overflow:clip}
-  header.site::after{content:"";position:absolute;top:-140px;right:-140px;width:420px;height:420px;background:radial-gradient(circle,rgba(232,185,62,.16),transparent 65%);pointer-events:none}
-  /* `flex-wrap` importa por el `overflow:clip` del header: sin envolver, en una pantalla
-     estrecha el logo + la etiqueta de la skill + el distintivo de datos simulados + el
-     botón no caben en una línea y los últimos quedan RECORTADOS, no desbordados — se
-     pierden sin dejar rastro. Al envolver, bajan a una segunda línea y siguen visibles.
-     (No causaba scroll horizontal de la página: eso lo impide el propio `clip`.) */
-  .header-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;position:relative;z-index:1}
-  .logo-chip{background:#fff;border-radius:12px;padding:8px 14px;box-shadow:var(--shadow-md);display:inline-flex;align-items:center}
-  .logo-chip img{height:52px;width:auto;display:block}
-  .badge-skill{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:8px 16px;border-radius:999px}
+  /* ---------- Barra superior (fija, compacta) ---------- */
+  .topbar{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(36,27,51,.05)}
+  .topbar-in{max-width:1320px;margin:0 auto;padding:10px var(--gutter);display:flex;align-items:center;gap:10px;flex-wrap:nowrap;min-height:var(--topbar-h)}
+  .topbar-in > *{flex:0 0 auto}
+  .logo-chip{display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:4px 8px}
+  .logo-chip img{height:34px;width:auto;display:block}
+  .tb-pill{display:block;padding:4px 10px;border-radius:var(--r-sm);background:var(--purple-100);color:var(--purple-700);font-size:.72rem;font-weight:600;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar-in > .tb-pill{flex:0 1 auto;min-width:0}
+  .tb-pill b{font-weight:700}
+  .tb-pill.soft{background:var(--purple-050);color:var(--ink-soft)}
   /* Distintivo de datos simulados: dorado y sólido, para que no se lea como una etiqueta más */
-  .badge-sim{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#4A2A00;background:var(--gold-400,#E9C46A);border:1px solid rgba(0,0,0,.12);padding:8px 16px;border-radius:999px;display:inline-flex;align-items:center;gap:8px}
-  .badge-sim::before{content:"";width:9px;height:9px;border-radius:50%;background:#8A5B00;flex:none}
-  .eyebrow{position:relative;z-index:1;font-family:'Sora',sans-serif;color:var(--gold-400);text-transform:uppercase;letter-spacing:.14em;font-size:.78rem;font-weight:600;display:flex;align-items:center;gap:10px}
-  .eyebrow::before{content:"";width:26px;height:2px;background:var(--gold-400);display:inline-block}
-  h1{position:relative;z-index:1;font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(1.5rem,3.2vw,2.35rem);margin:8px 0 10px;max-width:840px}
-  .subtitle{position:relative;z-index:1;color:#D8CCEF;max-width:820px;font-size:.95rem}
-  .hero-stats{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
-  .stat{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:12px 18px;min-width:130px}
-  .stat .num{font-family:'Sora',sans-serif;font-size:1.5rem;font-weight:800}
-  .stat .num em{font-style:normal;color:var(--gold-400)}
-  .stat .lbl{font-size:.72rem;color:#C9BCE0;margin-top:2px}
+  .badge-sim{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:999px;background:var(--gold-400);color:#3A2600;border:1px solid var(--gold-600);font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+  .badge-sim::before{content:"";width:7px;height:7px;border-radius:50%;background:#7A4F00}
+  .topbar-in > .tb-spacer{flex:1 1 0;min-width:0}
+  .btn{display:inline-flex;align-items:center;gap:7px;border-radius:var(--r-md);padding:8px 14px;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid transparent;line-height:1.2;white-space:nowrap}
+  .btn-primary{background:var(--purple-700);color:#fff}
+  .btn-primary:hover{background:var(--purple-600)}
+  .btn-outline{background:#fff;color:var(--purple-700);border-color:var(--purple-700)}
+  .btn-outline:hover{background:var(--purple-100)}
+  .btn-gold{background:var(--gold-500);color:var(--purple-900)}
+  .btn-gold:hover{background:var(--gold-400)}
+  .btn-link{background:none;border:none;color:var(--purple-600);padding:4px 2px;font-weight:600;font-size:.76rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .btn-link:hover{color:var(--purple-900);text-decoration:underline}
 
-  /* ---------- Riel del flujo (contexto en el header) ---------- */
-  .flow-rail{position:relative;z-index:1;display:flex;gap:6px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:thin}
-  .flow-rail::-webkit-scrollbar{height:6px}
-  .flow-rail::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border-radius:999px}
+  /* ---------- Cabecera del reporte ---------- */
+  .hero{position:relative;overflow:hidden}
+  .hero::before{content:"";position:absolute;top:-160px;left:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(61,39,102,.10),transparent 68%);pointer-events:none}
+  .hero::after{content:"";position:absolute;top:-40px;right:-80px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(232,185,62,.16),transparent 68%);pointer-events:none}
+  .hero-in{position:relative;z-index:1;max-width:1320px;margin:0 auto;padding:28px var(--gutter) 8px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;padding:4px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--purple-600);font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+  .eyebrow::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--gold-500)}
+  h1{font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.2;letter-spacing:-.015em;margin:12px 0 8px;max-width:980px;color:var(--purple-700)}
+  .subtitle{color:var(--ink-soft);max-width:900px;font-size:.98rem}
+
+  /* ---------- Rejilla general: índice lateral + contenido ---------- */
+  .layout{max-width:1320px;margin:0 auto;padding:18px var(--gutter) 40px;display:grid;grid-template-columns:210px minmax(0,1fr);gap:28px;align-items:start}
+  .indice{position:sticky;top:calc(var(--topbar-h) + 18px);display:flex;flex-direction:column;gap:2px;padding:10px;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);max-height:calc(100vh - var(--topbar-h) - 36px);overflow:auto}
+  .indice .ind-t{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:4px 8px 6px}
+  .indice button{display:flex;align-items:center;gap:8px;text-align:left;border:none;background:none;border-radius:var(--r-md);padding:7px 8px;font-size:.8rem;font-weight:500;color:var(--purple-600);cursor:pointer;line-height:1.3}
+  .indice button:hover{background:var(--purple-100);color:var(--purple-900)}
+  .indice button.on{background:var(--purple-700);color:#fff;font-weight:600}
+  .indice button.sub{padding-left:22px;font-size:.76rem;color:var(--ink-soft)}
+  .indice button.sub.on{color:#fff}
+  .indice .cnt{margin-left:auto;font-size:.66rem;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--mid-bg);color:var(--mid-tx);border:1px solid var(--mid-bd)}
+  .indice button.on .cnt{background:var(--gold-400);color:var(--purple-900);border-color:transparent}
+  .contenido{min-width:0;display:flex;flex-direction:column;gap:40px}
+  .contenido > section, .contenido > div{scroll-margin-top:calc(var(--topbar-h) + 16px)}
+
+  .panel{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1)}
+  .sec-t{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .sec-t h2{font-size:1.15rem;font-weight:700}
+  .sec-t .meta{font-size:.74rem;color:var(--ink-soft)}
+  .sec-t .ico{color:var(--gold-600);width:18px;height:18px}
+
+  /* ---------- Ruta del flujo (11 pasos) ---------- */
+  .ruta-wrap{max-width:1320px;margin:0 auto;padding:16px var(--gutter) 0}
+  .ruta{padding:18px 20px;border-top:3px solid var(--gold-400);scroll-margin-top:calc(var(--topbar-h) + 16px)}
+  .ruta-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .ruta-head h2{font-size:1.02rem;font-weight:700}
+  .ruta-head .tally{font-size:.74rem;color:var(--ink-soft)}
+  .ruta-scroll{overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  /* 11 × 100 px caben en escritorio sin desplazamiento; por debajo, el carril se desplaza. */
+  .ruta-grid{display:grid;grid-template-columns:repeat(var(--n,11),minmax(94px,1fr));gap:6px;min-width:calc(var(--n,11) * 100px)}
   /* Un paso navegable es un <button>, no un <a href="#...">: ver el comentario
-     «Navegación interna» en el script. Por eso el selector de hover cuelga de
-     `.saltable` y no del tipo de elemento, y hay que neutralizar los estilos que
-     el navegador le pone al botón (tipografía, alineación, cursor). */
-  .flow-step{flex:0 0 auto;display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#D8CCEF;border-radius:999px;padding:5px 12px;font-family:inherit;font-size:.72rem;font-weight:600;line-height:1.35;white-space:nowrap;text-decoration:none;text-align:left;cursor:default;appearance:none;-webkit-appearance:none}
-  .flow-step .n{font-family:'Sora',sans-serif;width:19px;height:19px;border-radius:999px;display:grid;place-items:center;font-size:.65rem;background:rgba(255,255,255,.14);flex:0 0 auto}
-  .flow-step.completado{color:#fff;border-color:rgba(62,142,90,.6);background:rgba(62,142,90,.22)}
-  .flow-step.completado .n{background:var(--risk1);color:#fff}
-  .flow-step.omitido{color:#A899C2;border-style:dashed}
-  .flow-step.omitido span:last-child{text-decoration:line-through;text-decoration-thickness:1px}
-  .flow-step.fallido{color:#fff;border-color:rgba(184,74,61,.7);background:rgba(184,74,61,.22)}
-  .flow-step.fallido .n{background:#B84A3D;color:#fff}
-  .flow-step.actual{color:var(--purple-900);background:var(--gold-400);border-color:var(--gold-400);box-shadow:0 4px 16px rgba(232,185,62,.34)}
-  .flow-step.actual .n{background:rgba(36,27,51,.20);color:var(--purple-900)}
-  .flow-step.saltable{cursor:pointer}
-  .flow-step.saltable:hover{border-color:var(--gold-400);color:#fff}
-  .flow-step.saltable.completado:hover{background:rgba(62,142,90,.34)}
-  .flow-step.saltable:focus-visible{outline:2px solid var(--gold-400);outline-offset:2px}
+     «Navegación interna» en el script. */
+  .paso{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:84px;text-align:left;border:1px solid transparent;background:var(--purple-050);border-radius:var(--r-md);padding:8px 9px;color:var(--purple-700);font-size:.72rem;line-height:1.3;cursor:default;appearance:none;-webkit-appearance:none}
+  .paso .p-top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .paso .p-n{font-family:'Sora',sans-serif;font-weight:700;font-size:.78rem}
+  .paso .p-t{font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .paso .p-e{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+  .paso.completado .p-e,.paso.completado .ico{color:var(--ok-tx)}
+  .paso.pendiente{color:var(--ink-soft);background:#fff;border-color:var(--line)}
+  .paso.pendiente .p-e{color:var(--ink-soft)}
+  .paso.en_curso .p-e{color:var(--mid-tx)}
+  .paso.omitido{background:#fff;border:1px dashed var(--line-strong);color:var(--ink-soft)}
+  .paso.omitido .p-t{text-decoration:line-through;text-decoration-thickness:1px}
+  .paso.omitido .p-e{color:var(--ink-soft)}
+  .paso.fallido{background:var(--bad-bg);border-color:var(--bad-bd)}
+  .paso.fallido .p-e,.paso.fallido .ico{color:var(--bad-tx)}
+  .paso.actual{background:var(--purple-700);color:#fff;box-shadow:0 0 0 2px var(--gold-400),var(--e2)}
+  .paso.actual .p-n,.paso.actual .p-e{color:var(--gold-400)}
+  .paso.actual .dot{width:8px;height:8px;border-radius:50%;background:var(--gold-400)}
+  .paso.saltable{cursor:pointer}
+  .paso.saltable:hover{background:var(--purple-100);border-color:var(--line-strong)}
 
-  /* ---------- Contexto del flujo ---------- */
-  .contexto{max-width:1280px;margin:0 auto;padding:22px clamp(20px,4vw,56px) 0}
-  .contexto details{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden}
-  .contexto summary{cursor:pointer;list-style:none;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Sora',sans-serif;font-weight:700;font-size:.95rem}
+  /* ---------- KPIs (tarjetas de métrica) ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr));gap:12px}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+  .kpi .k-l{font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--purple-600)}
+  .kpi .k-v{font-family:'Sora',sans-serif;font-size:clamp(1.35rem,2.4vw,1.9rem);font-weight:700;line-height:1.15;letter-spacing:-.01em;color:var(--purple-700);overflow-wrap:anywhere}
+  .kpi.accent{background:var(--purple-700);border-color:var(--purple-700)}
+  .kpi.accent .k-l{color:var(--purple-200)}
+  .kpi.accent .k-v{color:var(--gold-400)}
+
+  /* ---------- En resumen (conclusión al frente) ---------- */
+  .resumen{padding:22px 24px;position:relative;overflow:hidden}
+  .resumen::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--gold-400)}
+  .resumen h2{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-600);margin-bottom:10px}
+  .resumen-texto{font-size:1.02rem;line-height:1.6;color:var(--ink);max-width:980px}
+  .resumen-fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+  .resumen-leyenda{font-size:.72rem;color:var(--ink-soft);margin-top:8px}
+  .alerta-linea{margin-top:14px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 10px;padding:10px 12px;border-radius:var(--r-md);background:var(--mid-bg);border:1px solid var(--mid-bd);color:#5B4300;font-size:.84rem}
+  .alerta-linea .ico{color:var(--mid-tx);margin-top:2px}
+  .alerta-linea > span{flex:1 1 220px;min-width:0}
+  .alerta-linea .btn-link{color:#5B4300;margin-left:auto}
+
+  /* Cápsulas de estado: veredicto y significancia */
+  .cap{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:.66rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
+  .cap::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+  .cap.perseverar,.cap.significativo{background:var(--ok-bg);border-color:var(--ok-bd);color:var(--ok-tx)}
+  .cap.pivotear,.cap.no_concluyente{background:var(--mid-bg);border-color:var(--mid-bd);color:var(--mid-tx)}
+  .cap.descartar{background:var(--bad-bg);border-color:var(--bad-bd);color:var(--bad-tx)}
+  .cap.no_significativo{background:var(--neu-bg);border-color:var(--neu-bd);color:var(--neu-tx)}
+  .cap.no_concluyente::before{background:var(--gold-400)}
+
+  /* Leyenda «cómo leer» (siempre visible) */
+  .marcas{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.74rem;color:var(--ink-soft);align-items:baseline;padding:0 4px}
+  .marcas .marcas-titulo{font-weight:700;color:var(--purple-700);font-size:.68rem;text-transform:uppercase;letter-spacing:.08em}
+  .marcas b{color:var(--purple-700)}
+
+  /* ---------- Contexto del flujo (trazabilidad) ---------- */
+  .contexto details{overflow:hidden}
+  .contexto summary{cursor:pointer;list-style:none;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .contexto summary::-webkit-details-marker{display:none}
-  .contexto summary::after{content:"⌃";margin-left:auto;color:var(--purple-600);font-size:1rem;transform:rotate(180deg);transition:.2s}
-  .contexto details[open] summary::after{transform:none}
-  .contexto summary .tally{font-family:'Inter',sans-serif;font-weight:500;font-size:.8rem;color:var(--ink-soft)}
-  .ctx-body{padding:0 18px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px}
-  .ctx-box{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--purple-050)}
-  .ctx-box.warn{background:#FDF8EC;border-color:#EDD592}
+  .contexto summary .c-ico{width:34px;height:34px;border-radius:var(--r-md);background:var(--purple-700);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+  .contexto summary .c-t{font-family:'Sora',sans-serif;font-weight:700;font-size:.92rem;color:var(--purple-700)}
+  .contexto summary .tally{font-size:.76rem;color:var(--ink-soft);flex:1 1 220px}
+  .contexto summary .chev{margin-left:auto;color:var(--purple-600);transition:transform .2s}
+  .contexto details[open] summary .chev{transform:rotate(180deg)}
+  .ctx-body{padding:0 18px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(258px,100%),1fr));gap:12px}
+  .ctx-box{border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:var(--purple-050);min-width:0}
+  .ctx-box.warn{background:var(--mid-bg);border-color:var(--mid-bd)}
   .ctx-box.full{grid-column:1/-1}
-  .ctx-box h4{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple-600);margin-bottom:9px}
-  .ctx-box.warn h4{color:var(--gold-600)}
-  .ctx-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:9px}
+  .ctx-box h4{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple-600);margin-bottom:9px}
+  .ctx-box.warn h4{color:var(--mid-tx)}
+  .ctx-list{list-style:none;display:flex;flex-direction:column;gap:9px}
   .ctx-list li{font-size:.83rem;line-height:1.45;display:flex;gap:8px;align-items:baseline}
-  .ctx-list .id{font-family:'Sora',sans-serif;font-size:.66rem;font-weight:700;color:var(--purple-700);background:var(--purple-100);border-radius:6px;padding:2px 7px;flex:0 0 auto}
+  .ctx-list .id{font-size:.64rem;font-weight:700;color:var(--purple-700);background:var(--purple-100);border-radius:var(--r-sm);padding:2px 7px;flex:0 0 auto;white-space:nowrap}
   .ctx-list .k{font-weight:600}
   .ctx-list .muted{color:var(--ink-soft)}
   .ctx-list a{font-weight:600}
-  /* Salto al paso embebido: un botón con aspecto de enlace (un <a href="#..."> lo
-     intercepta la pasarela de Claude; ver «Navegación interna» en el script). */
-  .ctx-list .salto{border:none;background:none;padding:0;font-family:inherit;font-size:inherit;
-    font-weight:600;color:var(--purple-700);text-decoration:underline;text-decoration-style:dotted;
-    text-underline-offset:2px;cursor:pointer}
+  .ctx-list .salto{border:none;background:none;padding:0;font-size:inherit;font-weight:600;color:var(--purple-700);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;cursor:pointer}
   .ctx-list .salto:hover{color:var(--purple-600);text-decoration-style:solid}
-  .ctx-list .salto:focus-visible{outline:2px solid var(--purple-600);outline-offset:2px;border-radius:3px}
   .ctx-empty{font-size:.83rem;color:var(--ink-soft)}
 
-  /* ---------- En resumen (conclusión al frente) ---------- */
-  .resumen{max-width:1280px;margin:0 auto;padding:22px clamp(20px,4vw,56px) 0}
-  .resumen-box{background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold-400);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px 20px;display:flex;flex-direction:column;gap:10px}
-  .resumen-box h2{font-family:'Sora',sans-serif;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-600);display:flex;align-items:center;gap:8px}
-  .resumen-box h2::before{content:"";width:18px;height:2px;background:var(--gold-400);display:inline-block}
-  .resumen-texto{font-size:.95rem;color:var(--ink);line-height:1.55;max-width:1000px}
-  .resumen-verdictos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .resumen-leyenda{font-size:.74rem;color:var(--ink-soft);width:100%}
-
-  /* ---------- Leyenda «cómo leer» (siempre visible) ---------- */
-  .marcas{max-width:1280px;margin:0 auto;padding:12px clamp(20px,4vw,56px) 0;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:.76rem;color:var(--ink-soft);align-items:baseline}
-  .marcas .marcas-titulo{font-family:'Sora',sans-serif;font-weight:700;color:var(--ink);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em}
-  .marcas b{color:var(--purple-700);font-weight:700}
-
-  /* ---------- Siguiente paso (cierre del reporte) ---------- */
-  .siguiente{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
-  .siguiente-box{background:linear-gradient(135deg,var(--purple-900),var(--purple-700));color:#fff;border-radius:var(--radius);padding:18px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:var(--shadow-md)}
-  .siguiente-box .lbl{font-family:'Sora',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold-400);flex:0 0 auto}
-  .siguiente-box .paso{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700}
-  .siguiente-box .obj{color:#D8CCEF;font-size:.85rem;width:100%}
-
-  /* ---------- Toolbar ---------- */
-  .toolbar{padding:16px clamp(20px,4vw,56px) 6px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;box-shadow:var(--shadow-sm)}
-  .search-box{display:flex;align-items:center;gap:8px;background:var(--purple-050);border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;min-width:230px;flex:1;max-width:340px}
-  .search-box svg{flex:0 0 auto;color:var(--ink-soft)}
-  .search-box input{border:none;background:transparent;outline:none;font-size:.9rem;width:100%;color:var(--ink)}
-  select.sort{background:var(--purple-050);border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;font-size:.85rem;color:var(--ink);cursor:pointer;appearance:none;padding-right:30px}
-  .chips{display:flex;flex-wrap:wrap;gap:8px}
-  .chip{border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.8rem;font-weight:600;cursor:pointer;background:#fff;color:var(--ink-soft);transition:.15s;min-height:34px}
+  /* ---------- Barra de filtros (encima de los resultados) ---------- */
+  .toolbar{padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+  .search-box{display:flex;align-items:center;gap:8px;background:var(--purple-050);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;min-width:min(220px,100%);flex:1;max-width:340px}
+  .search-box:focus-within{border-color:var(--purple-700);box-shadow:0 0 0 2px rgba(61,39,102,.12)}
+  .search-box .ico{color:var(--ink-soft)}
+  .search-box input{border:none;background:transparent;outline:none;font-size:.88rem;width:100%;color:var(--ink);font-family:inherit}
+  select.sort{background:var(--purple-050);border:1px solid var(--line);border-radius:var(--r-md);padding:8px 12px;font-size:.84rem;color:var(--ink);cursor:pointer;font-family:inherit}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:.76rem;font-weight:600;cursor:pointer;background:#fff;color:var(--purple-600);min-height:30px}
+  .chip:hover{border-color:var(--line-strong);background:var(--purple-050)}
   .chip.on{background:var(--purple-700);color:#fff;border-color:var(--purple-700)}
-  .chip.verdict.on{background:var(--gold-600);border-color:var(--gold-600);color:#fff}
-  .results-line{font-size:.78rem;color:var(--ink-soft);width:100%;display:flex;justify-content:space-between;align-items:center}
-  .results-line button{background:none;border:none;color:var(--purple-600);text-decoration:underline;cursor:pointer;font-size:.78rem}
+  .chip.verdict.on{background:var(--gold-500);border-color:var(--gold-500);color:var(--purple-900)}
+  .results-line{font-size:.74rem;color:var(--ink-soft);width:100%;display:flex;justify-content:space-between;align-items:center}
+  .results-line button{background:none;border:none;color:var(--purple-600);text-decoration:underline;cursor:pointer;font-size:.74rem}
 
-  /* ---------- Main ---------- */
-  main{padding:26px clamp(20px,4vw,56px) 40px;max-width:1280px;margin:0 auto}
-  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin:28px 0 14px;border-bottom:2px solid var(--purple-200);padding-bottom:8px}
-  .section-head h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700}
-  .section-head .meta{font-size:.78rem;color:var(--ink-soft)}
-  /* `min(295px,100%)` y no `295px`: en una pantalla de 320 px el track mínimo era más
-     ancho que el espacio disponible y las tarjetas sobresalían 14 px, dejando toda la
-     página con scroll horizontal. Medido con la sonda de anchos, no supuesto. */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(295px,100%),1fr));gap:14px}
-  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:.18s}
-  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--purple-200)}
-  .card.expanded{border-color:var(--purple-600);box-shadow:var(--shadow-md)}
+  /* ---------- Resultados: secciones y tarjetas ---------- */
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:26px 0 12px;scroll-margin-top:calc(var(--topbar-h) + 16px)}
+  .section-head:first-child{margin-top:0}
+  .section-head h2,.section-head h3{font-size:1.08rem;font-weight:700}
+  .section-head .meta{font-size:.72rem;color:var(--ink-soft);white-space:nowrap}
+  /* `min(290px,100%)`: en 320 px el track mínimo no puede ser más ancho que la pantalla. */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:14px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);padding:16px 18px;display:flex;flex-direction:column;gap:9px;cursor:pointer;transition:border-color .18s,box-shadow .18s;min-width:0}
+  .card:hover{border-color:var(--gold-500);box-shadow:var(--e2)}
+  .card.expanded{border-color:var(--purple-600);box-shadow:var(--e2)}
   .card.no-detail{cursor:default}
-  .card.no-detail:hover{transform:none;box-shadow:none;border-color:var(--line)}
-  .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .card-tag{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple-600);background:var(--purple-100);padding:4px 10px;border-radius:999px}
-  .card h3{font-family:'Sora',sans-serif;font-size:1.02rem;font-weight:700}
-  .card .sub{font-size:.82rem;color:var(--ink-soft)}
-  .card p.desc{font-size:.85rem;color:var(--ink-soft);flex:1}
-  .card-foot{border-top:1px dashed var(--line);padding-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .pill{font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--purple-100);color:var(--purple-700)}
-  .verdict{font-size:.72rem;font-weight:700;padding:4px 12px;border-radius:999px}
-  .verdict.perseverar{color:#15803D;background:#DCFCE7}
-  .verdict.pivotear{color:#B8862F;background:#FEF9C3}
-  .verdict.descartar{color:#B84A3D;background:#FEE2E2}
-  .expand-hint{display:flex;align-items:center;justify-content:center;gap:6px;font-size:.75rem;color:var(--ink-soft)}
-  .expand-hint svg{transition:.2s}
-  .card.expanded .expand-hint svg{transform:rotate(180deg)}
+  .card.no-detail:hover{border-color:var(--line);box-shadow:var(--e1)}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .card-tag{font-size:.64rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--purple-600);background:var(--purple-100);padding:3px 8px;border-radius:var(--r-sm)}
+  .card-caps{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .card h3,.card h4{font-size:1rem;font-weight:700;line-height:1.35;color:var(--purple-700)}
+  .card .sub{font-size:.86rem;color:var(--ink-soft);line-height:1.5}
+  .card .sig-lectura{font-size:.8rem;color:var(--ink);background:var(--purple-050);border-radius:var(--r-md);padding:7px 10px;border-left:3px solid var(--line-strong)}
+  .card .sig-lectura.significativo{border-left-color:var(--ok-tx)}
+  .card .sig-lectura.no_concluyente{border-left-color:var(--gold-500)}
+  .card-foot{border-top:1px solid var(--line);padding-top:10px;margin-top:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .pill{font-size:.7rem;font-weight:600;padding:3px 9px;border-radius:var(--r-sm);background:var(--purple-050);color:var(--purple-700);border:1px solid var(--line)}
+  .card-acc{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.74rem;color:var(--ink-soft)}
+  .expand-hint{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--purple-600)}
+  .expand-hint .ico{transition:transform .2s;width:14px;height:14px}
+  .card.expanded .expand-hint .ico{transform:rotate(180deg)}
 
-  /* ---------- Detail panel ---------- */
-  .detail{grid-column:1/-1;border:1px solid var(--purple-600);border-radius:var(--radius);background:#fff;box-shadow:var(--shadow-md);overflow:hidden;animation:reveal .28s ease}
-  @keyframes reveal{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-  .detail-head{background:linear-gradient(135deg,var(--purple-050),#fff);padding:18px 20px;display:flex;align-items:flex-start;gap:14px}
-  .detail-head .dh-main{flex:1}
-  .detail-head h3{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700}
-  .detail-head .sub{font-size:.85rem;color:var(--ink-soft);margin-top:2px}
-  .close-detail{flex:0 0 auto;width:32px;height:32px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;font-size:16px;line-height:1}
-  .detail-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;padding:0 20px 20px}
-  .dblock{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
-  .dblock .db-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--purple-600);margin-bottom:6px;display:flex;align-items:center;gap:7px}
-  .dblock .db-label::before{content:"";width:18px;height:18px;border-radius:5px;background:var(--purple-100);flex:0 0 auto}
-  .dblock .db-text{font-size:.85rem;color:var(--ink);white-space:pre-wrap}
+  /* ---------- Panel de detalle ---------- */
+  .detail{grid-column:1/-1;border:1px solid var(--purple-600);border-radius:var(--r-lg);background:#fff;box-shadow:var(--e2);overflow:hidden;animation:reveal .25s ease}
+  @keyframes reveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .detail-head{background:var(--purple-050);border-bottom:1px solid var(--line);padding:16px 20px;display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .detail-head .dh-main{flex:1 1 260px;min-width:0}
+  .detail-head h3,.detail-head h4{font-size:1.12rem;font-weight:700}
+  .detail-head .sub{font-size:.86rem;color:var(--ink-soft);margin-top:3px}
+  .detail-head .dh-acc{display:flex;gap:8px;align-items:center}
+  .close-detail{flex:0 0 auto;width:32px;height:32px;border-radius:var(--r-md);border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;display:grid;place-items:center}
+  .close-detail:hover{border-color:var(--purple-600);color:var(--purple-700)}
+  .detail-body{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:12px;padding:18px 20px 20px}
+  .dblock{border:1px solid var(--line);border-radius:var(--r-md);padding:13px 14px;background:#fff;min-width:0}
+  .dblock .db-label{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--purple-600);margin-bottom:6px}
+  .db-text{font-size:.86rem;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere}
   .dblock.wide{grid-column:1/-1}
-  .dblock.next{grid-column:1/-1;background:#FDF8EC;border-color:#EDD592}
-  .chart-wrap{grid-column:1/-1;border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
-  .chart-wrap .ct{font-family:'Sora',sans-serif;font-size:.9rem;font-weight:700;margin-bottom:10px}
+  .chart-wrap{grid-column:1/-1;border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:#fff}
+  .chart-wrap .ct{font-family:'Sora',sans-serif;font-size:.88rem;font-weight:700;color:var(--purple-700);margin-bottom:10px}
   .chart-wrap canvas{max-height:340px}
 
-  /* ---------- Ficha de persona (item.persona) ---------- */
+  /* ---------- Ficha de persona (item.persona) y PSF (item.psf) ---------- */
   .pf{grid-column:1/-1;display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-  .pf-box{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff;grid-column:span 4;min-width:0}
+  .pf-box{border:1px solid var(--line);border-radius:var(--r-md);padding:14px;background:#fff;grid-column:span 4;min-width:0}
   .pf-box.w6{grid-column:span 6}
   .pf-box.w8{grid-column:span 8}
   .pf-box.full{grid-column:1/-1}
-  .pf-box h5{font-family:'Sora',sans-serif;font-size:.71rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple-600);margin-bottom:9px}
-  .pf-box.gold{background:#FDF8EC;border-color:#EDD592}
-  .pf-box.gold h5{color:var(--gold-600)}
-  .pf-list{list-style:none;padding:0;display:flex;flex-direction:column;gap:6px}
+  .pf-box h5{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple-600);margin-bottom:9px}
+  .pf-box.gold{background:var(--mid-bg);border-color:var(--mid-bd)}
+  .pf-box.gold h5{color:var(--mid-tx)}
+  .pf-list{list-style:none;display:flex;flex-direction:column;gap:6px}
   .pf-list li{font-size:.85rem;line-height:1.45;padding-left:14px;position:relative;color:var(--ink)}
-  .pf-list li::before{content:"";position:absolute;left:0;top:.5em;width:6px;height:6px;border-radius:999px;background:var(--gold-500)}
-
-  /* JTBD */
-  .pf-jtbd{grid-column:1/-1;background:linear-gradient(135deg,var(--purple-900),var(--purple-700));color:#fff;border-radius:12px;padding:18px 20px;position:relative;overflow:hidden}
-  .pf-jtbd::after{content:"";position:absolute;top:-70px;right:-70px;width:220px;height:220px;background:radial-gradient(circle,rgba(232,185,62,.18),transparent 65%);pointer-events:none}
-  .pf-jtbd .lbl{font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.12em;color:var(--gold-400);margin-bottom:8px}
-  .pf-jtbd blockquote{position:relative;z-index:1;font-size:.95rem;line-height:1.6;font-style:italic;border-left:3px solid var(--gold-400);padding-left:14px;color:#F2ECFA}
-  .pf-jtbd .meta-linea{position:relative;z-index:1;margin-top:12px;font-size:.76rem;color:#C9BCE0;display:flex;gap:16px;flex-wrap:wrap}
-
-  /* Identidad */
+  .pf-list li::before{content:"";position:absolute;left:0;top:.52em;width:6px;height:6px;border-radius:999px;background:var(--gold-500)}
+  .pf-jtbd{grid-column:1/-1;background:var(--purple-700);color:#fff;border-radius:var(--r-lg);padding:18px 20px;position:relative;overflow:hidden}
+  .pf-jtbd::after{content:"";position:absolute;right:-60px;bottom:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,185,62,.22),transparent 65%);pointer-events:none}
+  .pf-jtbd .lbl{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-400);margin-bottom:8px}
+  .pf-jtbd blockquote{position:relative;z-index:1;font-size:.96rem;line-height:1.6;font-style:italic;border-left:3px solid var(--gold-400);padding-left:14px;color:#F2ECFA}
+  .pf-jtbd .meta-linea{position:relative;z-index:1;margin-top:12px;font-size:.76rem;color:var(--purple-200);display:flex;gap:16px;flex-wrap:wrap}
   .pf-id{display:flex;flex-direction:column;gap:8px}
-  .pf-id .fila{display:flex;justify-content:space-between;gap:10px;font-size:.85rem;border-bottom:1px dashed var(--line);padding-bottom:6px}
+  .pf-id .fila{display:flex;justify-content:space-between;gap:10px;font-size:.85rem;border-bottom:1px solid var(--line);padding-bottom:6px}
   .pf-id .fila:last-child{border-bottom:none;padding-bottom:0}
   .pf-id .k{color:var(--ink-soft);font-size:.78rem}
   .pf-id .v{font-weight:600;text-align:right}
-
-  /* Canales: físico / digital */
   .pf-split{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .pf-canal{border:1px solid var(--line);border-radius:10px;padding:11px;background:var(--purple-050);min-width:0}
-  .pf-canal .ct2{font-family:'Sora',sans-serif;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-700);margin-bottom:7px;display:flex;align-items:center;gap:6px}
-  .pf-canal .ct2 svg{flex:0 0 auto}
+  .pf-canal{border:1px solid var(--line);border-radius:var(--r-md);padding:11px;background:var(--purple-050);min-width:0}
+  .pf-canal .ct2{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-700);margin-bottom:7px;display:flex;align-items:center;gap:6px}
 
-  /* Tabla de pains / problemas */
-  .pf-tabla-wrap{overflow-x:auto}
-  table.pf-tabla{width:100%;border-collapse:collapse;font-size:.83rem;min-width:640px}
-  table.pf-tabla.slim{min-width:0}                      /* pains sin evaluación: 2 columnas */
-  table.pf-tabla th{text-align:left;font-family:'Sora',sans-serif;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-600);border-bottom:2px solid var(--purple-200);padding:0 10px 8px}
-  table.pf-tabla td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top;line-height:1.42}
+  /* Tablas (DESIGN.md § Accessible Data Tables) */
+  .pf-tabla-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-md)}
+  table.pf-tabla{width:100%;border-collapse:collapse;font-size:.84rem;min-width:640px;background:#fff}
+  table.pf-tabla.slim{min-width:0}
+  table.pf-tabla th{text-align:left;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--purple-700);background:var(--purple-100);border-bottom:1px solid var(--line);padding:10px 12px}
+  table.pf-tabla td{border-bottom:1px solid var(--line);padding:11px 12px;vertical-align:top;line-height:1.42}
+  table.pf-tabla tbody tr:nth-child(even) td{background:rgba(247,243,252,.6)}
+  table.pf-tabla tbody tr:hover td{background:rgba(237,230,247,.6)}
   table.pf-tabla tr:last-child td{border-bottom:none}
-  table.pf-tabla .num{width:26px}
-  table.pf-tabla .num span{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--purple-700);color:#fff;font-family:'Sora',sans-serif;font-size:.7rem;font-weight:700}
-  table.pf-tabla .metrica{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--ink-soft);font-size:.78rem}
+  table.pf-tabla .num{width:34px}
+  table.pf-tabla .num span{display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:var(--purple-700);color:#fff;font-size:.68rem;font-weight:700}
+  table.pf-tabla .metrica{white-space:nowrap;color:var(--ink-soft);font-size:.78rem}
   table.pf-tabla .ctx{display:block;margin-top:4px;font-size:.76rem;color:var(--ink-soft)}
-
-  /* ---------- Bloque `tabla`: tabla genérica de un item ---------- */
-  /* Para lo que es una tabla de verdad y se leía mal como texto: la matriz
-     criterio → puntaje → justificación del score, una proyección por año, un
-     desglose por buyer persona. Reusa los estilos de `pf-tabla`. */
   .tabla-bloque table.pf-tabla{min-width:480px}
-  .tabla-bloque tr.total td{font-weight:700;background:var(--purple-050);border-top:2px solid var(--purple-200)}
-  .tabla-bloque td.num-col{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tabla-bloque tr.total td{font-weight:700;background:var(--purple-100)!important;border-top:2px solid var(--line-strong)}
+  .tabla-bloque td.num-col{white-space:nowrap}
   .tabla-bloque .tabla-nota{font-size:.76rem;color:var(--ink-soft);margin-top:9px;line-height:1.45}
-  .pf-nota{margin-top:10px;font-size:.78rem;color:var(--ink-soft);border-left:3px solid var(--purple-200);padding-left:10px}
-  .pf-badge{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
-  .pf-badge.si{color:#15803D;background:#DCFCE7}
-  .pf-badge.parcial{color:#B8862F;background:#FEF9C3}
-  .pf-badge.no{color:#B84A3D;background:#FEE2E2}
+  .pf-nota{margin-top:10px;font-size:.78rem;color:var(--ink-soft);border-left:3px solid var(--line-strong);padding-left:10px}
+  .pf-badge{display:inline-block;font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+  .pf-badge.si{color:var(--ok-tx);background:var(--ok-bg);border-color:var(--ok-bd)}
+  .pf-badge.parcial{color:var(--mid-tx);background:var(--mid-bg);border-color:var(--mid-bd)}
+  .pf-badge.no{color:var(--bad-tx);background:var(--bad-bg);border-color:var(--bad-bd)}
 
+  /* ---------- Decisiones ---------- */
+  .dec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));gap:14px}
+  .dec{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+  .dec h4{font-size:.98rem;font-weight:700}
+  .dec p{font-size:.86rem;color:var(--ink-soft)}
+
+  /* ---------- Advertencias / fuentes ---------- */
+  .notas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:14px}
+  .nota-box{padding:16px 18px}
+  .nota-box h3{font-size:.95rem;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .nota-box.adv{border-top:3px solid var(--gold-400)}
+  .nota-box.adv h3 .ico{color:var(--mid-tx)}
+  .nota-box ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .nota-box li{font-size:.85rem;color:var(--ink);padding-left:16px;position:relative;line-height:1.5}
+  .nota-box li::before{content:"";position:absolute;left:0;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--gold-500)}
+  .nota-box.src li{color:var(--ink-soft)}
+
+  /* ---------- Historial: pasos anteriores embebidos ---------- */
+  .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);margin-bottom:12px;overflow:hidden;scroll-margin-top:calc(var(--topbar-h) + 16px)}
+  .paso-previo.destacado{animation:destacar 1.6s ease-out}
+  @keyframes destacar{0%{box-shadow:0 0 0 3px var(--gold-400),0 6px 22px rgba(232,185,62,.45)}100%{box-shadow:var(--e1)}}
+  .paso-previo > summary{cursor:pointer;list-style:none;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .paso-previo > summary::-webkit-details-marker{display:none}
+  .paso-previo > summary .n{font-family:'Sora',sans-serif;width:28px;height:28px;border-radius:var(--r-md);background:var(--purple-700);color:#fff;display:grid;place-items:center;font-size:.76rem;font-weight:700;flex:0 0 auto}
+  .paso-previo > summary .t{font-family:'Sora',sans-serif;font-weight:700;font-size:.98rem;color:var(--purple-700)}
+  .paso-previo > summary .v{margin-left:auto}
+  .paso-previo > summary .r{font-size:.83rem;color:var(--ink-soft);flex:1 1 100%}
+  .paso-previo > summary .archivo{margin-left:auto;font-weight:600;font-size:.72rem;color:var(--purple-600);text-decoration:none;border:1px solid var(--line-strong);border-radius:var(--r-md);padding:3px 10px;flex:0 0 auto}
+  .paso-previo > summary .v ~ .archivo{margin-left:0}
+  .paso-previo > summary .archivo:hover{background:var(--purple-050)}
+  .paso-previo > summary .chev{color:var(--purple-600);transition:transform .2s;flex:0 0 auto}
+  .paso-previo[open] > summary .chev{transform:rotate(180deg)}
+  .paso-previo-body{padding:4px 18px 18px;border-top:1px solid var(--line)}
+  .paso-previo-body .kpis{margin:14px 0 6px}
+  .paso-previo-body .notas-grid{margin-top:16px}
+
+  /* ---------- Siguiente paso ---------- */
+  .siguiente-box{background:var(--purple-700);color:#fff;border-radius:var(--r-lg);padding:18px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:var(--e2);position:relative;overflow:hidden}
+  .siguiente-box::after{content:"";position:absolute;right:-50px;bottom:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(232,185,62,.25),transparent 65%);pointer-events:none}
+  .siguiente-box .lbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold-400)}
+  .siguiente-box .paso-s{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700}
+  .siguiente-box .obj{color:var(--purple-200);font-size:.86rem;width:100%;position:relative;z-index:1}
+
+  /* ---------- Pie ---------- */
+  footer.site{background:#fff;border-top:1px solid var(--line);color:var(--ink-soft);padding:30px var(--gutter) 20px;margin-top:10px}
+  .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:20px;max-width:1320px;margin:0 auto}
+  .foot-col h4{color:var(--purple-600);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+  .foot-col p{font-size:.8rem;line-height:1.5}
+  .foot-col b{color:var(--purple-700);font-weight:600}
+  .foot-note{max-width:1320px;margin:20px auto 0;border-top:1px solid var(--line);padding-top:12px;font-size:.74rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .foot-note .marca{font-family:'Sora',sans-serif;font-weight:700;color:var(--purple-700)}
+  .foot-note .marca::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold-500);margin-left:3px;vertical-align:middle}
+
+  /* ---------- Ventana «Cómo se calculó» (nivel 3) ---------- */
+  .modal{display:none;position:fixed;inset:0;background:rgba(36,27,51,.4);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center;padding:16px}
+  .modal.open{display:flex}
+  .modal-box{background:#fff;border:1px solid var(--line-strong);border-radius:var(--r-lg);max-width:780px;width:100%;max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:var(--e3);animation:reveal .22s ease;overflow:hidden}
+  .modal-head{padding:16px 20px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--line);background:var(--purple-050)}
+  .modal-head .m-ico{width:36px;height:36px;border-radius:var(--r-md);background:var(--purple-700);color:#fff;display:grid;place-items:center;flex:0 0 auto}
+  .modal-head h3{font-size:1.05rem;font-weight:700}
+  .modal-head .m-sub{font-size:.8rem;color:var(--ink-soft);margin-top:2px}
+  .modal-head .close-modal{margin-left:auto;width:32px;height:32px;border-radius:var(--r-md);border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;display:grid;place-items:center;flex:0 0 auto}
+  .modal-body{padding:18px 20px 22px;overflow:auto;display:flex;flex-direction:column;gap:14px;font-size:.86rem}
+  .calc-grupo{display:flex;flex-direction:column;gap:10px}
+  .calc-grupo + .calc-grupo{border-top:1px solid var(--line);padding-top:14px}
+  .calc-grupo > h4{font-size:.92rem;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .calc-bloque{border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;background:#fff}
+  .calc-bloque .db-label{font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--purple-600);margin-bottom:6px}
+  .calc-bloque.metod{background:var(--purple-050)}
+  .calc-intro{font-size:.8rem;color:var(--ink-soft);background:var(--purple-050);border-radius:var(--r-md);padding:10px 12px}
+
+  /* Vista previa de la landing (item.vista_previa): la ventana se ensancha y aloja la página */
+  .modal-box.ancho{max-width:1180px;height:calc(100vh - 32px)}
+  .modal-box.ancho .modal-body{padding:0;gap:0;flex:1;min-height:0;overflow:hidden;background:var(--purple-050)}
+  .modal-box.ancho iframe{width:100%;height:100%;border:0;background:#fff;display:block}
+  .vp-barra{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);background:#fff}
+  .vp-barra button{border:1px solid var(--line);background:#fff;border-radius:var(--r-md);padding:5px 10px;font-size:.74rem;font-weight:600;color:var(--purple-600);cursor:pointer}
+  .vp-barra button.on{background:var(--purple-700);color:#fff;border-color:var(--purple-700)}
+  .vp-marco{flex:1;min-height:0;display:flex;justify-content:center;background:var(--purple-050)}
+  .vp-marco iframe{transition:width .2s}
+  .btn-vista{background:var(--gold-500);color:var(--purple-900);border:none;border-radius:var(--r-md);padding:6px 11px;font-size:.74rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .btn-vista:hover{background:var(--gold-400)}
+
+  /* Anexo de impresión: lo que en pantalla vive en la ventana */
+  .anexo-calculo{display:none}
+
+  .empty-state{border:2px dashed var(--line);border-radius:var(--r-lg);padding:40px;text-align:center;color:var(--ink-soft);background:#fff}
+  .empty-state h3{font-size:1rem;margin-bottom:4px}
+
+  /* La skill y el proyecto también están en el pie y en «De dónde viene»: en pantallas
+     medianas se ocultan de la barra para que quepa en una línea. */
+  @media (max-width:1180px){ #badge-skill{display:none} }
+  @media (max-width:900px){ #tb-proyecto{display:none!important} }
+  @media (max-width:1023px){
+    .layout{grid-template-columns:minmax(0,1fr);gap:18px}
+    .indice{position:static;flex-direction:row;overflow-x:auto;max-height:none;padding:6px;gap:4px;scrollbar-width:thin}
+    .indice .ind-t{display:none}
+    .indice button{flex:0 0 auto;white-space:nowrap}
+    .indice button.sub{display:none}
+  }
   @media (max-width:860px){
     .pf-box, .pf-box.w6, .pf-box.w8{grid-column:1/-1}
     .pf-split{grid-template-columns:1fr}
   }
-
-  /* ---------- Decisiones ---------- */
-  .decisiones{padding:10px clamp(20px,4vw,56px) 44px;max-width:1280px;margin:0 auto}
-  .decisiones h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;border-bottom:2px solid var(--purple-200);padding-bottom:8px;margin-bottom:14px}
-  .dec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(295px,100%),1fr));gap:14px}
-  .dec{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px}
-  .dec h4{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:700;margin-bottom:6px}
-  .dec p{font-size:.85rem;color:var(--ink-soft)}
-
-  /* ---------- Advertencias / fuentes ---------- */
-  .notas{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
-  .notas .box{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
-  .notas h3{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:8px}
-  .notas ul{list-style:none;padding:0}
-  .notas li{font-size:.83rem;color:var(--ink-soft);padding:3px 0 3px 18px;position:relative}
-  .notas li::before{content:"•";color:var(--gold-500);position:absolute;left:0;font-weight:700}
-
-  /* ---------- Historial: pasos anteriores embebidos en el mismo HTML ---------- */
-  /* Hace que el reporte sea navegable por sí mismo (sin enlaces a archivos vecinos):
-     cada paso ya completado viaja dentro del documento y el riel salta a él. */
-  .historial{max-width:1280px;margin:0 auto;padding:0 clamp(20px,4vw,56px) 44px}
-  .historial > h2{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;border-bottom:2px solid var(--purple-200);padding-bottom:8px;margin-bottom:14px}
-  /* `scroll-margin-top` evita que la barra de herramientas (sticky, arriba) tape el
-     título del paso al saltar. El script lo recalcula con la altura real de la
-     barra —que crece cuando los filtros se envuelven en dos líneas—; este valor es
-     el respaldo. */
-  .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:14px;overflow:hidden;scroll-margin-top:76px}
-  /* Realce breve tras el salto: en un documento largo, aterrizar sin señal deja al
-     lector preguntándose si el clic hizo algo. */
-  .paso-previo.destacado{animation:destacar 1.6s ease-out}
-  @keyframes destacar{
-    0%{box-shadow:0 0 0 3px var(--gold-400),0 6px 22px rgba(232,185,62,.45)}
-    100%{box-shadow:var(--shadow-sm)}
-  }
-  @media (prefers-reduced-motion:reduce){ .paso-previo.destacado{animation:none} }
-  .paso-previo > summary{cursor:pointer;list-style:none;padding:16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Sora',sans-serif;font-weight:700}
-  .paso-previo > summary::-webkit-details-marker{display:none}
-  .paso-previo > summary .n{width:26px;height:26px;border-radius:999px;background:var(--purple-700);color:#fff;display:grid;place-items:center;font-size:.78rem;flex:0 0 auto}
-  .paso-previo > summary .t{font-size:1.02rem}
-  .paso-previo > summary .v{margin-left:auto}
-  .paso-previo > summary .r{font-family:'Inter',sans-serif;font-weight:400;font-size:.82rem;color:var(--ink-soft);flex:1 1 100%}
-  /* Enlace al archivo del paso. Solo se dibuja fuera de la pasarela (con el
-     proyecto descargado, donde el archivo vecino existe de verdad). */
-  .paso-previo > summary .archivo{margin-left:auto;font-family:'Inter',sans-serif;font-weight:600;
-    font-size:.72rem;color:var(--purple-600);text-decoration:none;border:1px solid var(--purple-200);
-    border-radius:999px;padding:3px 10px;flex:0 0 auto}
-  .paso-previo > summary .v ~ .archivo{margin-left:0}
-  .paso-previo > summary .archivo:hover{background:var(--purple-050);border-color:var(--purple-600)}
-  .paso-previo > summary::after{content:"⌃";color:var(--purple-600);transform:rotate(180deg);transition:.2s;flex:0 0 auto}
-  .paso-previo[open] > summary::after{transform:none}
-  .paso-previo-body{padding:0 18px 18px;border-top:1px dashed var(--line)}
-  .paso-previo-body .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 6px}
-  .paso-previo-body .kpi{background:var(--purple-050);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
-  .paso-previo-body .kpi .num{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:800}
-  .paso-previo-body .kpi .lbl{font-size:.7rem;color:var(--ink-soft)}
-
-  /* ---------- Footer ---------- */
-  footer.site{background:var(--purple-900);color:#C9BCE0;padding:34px clamp(20px,4vw,56px) 22px}
-  .foot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:22px;max-width:1280px;margin:0 auto}
-  .foot-col h4{color:var(--gold-400);font-family:'Sora',sans-serif;font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-  .foot-col p,.foot-col li{font-size:.8rem;line-height:1.5}
-  .foot-col ul{list-style:none;padding:0}
-  .foot-col b{color:#fff;font-weight:600}
-  .foot-note{max-width:1280px;margin:22px auto 0;border-top:1px solid rgba(255,255,255,.12);padding-top:14px;font-size:.75rem;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
-
-  /* ---------- Modal ---------- */
-  .modal{display:none;position:fixed;inset:0;background:rgba(36,27,51,.62);backdrop-filter:blur(3px);z-index:100;align-items:center;justify-content:center;padding:20px}
-  .modal.open{display:flex}
-  .modal-box{background:#fff;border-radius:20px;max-width:560px;width:100%;box-shadow:var(--shadow-lg);animation:reveal .25s ease;overflow:hidden}
-  .modal-head{background:linear-gradient(135deg,var(--purple-900),var(--purple-700));color:#fff;padding:18px 20px;display:flex;align-items:center;gap:12px}
-  .modal-head h3{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700}
-  .modal-head .close-modal{margin-left:auto;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;width:30px;height:30px;border-radius:999px;cursor:pointer}
-  .modal-body{padding:18px 20px;font-size:.88rem;color:var(--ink)}
-
-  .empty-state{border:2px dashed var(--line);border-radius:var(--radius);padding:40px;text-align:center;color:var(--ink-soft)}
-  .empty-state h3{font-family:'Sora',sans-serif;font-size:1rem;color:var(--ink);margin-bottom:4px}
-
   @media (max-width:640px){
-    .header-actions{margin-left:0;width:100%}
-    .detail-body{grid-template-columns:1fr}
-    .toolbar{position:static}
+    .topbar{position:static}
+    .topbar-in{flex-wrap:wrap;gap:8px}
+    .topbar-in > .tb-spacer{display:none}
+    .topbar-in > #tb-paso{flex:1 1 60%}
+    .btn{padding:7px 11px}
+    .contexto summary .tally{flex-basis:100%}
+    .contenido > section, .contenido > div, .paso-previo, .section-head{scroll-margin-top:12px}
   }
   @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
     *{animation:none!important;transition:none!important}
   }
   :focus-visible{outline:3px solid var(--gold-400);outline-offset:2px;border-radius:6px}
+
+  /* ---------- Impresión / PDF: nada queda escondido ---------- */
+  @media print{
+    body{background:#fff;font-size:12px}
+    .topbar{position:static;box-shadow:none;backdrop-filter:none}
+    .no-print,.indice,.toolbar,.close-detail,.expand-hint,.btn-calc,.hero::before,.hero::after{display:none!important}
+    .layout{display:block;padding-top:8px}
+    .contenido{gap:24px}
+    .panel,.card,.kpi,.dec,.paso-previo{box-shadow:none}
+    .card,.dec,.kpi,.paso-previo,.calc-bloque,.dblock{break-inside:avoid}
+    .ruta-scroll{overflow:visible}
+    .ruta-grid{min-width:0;grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+    .anexo-calculo{display:block;margin-top:24px}
+    .modal{display:none!important}
+  }
 </style>
 </head>
 <body>
 
-<header class="site">
-  <div class="header-top">
+<header class="topbar" id="topbar">
+  <div class="topbar-in">
     <div class="logo-chip"><img id="logo-img" alt="IRIS" src="__LOGO_BASE64__"></div>
-    <span class="badge-skill" id="badge-skill">Skill</span>
+    <span class="tb-pill" id="tb-paso" style="display:none"></span>
+    <span class="tb-pill soft" id="tb-proyecto" style="display:none"></span>
+    <span class="tb-pill soft" id="badge-skill">Skill</span>
     <span class="badge-sim" id="badge-sim" style="display:none">Datos simulados</span>
+    <span class="tb-spacer"></span>
+    <button type="button" class="btn btn-outline no-print" id="btn-calculo" style="display:none"></button>
+    <button type="button" class="btn btn-primary no-print" id="btn-imprimir"></button>
   </div>
-  <nav class="flow-rail" id="flow-rail" aria-label="Avance del flujo de innovación"></nav>
-  <div class="eyebrow" id="eyebrow"></div>
-  <h1 id="h1"></h1>
-  <p class="subtitle" id="subtitle"></p>
-  <div class="hero-stats" id="hero-stats"></div>
 </header>
 
-<section class="resumen" id="resumen-wrap" style="display:none">
-  <div class="resumen-box">
-    <h2>En resumen</h2>
-    <p class="resumen-texto" id="resumen-texto"></p>
-    <div class="resumen-verdictos" id="resumen-verdictos"></div>
-    <div class="resumen-leyenda" id="resumen-leyenda"></div>
+<section class="hero">
+  <div class="hero-in">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="h1"></h1>
+    <p class="subtitle" id="subtitle"></p>
   </div>
 </section>
 
-<div class="marcas" aria-label="Cómo leer este reporte">
-  <span class="marcas-titulo">Cómo leer este reporte</span>
-  <span><b>*</b> estimación propia, sin fuente citable</span>
-  <span><b>[REFERENCIA DE INDUSTRIA]</b> cifra típica del sector, no medida en este proyecto</span>
-  <span><b>[no disponible]</b> no hay dato y no se inventa</span>
+<div class="ruta-wrap">
+  <section class="panel ruta" id="sec-ruta" style="display:none" aria-label="Avance del flujo de innovación">
+    <div class="ruta-head">
+      <h2 id="ruta-titulo">Ruta del flujo IRIS</h2>
+      <span class="tally" id="ruta-tally"></span>
+    </div>
+    <div class="ruta-scroll" id="ruta-scroll"><div class="ruta-grid" id="flow-rail"></div></div>
+  </section>
 </div>
 
-<section class="contexto" id="contexto-wrap" style="display:none">
-  <details id="contexto-det">
-    <summary>
-      <span id="ctx-titulo">Contexto del flujo</span>
-      <span class="tally" id="ctx-tally"></span>
-    </summary>
-    <div class="ctx-body" id="ctx-body"></div>
-  </details>
-</section>
+<div class="layout">
+  <nav class="indice no-print" id="indice" aria-label="Índice del reporte"></nav>
 
-<div class="toolbar" id="toolbar">
-  <div class="search-box">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="search" placeholder="Buscar…" aria-label="Buscar">
+  <div class="contenido" id="contenido">
+
+    <div class="kpis" id="hero-stats"></div>
+
+    <section class="panel resumen" id="sec-resumen" style="display:none">
+      <h2>En resumen</h2>
+      <p class="resumen-texto" id="resumen-texto"></p>
+      <div class="resumen-fila" id="resumen-verdictos"></div>
+      <div class="resumen-leyenda" id="resumen-leyenda"></div>
+      <div id="resumen-alertas"></div>
+    </section>
+
+    <div class="marcas" aria-label="Cómo leer este reporte">
+      <span class="marcas-titulo">Cómo leer este reporte</span>
+      <span><b>*</b> estimación propia, sin fuente citable</span>
+      <span><b>[REFERENCIA DE INDUSTRIA]</b> cifra típica del sector, no medida en este proyecto</span>
+      <span><b>[no disponible]</b> no hay dato y no se inventa</span>
+    </div>
+
+    <section class="contexto" id="contexto-wrap" style="display:none">
+      <details class="panel" id="contexto-det">
+        <summary>
+          <span class="c-ico" id="ctx-ico"></span>
+          <span class="c-t" id="ctx-titulo">Contexto del flujo</span>
+          <span class="tally" id="ctx-tally"></span>
+          <span class="chev" id="ctx-chev"></span>
+        </summary>
+        <div class="ctx-body" id="ctx-body"></div>
+      </details>
+    </section>
+
+    <section id="sec-resultados">
+      <div class="panel toolbar" id="toolbar">
+        <div class="search-box">
+          <span id="ico-buscar"></span>
+          <input type="text" id="search" placeholder="Buscar…" aria-label="Buscar">
+        </div>
+        <select class="sort" id="sort" aria-label="Orden">
+          <option value="orig">Orden original</option>
+          <option value="az">A–Z</option>
+          <option value="score">Por puntaje</option>
+        </select>
+        <div class="chips" id="chips"></div>
+        <div class="results-line"><span id="results-count"></span><button type="button" id="clear-filters">Limpiar filtros</button></div>
+      </div>
+      <main id="main"></main>
+    </section>
+
+    <section id="decisiones-wrap" style="display:none">
+      <div class="sec-t"><span id="ico-dec"></span><h2>Decisiones</h2></div>
+      <div class="dec-grid" id="decisiones"></div>
+    </section>
+
+    <section id="notas-wrap" style="display:none">
+      <div class="notas-grid">
+        <div class="panel nota-box adv" id="advertencias-box" style="display:none">
+          <h3><span id="ico-adv"></span>Advertencias y limitaciones</h3>
+          <ul id="advertencias"></ul>
+        </div>
+        <div class="panel nota-box src" id="fuentes-box" style="display:none">
+          <h3>Fuentes</h3>
+          <ul id="fuentes"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="historial-wrap" style="display:none">
+      <div class="sec-t"><span id="ico-hist"></span><h2>Pasos anteriores del flujo</h2><span class="meta">Cada paso ya cerrado viaja completo dentro de este reporte</span></div>
+      <div id="historial"></div>
+    </section>
+
+    <section id="siguiente-wrap" style="display:none">
+      <div class="siguiente-box">
+        <span class="lbl">Siguiente paso</span>
+        <span class="paso-s" id="siguiente-paso"></span>
+        <span class="obj" id="siguiente-obj"></span>
+      </div>
+    </section>
+
+    <section class="anexo-calculo" id="anexo-calculo" aria-hidden="true"></section>
   </div>
-  <select class="sort" id="sort" aria-label="Orden">
-    <option value="orig">Orden original</option>
-    <option value="az">A–Z</option>
-    <option value="score">Por puntaje</option>
-  </select>
-  <div class="chips" id="chips"></div>
-  <div class="results-line"><span id="results-count"></span><button id="clear-filters">Limpiar filtros</button></div>
 </div>
-
-<main id="main"></main>
-
-<section class="decisiones" id="decisiones-wrap" style="display:none">
-  <h2>Decisiones</h2>
-  <div class="dec-grid" id="decisiones"></div>
-</section>
-
-<section class="notas" id="notas-wrap" style="display:none">
-  <div class="box" id="advertencias-box" style="display:none">
-    <h3>Advertencias y limitaciones</h3>
-    <ul id="advertencias"></ul>
-  </div>
-  <div class="box" id="fuentes-box" style="display:none">
-    <h3>Fuentes</h3>
-    <ul id="fuentes"></ul>
-  </div>
-</section>
-
-<section class="historial" id="historial-wrap" style="display:none">
-  <h2>Pasos anteriores del flujo</h2>
-  <div id="historial"></div>
-</section>
-
-<section class="siguiente" id="siguiente-wrap" style="display:none">
-  <div class="siguiente-box">
-    <span class="lbl">Siguiente paso</span>
-    <span class="paso" id="siguiente-paso"></span>
-    <span class="obj" id="siguiente-obj"></span>
-  </div>
-</section>
 
 <footer class="site">
   <div class="foot-grid">
-    <div class="foot-col">
-      <h4>Skill</h4>
-      <p id="foot-skill"></p>
-    </div>
-    <div class="foot-col">
-      <h4>Fase</h4>
-      <p id="foot-fase"></p>
-    </div>
-    <div class="foot-col">
-      <h4>Generado</h4>
-      <p id="foot-fecha"></p>
-    </div>
-    <div class="foot-col" id="foot-flujo-col" style="display:none">
-      <h4>Flujo</h4>
-      <p id="foot-flujo"></p>
-    </div>
+    <div class="foot-col"><h4>Skill</h4><p id="foot-skill"></p></div>
+    <div class="foot-col"><h4>Fase</h4><p id="foot-fase"></p></div>
+    <div class="foot-col"><h4>Generado</h4><p id="foot-fecha"></p></div>
+    <div class="foot-col" id="foot-flujo-col" style="display:none"><h4>Flujo</h4><p id="foot-flujo"></p></div>
     <div class="foot-col">
       <h4>Acerca de</h4>
       <p>Reporte interactivo del flujo de innovación <b>IRIS</b>. Datos e interpretación generados por la skill. Cómo leer las marcas: <b>*</b> = estimación propia, sin fuente citable · <b>[REFERENCIA DE INDUSTRIA]</b> = cifra típica del sector, no medida en este proyecto · <b>[no disponible]</b> = no hay dato y no se inventa.</p>
     </div>
   </div>
   <div class="foot-note">
-    <span>IRIS — StartUp Lab</span>
+    <span><span class="marca">IRIS</span> — StartUp Lab</span>
     <span>Diseño corporativo Sora/Inter · morado/dorado</span>
   </div>
 </footer>
 
-<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Metodología">
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal-box">
     <div class="modal-head">
-      <h3 id="modal-title">Metodología</h3>
-      <button class="close-modal" id="modal-close" aria-label="Cerrar">✕</button>
+      <span class="m-ico" id="modal-ico"></span>
+      <div><h3 id="modal-title">Cómo se calculó</h3><p class="m-sub" id="modal-sub"></p></div>
+      <button type="button" class="close-modal" id="modal-close" aria-label="Cerrar"></button>
     </div>
     <div class="modal-body" id="modal-body"></div>
   </div>
@@ -466,6 +590,28 @@ window.REPORT_DATA = __REPORT_DATA__;
 (function(){
   const DATA = window.REPORT_DATA || {meta:{},kpis:[],secciones:[],decisiones:[],advertencias:[],fuentes:[]};
   const meta = DATA.meta || {};
+
+  // ---------- Iconos: SVG en línea (sin fuente externa; se ven sin red) ----------
+  const P = {
+    check:'<path d="M20 6 9 17l-5-5"/>',
+    x:'<path d="M18 6 6 18M6 6l12 12"/>',
+    skip:'<path d="M5 12h14"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    calc:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h0M8 16h2M12 16h2M16 16h0"/>',
+    print:'<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/>',
+    alert:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    chevron:'<path d="m6 9 6 6 6-6"/>',
+    route:'<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>',
+    flag:'<path d="M4 22V4a1 1 0 0 1 1-1h11l-2 4 2 4H5"/>',
+    history:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/>',
+    pin:'<path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+    screen:'<rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/>'
+  };
+  function ico(n, extra){
+    return '<svg class="ico'+(extra?' '+extra:'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(P[n]||'')+'</svg>';
+  }
+
   const VERDICT_LABEL = {perseverar:"Perseverar",pivotear:"Pivotear",descartar:"Descartar"};
   const VERDICT_DESC = {
     perseverar: "La evidencia respalda continuar con esta hipótesis o idea.",
@@ -474,25 +620,88 @@ window.REPORT_DATA = __REPORT_DATA__;
   };
   const VERDICT_LEYENDA = 'Perseverar = continuar · Pivotear = ajustar · Descartar = abandonar.';
   function verdictTitle(v){ return VERDICT_LABEL[v] + ': ' + (VERDICT_DESC[v] || ''); }
+  function capVeredicto(v, extra){
+    if(!v) return '';
+    return '<span class="cap '+(VERDICT_LABEL[v]?esc(v):'')+(extra?' '+extra:'')+'" title="'+esc(VERDICT_LABEL[v]?verdictTitle(v):v)+'">'+esc(VERDICT_LABEL[v]||v)+'</span>';
+  }
+
+  // ---------- Significancia: la respuesta corta a «¿es real o es azar?» ----------
+  // `item.significancia.estado` lo escribe el SCRIPT que hizo la prueba (analizar_resultados.py,
+  // la prueba z de los simuladores), no el modelo. El detalle —cifras, intervalos, fórmulas—
+  // vive en la ventana «Cómo se calculó».
+  const SIG_LABEL = {significativo:'Significativo', no_significativo:'No significativo',
+                     no_concluyente:'Aún no se puede saber'};
+  const SIG_DESC = {
+    significativo: 'La diferencia es lo bastante grande para no atribuirla al azar.',
+    no_significativo: 'Con estos datos no hay una diferencia clara: puede ser azar.',
+    no_concluyente: 'La muestra no alcanza para afirmarlo ni para descartarlo.'
+  };
+  function sigDe(it){
+    const s = it && it.significancia;
+    if(!s) return null;
+    const e = typeof s === 'string' ? s : s.estado;
+    return SIG_LABEL[e] ? {estado:e, lectura:(typeof s === 'object' && s.lectura) || ''} : null;
+  }
+  function capSig(it){
+    const s = sigDe(it);
+    if(!s) return '';
+    return '<span class="cap '+s.estado+'" title="'+esc(SIG_DESC[s.estado])+'">'+esc(SIG_LABEL[s.estado])+'</span>';
+  }
+
+  // ---------- Qué va a la ventana «Cómo se calculó» y qué se queda a la vista ----------
+  // A la ventana: `item.estadistica[]`, las tablas marcadas `calculo: true` y los bloques de
+  // `body` cuyo label es de cálculo («Detalle estadístico», «Cómo se calculó», «Metodología»,
+  // «Fórmula»). Esto último mantiene compatibles los reportes escritos antes de que existiera
+  // `estadistica`. Nada se borra: cambia de lugar, y al imprimir sale completo al final.
+  const RE_CALC = /^\s*(detalle estad|c[oó]mo se calcul|metodolog|f[oó]rmula)/i;
+  function esCalc(b){ return b && RE_CALC.test(String(b.label||'')); }
+  function bloquesVisibles(it){ return (it.body||[]).filter(b => !esCalc(b)); }
+  function bloquesCalculo(it){
+    return (it.estadistica||[]).filter(Boolean).concat((it.body||[]).filter(esCalc));
+  }
+  function tieneCalculo(it){
+    return bloquesCalculo(it).length > 0 || tablasDeItem(it).some(t => t.calculo);
+  }
 
   // Header
   document.title = (meta.titulo || "IRIS") + " — Reporte";
   document.getElementById('badge-skill').textContent = meta.skill || "Skill";
   const flujo = DATA.flujo || null;
   const pasoTxt = (flujo && flujo.paso_orden && flujo.total_pasos)
-    ? "Paso " + flujo.paso_orden + " de " + flujo.total_pasos + " · " : "";
+    ? "Paso " + flujo.paso_orden + " de " + flujo.total_pasos : "";
   document.getElementById('eyebrow').textContent =
-    (meta.fase ? meta.fase + " · " : "") + pasoTxt + "IRIS";
+    [meta.fase, pasoTxt, 'IRIS'].filter(Boolean).join(' · ');
   document.getElementById('h1').textContent = meta.titulo || "Reporte IRIS";
   document.getElementById('subtitle').textContent = meta.subtitulo || meta.resumen || "";
+  if(flujo && pasoTxt){
+    const tp = document.getElementById('tb-paso');
+    tp.innerHTML = '<b>'+esc(pasoTxt)+'</b>'+(flujo.paso_titulo ? ' · '+esc(flujo.paso_titulo) : '');
+    tp.style.display='';
+  }
+  if(flujo && flujo.proyecto){
+    const pr = document.getElementById('tb-proyecto');
+    pr.textContent = 'Proyecto: ' + flujo.proyecto; pr.style.display='';
+  }
   const statsEl = document.getElementById('hero-stats');
+  function kpiHtml(k){
+    return '<div class="kpi'+(k.accent?' accent':'')+'"><span class="k-l">'+esc(k.label)+'</span>'
+         + '<span class="k-v">'+esc(k.value)+'</span></div>';
+  }
   const kpis = DATA.kpis && DATA.kpis.length ? DATA.kpis : [];
-  kpis.forEach(k => {
-    const d = document.createElement('div'); d.className='stat';
-    d.innerHTML = '<div class="num">' + (k.accent ? '<em>'+k.value+'</em>' : k.value) + '</div><div class="lbl">'+k.label+'</div>';
-    statsEl.appendChild(d);
-  });
-  if(!kpis.length && meta.resumen){ statsEl.style.display='none'; }
+  statsEl.innerHTML = kpis.map(kpiHtml).join('');
+  if(!kpis.length) statsEl.style.display='none';
+
+  document.getElementById('ico-buscar').innerHTML = ico('search');
+  document.getElementById('ico-dec').innerHTML = ico('flag');
+  document.getElementById('ico-adv').innerHTML = ico('alert');
+  document.getElementById('ico-hist').innerHTML = ico('history');
+  document.getElementById('ctx-ico').innerHTML = ico('route');
+  document.getElementById('ctx-chev').innerHTML = ico('chevron');
+  document.getElementById('modal-ico').innerHTML = ico('calc');
+  document.getElementById('modal-close').innerHTML = ico('x');
+  const bImp = document.getElementById('btn-imprimir');
+  bImp.innerHTML = ico('print') + 'Exportar PDF';
+  bImp.addEventListener('click', () => window.print());
 
   // Footer
   document.getElementById('foot-skill').textContent = meta.skill || "—";
@@ -506,11 +715,7 @@ window.REPORT_DATA = __REPORT_DATA__;
   // como salida del producto, así que «#paso-1» abría el diálogo «Estás saliendo de
   // Claude para visitar un enlace externo» en lugar de saltar al paso. Un <button>
   // no tiene nada que interceptar, y el arreglo no depende de adivinar cómo funciona
-  // el interceptor.
-  //
-  // No se pierde nada al quitar el href: el riel y la lista de contexto los dibuja
-  // este mismo script desde REPORT_DATA, así que nunca existió un escenario sin
-  // JavaScript al que el ancla estuviera dando servicio.
+  // el interceptor. Lo mismo vale para el índice lateral (`data-ir`).
   //
   // `EMBEBIDO` gobierna SOLO los enlaces a archivos vecinos (que dentro de la
   // pasarela no pueden funcionar: no hay sistema de archivos). El salto interno
@@ -519,29 +724,39 @@ window.REPORT_DATA = __REPORT_DATA__;
     try { return window.self !== window.top; } catch(e) { return true; }
   })();
 
-  // Salta al paso embebido: lo abre, lo deja bajo la barra sticky (no detrás) y lo
-  // realza un momento.
+  function altoBarra(){
+    const tb = document.getElementById('topbar');
+    return (tb && getComputedStyle(tb).position === 'sticky') ? tb.offsetHeight : 0;
+  }
+  function irA(el){
+    if(!el) return;
+    el.style.scrollMarginTop = (altoBarra() + 14) + 'px';
+    el.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  // Salta al paso embebido: lo abre, lo deja bajo la barra fija y lo realza un momento.
   function irAPaso(orden){
     const det = document.getElementById('paso-' + orden);
     if(!det) return;
     det.open = true;
-    const tb = document.querySelector('.toolbar');
-    if(tb) det.style.scrollMarginTop = (tb.offsetHeight + 14) + 'px';
-    det.scrollIntoView({behavior:'smooth', block:'start'});
+    irA(det);
     det.classList.remove('destacado');
     void det.offsetWidth;                 // reinicia la animación al saltar dos veces al mismo paso
     det.classList.add('destacado');
   }
 
-  // Delegación: cubre el riel y la lista «Lo que ya sabemos» con un solo manejador.
+  // Delegación: riel, «Lo que ya sabemos», índice y enlaces internos, con un solo manejador.
   document.addEventListener('click', ev => {
-    const t = (ev.target instanceof Element) ? ev.target.closest('[data-salto]') : null;
-    if(t) irAPaso(t.getAttribute('data-salto'));
+    if(!(ev.target instanceof Element)) return;
+    const t = ev.target.closest('[data-salto]');
+    if(t){ irAPaso(t.getAttribute('data-salto')); return; }
+    const d = ev.target.closest('[data-ir]');
+    if(d){ irA(document.getElementById(d.getAttribute('data-ir'))); }
   });
 
-  // ---------- Contexto del flujo (riel + "De dónde viene este reporte") ----------
-  const ESTADO_LABEL = {completado:"completado", omitido:"omitido", pendiente:"pendiente",
-                        en_curso:"en curso", fallido:"falló", actual:"este reporte"};
+  // ---------- Contexto del flujo (ruta + "De dónde viene este reporte") ----------
+  const ESTADO_LABEL = {completado:"Completado", omitido:"Omitido", pendiente:"Pendiente",
+                        en_curso:"En curso", fallido:"Falló", actual:"Este reporte"};
+  const ESTADO_ICO = {completado:'check', omitido:'skip', pendiente:'clock', en_curso:'clock', fallido:'x'};
 
   // Procedencia de los datos DE ESTE PASO, cuando el proyecto arrastra la marca de
   // simulación de un paso anterior. No apaga la marca global: la matiza.
@@ -552,22 +767,25 @@ window.REPORT_DATA = __REPORT_DATA__;
   };
 
   function renderFlujo(){
+    const secRuta = document.getElementById('sec-ruta');
     const railEl = document.getElementById('flow-rail');
     const wrapEl = document.getElementById('contexto-wrap');
     if(!flujo || !Array.isArray(flujo.ruta) || !flujo.ruta.length){
-      railEl.style.display='none'; wrapEl.style.display='none'; return;
+      secRuta.style.display='none'; wrapEl.style.display='none'; return;
     }
+    secRuta.style.display='';
     const actualId = flujo.paso_actual;
     // Número de orden por paso (html_N -> Paso N), para no mostrar ids internos.
     const indice = {};
     flujo.ruta.forEach((p, i) => { indice[p.id] = i + 1; });
     const pasoLbl = id => (indice[id] ? ('Paso ' + indice[id]) : id);
+    railEl.style.setProperty('--n', flujo.ruta.length);
 
-    // Riel de progreso. Un paso ya completado se navega DENTRO del propio documento:
-    // su reporte viaja embebido en el historial, así que el salto funciona igual en
-    // la pasarela de Claude/Codex (sin sistema de archivos) y en el HTML descargado.
-    // El enlace al archivo vecino queda solo para `--sin-historial`, y solo cuando el
-    // reporte no está embebido: dentro de la pasarela no hay archivo que abrir.
+    // Un paso ya completado se navega DENTRO del propio documento: su reporte viaja
+    // embebido en el historial, así que el salto funciona igual en la pasarela de
+    // Claude/Codex (sin sistema de archivos) y en el HTML descargado. El enlace al
+    // archivo vecino queda solo para `--sin-historial`, y solo cuando el reporte no está
+    // embebido: dentro de la pasarela no hay archivo que abrir.
     const histIds = new Set((flujo.historial||[]).map(h => h.id));
     const histOrden = {};
     (flujo.historial||[]).forEach(h => { histOrden[h.id] = h.orden; });
@@ -577,8 +795,8 @@ window.REPORT_DATA = __REPORT_DATA__;
       const clase = esActual ? 'actual' : (p.estado||'pendiente');
       const saltoHist = !esActual && p.estado==='completado' && histIds.has(p.id);
       const enlaceArchivo = !esActual && !saltoHist && !EMBEBIDO && !!p.archivo;
-      const el = document.createElement(saltoHist ? 'button' : (enlaceArchivo ? 'a' : 'span'));
-      el.className = 'flow-step ' + clase + ((saltoHist||enlaceArchivo) ? ' saltable' : '');
+      const el = document.createElement(saltoHist ? 'button' : (enlaceArchivo ? 'a' : 'div'));
+      el.className = 'paso ' + clase + ((saltoHist||enlaceArchivo) ? ' saltable' : '');
       if(saltoHist){
         el.type = 'button';
         el.setAttribute('data-salto', orden);
@@ -586,8 +804,12 @@ window.REPORT_DATA = __REPORT_DATA__;
         el.href = p.archivo;
         el.target = '_blank';
         el.rel = 'noopener';
+        el.style.textDecoration = 'none';
       }
-      el.innerHTML = '<span class="n">'+orden+'</span><span>'+esc(p.titulo||p.id)+'</span>';
+      const marca = esActual ? '<span class="dot"></span>' : ico(ESTADO_ICO[clase]||'clock');
+      el.innerHTML = '<span class="p-top"><span class="p-n">'+String(orden).padStart(2,'0')+'</span>'+marca+'</span>'
+        + '<span class="p-t">'+esc(p.titulo||p.id)+'</span>'
+        + '<span class="p-e">'+esc(esActual ? 'Este reporte' : (ESTADO_LABEL[clase]||clase))+'</span>';
       const nota = esActual ? (p.objetivo||'')
                  : (p.estado==='omitido' ? ('Omitido — '+(p.impacto||p.motivo||''))
                                          : (p.resumen || p.objetivo || ''));
@@ -602,34 +824,36 @@ window.REPORT_DATA = __REPORT_DATA__;
       if(esActual) el.setAttribute('aria-current','step');
       railEl.appendChild(el);
     });
-    // Centra el paso actual sin tocar el header: `scrollIntoView({inline:'center'})`
-    // también desplaza el header (overflow:hidden lo vuelve contenedor de scroll),
-    // lo que cortaba el logo y el título en los pasos finales (html_9 en adelante).
-    const activo = railEl.querySelector('.flow-step.actual');
+    // Centra el paso actual moviendo SOLO el carril horizontal: `scrollIntoView` también
+    // desplazaría la página.
+    const scroller = document.getElementById('ruta-scroll');
+    const activo = railEl.querySelector('.paso.actual');
     if(activo){
       const centrar = () => {
-        const maxScroll = Math.max(0, railEl.scrollWidth - railEl.clientWidth);
-        const objetivo = activo.offsetLeft - (railEl.clientWidth - activo.offsetWidth) / 2;
-        railEl.scrollLeft = Math.min(Math.max(0, objetivo), maxScroll);
+        const maxScroll = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+        const objetivo = activo.offsetLeft - (scroller.clientWidth - activo.offsetWidth) / 2;
+        scroller.scrollLeft = Math.min(Math.max(0, objetivo), maxScroll);
       };
       centrar();
-      // Re-centra cuando cargan Sora/Inter: su ancho cambia el offset del paso.
-      if(document.fonts && document.fonts.ready){
-        document.fonts.ready.then(centrar);
-      }
+      if(document.fonts && document.fonts.ready){ document.fonts.ready.then(centrar); }
     }
 
-    // Encabezado del bloque de contexto
+    // Encabezado de la ruta y del bloque de contexto
     const av = flujo.avance || {};
-    document.getElementById('ctx-titulo').textContent =
-      'De dónde viene este reporte' + (flujo.paso_titulo ? ' — ' + flujo.paso_titulo : '');
     const partes = [];
-    if(flujo.paso_orden) partes.push('paso '+flujo.paso_orden+' de '+flujo.total_pasos);
+    if(flujo.paso_orden) partes.push('Paso '+flujo.paso_orden+' de '+flujo.total_pasos);
     if(av.completados) partes.push(av.completados+' completado'+(av.completados>1?'s':''));
     if(av.omitidos) partes.push(av.omitidos+' omitido'+(av.omitidos>1?'s':''));
+    document.getElementById('ruta-titulo').textContent =
+      'Ruta del flujo IRIS: ' + flujo.ruta.length + ' pasos';
+    document.getElementById('ruta-tally').textContent = partes.join(' · ');
+
+    document.getElementById('ctx-titulo').textContent =
+      'De dónde viene este reporte' + (flujo.paso_titulo ? ' — ' + flujo.paso_titulo : '');
     const nDec = (flujo.decisiones||[]).length;
-    if(nDec) partes.push(nDec+' decisi'+(nDec>1?'ones':'ón'));
-    document.getElementById('ctx-tally').textContent = partes.join(' · ');
+    const pc = partes.slice();
+    if(nDec) pc.push(nDec+' decisi'+(nDec>1?'ones':'ón'));
+    document.getElementById('ctx-tally').textContent = pc.join(' · ') + ' — clic para ver decisiones, lo que ya sabemos y lo que falta';
 
     const body = document.getElementById('ctx-body');
     body.innerHTML = '';
@@ -637,12 +861,8 @@ window.REPORT_DATA = __REPORT_DATA__;
     // 0. Datos simulados: lo primero que se lee, porque condiciona todo lo demás.
     //
     // La marca es del PROYECTO: en cuanto un paso simula, se enciende y viaja a todos los
-    // reportes siguientes. Eso es correcto —quien lea el paso 9 tiene que saber que hay
-    // simulación detrás— pero en el uso real dejó un hueco: un proyecto con 42 entrevistas
-    // REALES que simuló solo las encuestas arrastraba la marca a los pasos 4-11, y en cada
-    // uno había que escribir a mano «este paso está construido con entrevistas reales».
-    // `meta.origen_datos` declara la procedencia DE ESTE PASO sin apagar la marca global,
-    // y la aclaración se escribe sola.
+    // reportes siguientes. `meta.origen_datos` declara la procedencia DE ESTE PASO sin
+    // apagar la marca global, y la aclaración se escribe sola.
     const sim = flujo.simulacion;
     if(sim && sim.activo){
       const det = ['<li><span>'+esc(sim.nota||NOTA_SIM_DEFECTO)+'</span></li>'];
@@ -672,17 +892,13 @@ window.REPORT_DATA = __REPORT_DATA__;
     }
 
     // 2. Decisiones ya tomadas. Una opción propuesta por el agente (fuera del catálogo
-    // del flujo) se marca: es la única del histórico que no salió de `pasos.json`, y
-    // quien lea el reporte tiene que poder distinguirla de una oficial.
+    // del flujo) se marca: es la única del histórico que no salió de `pasos.json`.
     const decs = flujo.decisiones||[];
     body.appendChild(caja('Decisiones tomadas', decs.length
       ? decs.map(d => {
           const fuera = (d.fuera_de_catalogo||[]).filter(Boolean);
           const que = d.propuesta_agente
             ? 'propuesta del agente' : 'fuera del catálogo del flujo';
-          // Si TODO lo elegido está fuera del catálogo, repetirlo detrás de la opción
-          // sería decir dos veces lo mismo. Solo se enumera cuando parte de las
-          // opciones sí eran oficiales y hay que señalar cuál no lo era.
           const todas = fuera.length && fuera.length === (d.opciones||[d.opcion]).length;
           const marca = fuera.length
             ? ' <em title="Esta opción no forma parte del catálogo original del flujo">('
@@ -698,8 +914,6 @@ window.REPORT_DATA = __REPORT_DATA__;
     const hechos = flujo.ruta.filter(p => p.estado==='completado' && indice[p.id] < indiceActual);
     body.appendChild(caja('Lo que ya sabemos', hechos.length
       ? hechos.map(p => {
-          // Mismo criterio que el riel: botón de salto al paso embebido; enlace al
-          // archivo solo fuera de la pasarela; si no hay ninguno, texto plano.
           const t = histOrden[p.id]
             ? '<button type="button" class="salto" data-salto="'+histOrden[p.id]
               + '" title="Leer este paso aquí mismo">'+esc(p.titulo)+'</button>'
@@ -707,7 +921,7 @@ window.REPORT_DATA = __REPORT_DATA__;
                  ? '<a href="'+esc(p.archivo)+'" target="_blank" rel="noopener">'+esc(p.titulo)+'</a>'
                  : '<span class="k">'+esc(p.titulo)+'</span>');
           const r = p.resumen ? ' — '+esc(p.resumen) : '';
-          const v = p.veredicto ? ' <span class="muted">('+esc(p.veredicto)+')</span>' : '';
+          const v = p.veredicto ? ' <span class="muted">('+esc(VERDICT_LABEL[p.veredicto]||p.veredicto)+')</span>' : '';
           return '<li><span class="id">'+esc(pasoLbl(p.id))+'</span><span>'+t+r+v+'</span></li>';
         }).join('')
       : null, 'Este es el primer paso ejecutado del flujo.'));
@@ -740,8 +954,11 @@ window.REPORT_DATA = __REPORT_DATA__;
   }
 
   // ---------- En resumen (conclusión al frente) ----------
+  // Capa 1 de la estadística: lo que se ve sin abrir nada. Veredictos, cuántos resultados
+  // son significativos y —en ámbar— las fallas que cambian la decisión (datos simulados,
+  // advertencias). El detalle de cada cifra vive en «Cómo se calculó».
   function renderResumen(){
-    const wrap = document.getElementById('resumen-wrap');
+    const wrap = document.getElementById('sec-resumen');
     let texto = (meta.resumen || '').trim();
     if(!texto){
       const dec = (DATA.decisiones||[]).find(d => (d.texto||'').trim());
@@ -751,17 +968,38 @@ window.REPORT_DATA = __REPORT_DATA__;
     allItems.forEach(it => { if(it.veredicto) counts[it.veredicto] = (counts[it.veredicto]||0)+1; });
     (DATA.decisiones||[]).forEach(d => { if(d.veredicto) counts[d.veredicto] = (counts[d.veredicto]||0)+1; });
     const orden = ['perseverar','pivotear','descartar'];
-    const badges = orden.filter(v => counts[v]).map(v =>
-      '<span class="verdict '+v+'" title="'+esc(verdictTitle(v))+'">'+esc(VERDICT_LABEL[v])+' · '+counts[v]+'</span>').join('');
+    let badges = orden.filter(v => counts[v]).map(v =>
+      '<span class="cap '+v+'" title="'+esc(verdictTitle(v))+'">'+esc(VERDICT_LABEL[v])+' · '+counts[v]+'</span>').join('');
+    const sc = {};
+    allItems.forEach(it => { const s = sigDe(it); if(s) sc[s.estado] = (sc[s.estado]||0)+1; });
+    const sigBadges = ['significativo','no_significativo','no_concluyente'].filter(e => sc[e]).map(e =>
+      '<span class="cap '+e+'" title="'+esc(SIG_DESC[e])+'">'+esc(SIG_LABEL[e])+' · '+sc[e]+'</span>').join('');
+    badges += sigBadges;
 
-    if(!texto && !badges){ wrap.style.display='none'; return; }
-    wrap.style.display='block';
+    const alertas = [];
+    const sim = simulacion();
+    if(sim) alertas.push('Datos simulados: sirven para ensayar la lectura, no son evidencia de campo.');
+    const nAdv = advertenciasTodas().length;
+    const alertasEl = document.getElementById('resumen-alertas');
+    if(nAdv){
+      alertasEl.innerHTML = '<div class="alerta-linea">'+ico('alert')+'<span>'
+        + (alertas.length ? esc(alertas[0])+' ' : '')
+        + '<b>'+nAdv+' advertencia'+(nAdv>1?'s':'')+'</b> antes de decidir.</span>'
+        + '<button type="button" class="btn-link" data-ir="notas-wrap">Leerlas '+ico('chevron')+'</button></div>';
+    } else alertasEl.innerHTML = '';
+
+    if(!texto && !badges && !nAdv){ wrap.style.display='none'; return; }
+    wrap.style.display='';
     document.getElementById('resumen-texto').textContent = texto;
     document.getElementById('resumen-texto').style.display = texto ? '' : 'none';
     document.getElementById('resumen-verdictos').innerHTML = badges;
     document.getElementById('resumen-verdictos').style.display = badges ? '' : 'none';
-    document.getElementById('resumen-leyenda').textContent = badges ? VERDICT_LEYENDA : '';
-    document.getElementById('resumen-leyenda').style.display = badges ? '' : 'none';
+    const ley = [];
+    if(Object.keys(counts).length) ley.push(VERDICT_LEYENDA);
+    if(sigBadges) ley.push('Significativo = no es azar · Aún no se puede saber = falta muestra. El cálculo, en «Cómo se calculó».'
+      + (simulacion() ? ' Con datos simulados, «significativo» dice que la diferencia declarada en el plan se detectaría con esta muestra, no que exista en el mercado.' : ''));
+    document.getElementById('resumen-leyenda').textContent = ley.join('  ');
+    document.getElementById('resumen-leyenda').style.display = ley.length ? '' : 'none';
   }
 
   // ---------- Siguiente paso (cierre del reporte) ----------
@@ -773,7 +1011,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     document.getElementById('siguiente-paso').textContent = n + (sig.titulo||'');
     document.getElementById('siguiente-obj').textContent = sig.objetivo || '';
     document.getElementById('siguiente-obj').style.display = sig.objetivo ? '' : 'none';
-    wrap.style.display='block';
+    wrap.style.display='';
   }
 
   function caja(titulo, htmlItems, vacio, extra){
@@ -785,90 +1023,78 @@ window.REPORT_DATA = __REPORT_DATA__;
     return d;
   }
 
+  function notasHtml(adv, src){
+    let s = '';
+    if(adv.length) s += '<div class="panel nota-box adv"><h3>'+ico('alert')+'Advertencias y limitaciones</h3><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul></div>';
+    if(src.length) s += '<div class="panel nota-box src"><h3>Fuentes</h3><ul>'+src.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+    return s ? '<div class="notas-grid">'+s+'</div>' : '';
+  }
+
   // ---------- Historial: pasos anteriores embebidos (navegación interna) ----------
   // Cada paso ya completado se renderiza completo —KPIs, secciones con tarjetas
-  // expandibles, decisiones y notas— dentro de un <details> plegable con id
-  // `paso-N`, al que salta el riel. Así un solo HTML contiene todo el recorrido
-  // hasta ese paso y no depende de abrir archivos vecinos (que la pasarela de
-  // Claude/Codex no puede). Con el proyecto descargado, además, se ofrece el
-  // archivo original del paso como enlace secundario.
+  // expandibles, decisiones y notas— dentro de un <details> plegable con id `paso-N`,
+  // al que salta la ruta. Así un solo HTML contiene todo el recorrido y no depende de
+  // abrir archivos vecinos (que la pasarela de Claude/Codex no puede).
   function renderHistorial(){
     const wrap = document.getElementById('historial-wrap');
     const cont = document.getElementById('historial');
     const hist = (flujo && flujo.historial) || [];
     if(!hist.length){ wrap.style.display='none'; return; }
-    wrap.style.display='block';
+    wrap.style.display='';
     cont.innerHTML='';
 
-    hist.forEach(h => {
+    // Del más reciente al más antiguo: el paso inmediato anterior es el que más se consulta.
+    hist.slice().reverse().forEach(h => {
       const rep = h.reporte || {};
       const det = document.createElement('details');
       det.className = 'paso-previo';
       det.id = 'paso-' + (h.orden || '');
-      const v = h.veredicto && VERDICT_LABEL[h.veredicto]
-        ? '<span class="verdict '+esc(h.veredicto)+' v" title="'+esc(verdictTitle(h.veredicto))+'">'+esc(VERDICT_LABEL[h.veredicto])+'</span>' : '';
+      const v = h.veredicto && VERDICT_LABEL[h.veredicto] ? capVeredicto(h.veredicto, 'v') : '';
       let s = '<summary><span class="n">'+(h.orden||'')+'</span><span class="t">'+esc(h.titulo||h.id)+'</span>'+v;
-      // Con el proyecto descargado, el archivo del paso está en la misma carpeta y
-      // abrirlo aparte es útil (dos pasos lado a lado, imprimir uno solo). Dentro de
-      // la pasarela no se dibuja: no hay disco, y el clic solo daría el diálogo de
-      // enlace externo. El contenido ya está aquí, así que no se pierde nada.
+      // Con el proyecto descargado, el archivo del paso está en la misma carpeta y abrirlo
+      // aparte es útil. Dentro de la pasarela no se dibuja: no hay disco que abrir.
       const enRuta = (flujo.ruta||[]).find(p => p.id === h.id);
       if(!EMBEBIDO && enRuta && enRuta.archivo){
         s += '<a class="archivo" href="'+esc(enRuta.archivo)+'" target="_blank" rel="noopener"'
            + ' title="Abre '+esc(enRuta.archivo)+' en una pestaña nueva">Abrir el archivo</a>';
       }
+      s += '<span class="chev">'+ico('chevron')+'</span>';
       if(h.resumen) s += '<span class="r">'+esc(h.resumen)+'</span>';
       s += '</summary>';
       det.innerHTML = s;
-      // Sin esto, el clic en el enlace llega al <summary> y además plegaría el paso.
       const aArch = det.querySelector('summary a.archivo');
       if(aArch) aArch.addEventListener('click', ev => ev.stopPropagation());
 
       const body = document.createElement('div');
       body.className = 'paso-previo-body';
 
-      const kpis = rep.kpis || [];
-      if(kpis.length){
-        body.innerHTML += '<div class="kpis">'+kpis.map(k =>
-          '<div class="kpi"><div class="num">'+esc(k.value)+'</div><div class="lbl">'+esc(k.label)+'</div></div>').join('')+'</div>';
-      }
+      const kp = rep.kpis || [];
+      if(kp.length) body.innerHTML += '<div class="kpis">'+kp.map(kpiHtml).join('')+'</div>';
 
       (rep.secciones||[]).forEach(sec => {
         const head = document.createElement('div'); head.className='section-head';
         const n = (sec.items||[]).length;
-        head.innerHTML = '<h2>'+esc(sec.titulo||'Sección')+'</h2><span class="meta">'+n+' item'+(n===1?'':'s')+'</span>';
+        head.innerHTML = '<h3>'+esc(sec.titulo||'Sección')+'</h3><span class="meta">'+n+' item'+(n===1?'':'s')+'</span>';
         body.appendChild(head);
         const grid = document.createElement('div'); grid.className='grid';
-        (sec.items||[]).forEach(it => grid.appendChild(buildCard(it)));
+        (sec.items||[]).forEach(it => grid.appendChild(buildCard(Object.assign({_seccion: sec.titulo, _paso: h.titulo||h.id}, it))));
         body.appendChild(grid);
       });
 
       const decs = rep.decisiones || [];
       if(decs.length){
         const dh = document.createElement('div'); dh.className='section-head';
-        dh.innerHTML = '<h2>Decisiones</h2>';
+        dh.innerHTML = '<h3>Decisiones</h3>';
         body.appendChild(dh);
         const dg = document.createElement('div'); dg.className='dec-grid';
-        decs.forEach(d => {
-          const el = document.createElement('div'); el.className='dec';
-          let vh = d.veredicto && VERDICT_LABEL[d.veredicto]
-            ? '<span class="verdict '+esc(d.veredicto)+'" title="'+esc(verdictTitle(d.veredicto))+'">'+esc(VERDICT_LABEL[d.veredicto])+'</span>' : '';
-          el.innerHTML = vh + '<h4>'+esc(d.titulo)+'</h4><p>'+esc(d.texto)+'</p>';
-          dg.appendChild(el);
-        });
+        dg.innerHTML = decs.map(decHtml).join('');
         body.appendChild(dg);
       }
 
       const sim = (flujo && flujo.simulacion && flujo.simulacion.activo);
       const adv = (rep.advertencias||[]).slice(), src = rep.fuentes||[];
       if(sim && !adv.some(a => /simulad/i.test(String(a)))) adv.unshift(NOTA_SIM_DEFECTO);
-      if(adv.length || src.length){
-        const nb = document.createElement('div'); nb.className='notas';
-        nb.style.cssText = 'padding:0;max-width:none;margin:0';
-        if(adv.length) nb.innerHTML += '<div class="box"><h3>Advertencias y limitaciones</h3><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul></div>';
-        if(src.length) nb.innerHTML += '<div class="box"><h3>Fuentes</h3><ul>'+src.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
-        body.appendChild(nb);
-      }
+      body.insertAdjacentHTML('beforeend', notasHtml(adv, src));
 
       det.appendChild(body);
       cont.appendChild(det);
@@ -879,7 +1105,7 @@ window.REPORT_DATA = __REPORT_DATA__;
   const allItems = [];
   (DATA.secciones||[]).forEach((sec, si) => {
     (sec.items||[]).forEach((it, ii) => {
-      allItems.push(Object.assign({}, it, {_seccion: sec.titulo || ("Sección "+(si+1)), _orig:(si*1000+ii), _score:(typeof it.score==='number')?it.score:null}));
+      allItems.push(Object.assign({}, it, {_seccion: sec.titulo || ("Sección "+(si+1)), _si: si, _orig:(si*1000+ii), _score:(typeof it.score==='number')?it.score:null}));
     });
   });
 
@@ -891,12 +1117,12 @@ window.REPORT_DATA = __REPORT_DATA__;
   function buildChips(){
     chipsEl.innerHTML='';
     verdicts.forEach(v => {
-      const c=document.createElement('span'); c.className='chip verdict'; c.textContent=VERDICT_LABEL[v]||v; c.dataset.v=v;
+      const c=document.createElement('button'); c.type='button'; c.className='chip verdict'; c.textContent=VERDICT_LABEL[v]||v; c.dataset.v=v;
       c.addEventListener('click',()=>{ activeVerdict = (activeVerdict===v?null:v); render(); });
       chipsEl.appendChild(c);
     });
     tags.forEach(t => {
-      const c=document.createElement('span'); c.className='chip'; c.textContent=t; c.dataset.t=t;
+      const c=document.createElement('button'); c.type='button'; c.className='chip'; c.textContent=t; c.dataset.t=t;
       c.addEventListener('click',()=>{ if(activeTags.has(t)) activeTags.delete(t); else activeTags.add(t); render(); });
       chipsEl.appendChild(c);
     });
@@ -941,7 +1167,10 @@ window.REPORT_DATA = __REPORT_DATA__;
       if(activeVerdict && it.veredicto!==activeVerdict) return false;
       if(activeTags.size && !(it.tags||[]).some(t=>activeTags.has(t))) return false;
       if(q){
-        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),(it.tags||[]).join(' '),textoPersona(it.persona),textoPSF(it.psf),textoTabla(it)].join(' ').toLowerCase();
+        const s = sigDe(it);
+        const hay = [it.titulo,it.subtitulo,(it.body||[]).map(b=>b.texto).join(' '),
+                     (it.estadistica||[]).map(b=>b.texto).join(' '), s ? s.lectura : '',
+                     (it.tags||[]).join(' '),textoPersona(it.persona),textoPSF(it.psf),textoTabla(it)].join(' ').toLowerCase();
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -969,9 +1198,10 @@ window.REPORT_DATA = __REPORT_DATA__;
     } else {
       // Group by section preserving order
       const sections = [];
-      list.forEach(it => { let s=sections.find(x=>x.name===it._seccion); if(!s){s={name:it._seccion,items:[]};sections.push(s);} s.items.push(it); });
+      list.forEach(it => { let s=sections.find(x=>x.name===it._seccion); if(!s){s={name:it._seccion,si:it._si,items:[]};sections.push(s);} s.items.push(it); });
       sections.forEach(sec => {
         const head = document.createElement('div'); head.className='section-head';
+        head.id = 'sec-s-' + sec.si;
         head.innerHTML = '<h2>'+esc(sec.name)+'</h2><span class="meta">'+sec.items.length+' item'+(sec.items.length===1?'':'s')+'</span>';
         main.appendChild(head);
         const grid = document.createElement('div'); grid.className='grid';
@@ -980,7 +1210,6 @@ window.REPORT_DATA = __REPORT_DATA__;
       });
     }
 
-    // Decisiones
     renderDecisiones();
     renderNotas();
   }
@@ -988,17 +1217,15 @@ window.REPORT_DATA = __REPORT_DATA__;
   function tieneDetalle(it){
     if(it.persona && Object.keys(it.persona).length) return true;
     if(it.psf && Object.keys(it.psf).length) return true;
-    if((it.body||[]).length) return true;
-    if(tablasDeItem(it).length) return true;
+    if(bloquesVisibles(it).length) return true;
+    if(tablasDeItem(it).some(t => !t.calculo)) return true;
     if(chartDeItem(it)) return true;
     return false;
   }
 
   // ---------- Bloque `tabla` ----------
-  // Un item puede traer una tabla o una lista de tablas. Existe porque hay contenido
-  // que como párrafo se lee mal: la matriz criterio → puntaje → justificación del score
-  // del Dimensionador (que antes solo viajaba en la conversación, no al HTML), una
-  // proyección año a año, un desglose por buyer persona.
+  // Un item puede traer una tabla o una lista de tablas. Una tabla con `calculo: true`
+  // (la de p-valores e intervalos de analizar_resultados.py) va a «Cómo se calculó».
   function tablasDeItem(it){
     if(!it || !it.tabla) return [];
     return Array.isArray(it.tabla) ? it.tabla.filter(Boolean) : [it.tabla];
@@ -1013,7 +1240,6 @@ window.REPORT_DATA = __REPORT_DATA__;
     const head = cols.map(c => '<th>'+esc(c)+'</th>').join('');
     const cuerpo = filas.map((fila, i) => {
       const celdas = (fila||[]).map(v => {
-        // Una celda numérica se alinea con cifras tabulares; el texto, normal.
         const numerica = typeof v === 'number'
           || (typeof v === 'string' && /^[\s$%+\-.,0-9:]+$/.test(v) && /[0-9]/.test(v));
         return '<td'+(numerica ? ' class="num-col"' : '')+'>'+esc(v)+'</td>';
@@ -1028,8 +1254,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       + '</div>';
   }
 
-  // Texto plano de las tablas, para que el buscador encuentre lo que hay dentro
-  // (una justificación del score, por ejemplo).
+  // Texto plano de las tablas, para que el buscador encuentre lo que hay dentro.
   function textoTabla(it){
     return tablasDeItem(it).map(t =>
       [t.titulo, t.nota, (t.columnas||[]).join(' '),
@@ -1037,33 +1262,86 @@ window.REPORT_DATA = __REPORT_DATA__;
     ).join(' ');
   }
 
+  function botonCalculo(it){
+    if(!tieneCalculo(it)) return null;
+    const b = document.createElement('button');
+    b.type='button'; b.className='btn-link btn-calc';
+    b.innerHTML = ico('calc') + 'Cómo se calculó';
+    b.addEventListener('click', ev => { ev.stopPropagation(); abrirCalculo([it]); });
+    return b;
+  }
+
+  // ---------- Vista previa de la landing (item.vista_previa.html_b64) ----------
+  // El generador incrusta el HTML de la landing; aquí se abre en un iframe `srcdoc` con
+  // sandbox (sin acceso a este documento). Se lee igual dentro de la pasarela de Claude,
+  // donde no hay archivo vecino que abrir.
+  function htmlDeVista(vp){
+    try{ return new TextDecoder('utf-8').decode(Uint8Array.from(atob(vp.html_b64), c => c.charCodeAt(0))); }
+    catch(e){ return ''; }
+  }
+  function botonVista(it){
+    const vp = it && it.vista_previa;
+    if(!vp || !vp.html_b64) return null;
+    const b = document.createElement('button');
+    b.type='button'; b.className='btn-vista no-print';
+    b.innerHTML = ico('screen') + 'Ver la landing';
+    b.addEventListener('click', ev => { ev.stopPropagation(); abrirVista(vp); });
+    return b;
+  }
+  function abrirVista(vp){
+    const doc = htmlDeVista(vp);
+    if(!doc) return;
+    openModal(vp.titulo || 'Landing de validación', 'Vista previa interactiva: los clics y el formulario funcionan, pero aquí no se registra nada',
+      '<div class="vp-barra"><button type="button" class="on" data-ancho="100%">Escritorio</button>'
+      + '<button type="button" data-ancho="390px">Móvil</button></div><div class="vp-marco"><iframe title="Vista previa de la landing" sandbox="allow-scripts allow-forms allow-modals"></iframe></div>',
+      'ancho');
+    const body = document.getElementById('modal-body');
+    const fr = body.querySelector('iframe');
+    fr.srcdoc = doc;
+    body.querySelectorAll('[data-ancho]').forEach(x => x.addEventListener('click', () => {
+      body.querySelectorAll('[data-ancho]').forEach(y => y.classList.toggle('on', y === x));
+      fr.style.width = x.getAttribute('data-ancho');
+    }));
+  }
+
   function buildCard(it){
     const card = document.createElement('div'); card.className='card';
     const tagsHtml = (it.tags||[]).slice(0,3).map(t=>'<span class="pill">'+esc(t)+'</span>').join('');
-    let verdictHtml='';
-    if(it.veredicto) verdictHtml = '<span class="verdict '+esc(it.veredicto)+'" title="'+esc(verdictTitle(it.veredicto))+'">'+esc(VERDICT_LABEL[it.veredicto]||it.veredicto)+'</span>';
+    const caps = capVeredicto(it.veredicto) + capSig(it);
+    const s = sigDe(it);
     const expandible = tieneDetalle(it);
     if(!expandible) card.classList.add('no-detail');
     card.innerHTML =
-      '<div class="card-top">'+(it.tags&&it.tags.length?'<span class="card-tag">'+esc(it.tags[0])+'</span>':'<span></span>')+verdictHtml+'</div>'+
+      '<div class="card-top">'+(it.tags&&it.tags.length?'<span class="card-tag">'+esc(it.tags[0])+'</span>':'')
+        +(caps?'<span class="card-caps">'+caps+'</span>':'')+'</div>'+
       '<h3>'+esc(it.titulo)+'</h3>'+
       (it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+
-      '<div class="card-foot">'+tagsHtml+(typeof it.score==='number'?'<span class="pill">Puntaje '+it.score+'</span>':'')+'</div>'+
-      (expandible?'<div class="expand-hint">Ver detalle <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>':'');
+      (s && s.lectura ? '<div class="sig-lectura '+s.estado+'">'+(simulacion() ? '<b>En la simulación:</b> ' : '')+esc(s.lectura)+'</div>' : '')+
+      ((tagsHtml || typeof it.score==='number') ? '<div class="card-foot">'+tagsHtml+(typeof it.score==='number'?'<span class="pill">Puntaje '+esc(it.score)+'</span>':'')+'</div>' : '')+
+      '<div class="card-acc"></div>';
+    const acc = card.querySelector('.card-acc');
+    const bv = botonVista(it);
+    if(bv) acc.appendChild(bv);
+    const bc = botonCalculo(it);
+    if(bc) acc.appendChild(bc);
+    if(expandible) acc.insertAdjacentHTML('beforeend', '<span class="expand-hint" style="margin-left:auto">Ver detalle '+ico('chevron')+'</span>');
+    if(!bc && !bv && !expandible) acc.remove();
     if(!expandible) return card;
-    card.addEventListener('click', e => {
+    card.tabIndex = 0;
+    card.setAttribute('role','button');
+    card.setAttribute('aria-expanded','false');
+    const alternar = () => {
       const expanded = card.classList.contains('expanded');
-      // collapse all in this grid
       const grid = card.parentElement;
-      grid.querySelectorAll('.card.expanded').forEach(c=>{c.classList.remove('expanded'); const d=c._detail; if(d){d.remove(); c._detail=null;} if(c._chart){c._chart.destroy(); c._chart=null;} });
-      if(!expanded){ card.classList.add('expanded'); const det = buildDetail(it); card._detail = det; insertarDetalle(grid, card, det); renderCharts(det, it, card); }
-    });
+      grid.querySelectorAll('.card.expanded').forEach(c=>{c.classList.remove('expanded'); c.setAttribute('aria-expanded','false'); const d=c._detail; if(d){d.remove(); c._detail=null;} if(c._chart){c._chart.destroy(); c._chart=null;} });
+      if(!expanded){ card.classList.add('expanded'); card.setAttribute('aria-expanded','true'); const det = buildDetail(it); card._detail = det; insertarDetalle(grid, card, det); renderCharts(det, it, card); }
+    };
+    card.addEventListener('click', alternar);
+    card.addEventListener('keydown', e => { if(e.target===card && (e.key==='Enter'||e.key===' ')){ e.preventDefault(); alternar(); } });
     return card;
   }
 
-  // Coloca el panel de detalle justo debajo de la fila de la tarjeta elegida (tras el
-  // último card de esa fila), no al fondo de toda la grilla: así, con más de una fila,
-  // el detalle no se ve "abajo de todas" sino pegado a la tarjeta seleccionada.
+  // Coloca el panel de detalle justo debajo de la fila de la tarjeta elegida.
   function insertarDetalle(grid, card, det){
     const cards = Array.from(grid.children).filter(el => el.classList.contains('card'));
     const fila = cards.filter(c => c.offsetTop === card.offsetTop);
@@ -1073,31 +1351,33 @@ window.REPORT_DATA = __REPORT_DATA__;
 
   function buildDetail(it){
     const det = document.createElement('div'); det.className='detail';
-    let head = '<div class="detail-head"><div class="dh-main"><h3>'+esc(it.titulo)+'</h3>'+(it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+'</div><button class="close-detail" aria-label="Cerrar">✕</button></div>';
+    const caps = capVeredicto(it.veredicto) + capSig(it);
+    let head = '<div class="detail-head"><div class="dh-main"><h4>'+esc(it.titulo)+'</h4>'+(it.subtitulo?'<div class="sub">'+esc(it.subtitulo)+'</div>':'')+'</div>'
+      + '<div class="dh-acc">'+caps+'<span class="dh-calc"></span><button type="button" class="close-detail" aria-label="Cerrar">'+ico('x')+'</button></div></div>';
     let body = '<div class="detail-body">';
     if(it.persona) body += buildPersona(it.persona);
     if(it.psf) body += buildPSF(it.psf);
-    (it.body||[]).forEach(b => {
+    bloquesVisibles(it).forEach(b => {
       body += '<div class="dblock"><div class="db-label">'+esc(b.label||'')+'</div><div class="db-text">'+esc(b.texto||'')+'</div></div>';
     });
-    tablasDeItem(it).forEach(t => { body += buildTabla(t); });
+    tablasDeItem(it).filter(t => !t.calculo).forEach(t => { body += buildTabla(t); });
     if(chartDeItem(it)) body += '<div class="chart-wrap"><div class="ct">'+esc(chartDeItem(it).titulo||'')+'</div><canvas></canvas></div>';
     body += '</div>';
     det.innerHTML = head + body;
+    const bc = botonCalculo(it);
+    if(bc) det.querySelector('.dh-calc').appendChild(bc);
+    det.addEventListener('click', e => e.stopPropagation());
     det.querySelector('.close-detail').addEventListener('click', e=>{
       e.stopPropagation();
       const grid = det.parentElement;
       const card = grid.querySelector('.card.expanded');
-      if(card){ card.classList.remove('expanded'); if(card._chart){card._chart.destroy();card._chart=null;} }
+      if(card){ card.classList.remove('expanded'); card.setAttribute('aria-expanded','false'); if(card._chart){card._chart.destroy();card._chart=null;} card.focus(); }
       det.remove();
     });
     return det;
   }
 
   // ---------- Ficha de persona (estructura del template Persona Profile) ----------
-  const ICO_FIS = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-  const ICO_DIG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>';
-
   function lista(arr){
     const xs = (arr||[]).filter(x => String(x||'').trim());
     if(!xs.length) return '<p class="ctx-empty">[no disponible]</p>';
@@ -1107,8 +1387,8 @@ window.REPORT_DATA = __REPORT_DATA__;
   function canales(par, titulo){
     const p = par || {};
     return '<div class="pf-box w6"><h5>'+esc(titulo)+'</h5><div class="pf-split">'
-      + '<div class="pf-canal"><div class="ct2">'+ICO_FIS+'Canal físico</div>'+lista(p.fisico)+'</div>'
-      + '<div class="pf-canal"><div class="ct2">'+ICO_DIG+'Canal digital</div>'+lista(p.digital)+'</div>'
+      + '<div class="pf-canal"><div class="ct2">'+ico('pin')+'Canal físico</div>'+lista(p.fisico)+'</div>'
+      + '<div class="pf-canal"><div class="ct2">'+ico('screen')+'Canal digital</div>'+lista(p.digital)+'</div>'
       + '</div></div>';
   }
 
@@ -1146,8 +1426,8 @@ window.REPORT_DATA = __REPORT_DATA__;
     h += canales(p.donde_esta, '¿Dónde está?');
     h += canales(p.confianza, '¿En quién confía? / Le recomienda');
 
-    // Pains. Las columnas de evaluación (solución, costo, importancia/satisfacción) las
-    // produce Problem-Solution Fit en el paso siguiente: si no hay dato, no hay columna.
+    // Pains. Las columnas de evaluación las produce Problem-Solution Fit en el paso
+    // siguiente: si no hay dato, no hay columna.
     const pains = p.pains || [];
     if(pains.length){
       const hayCol = k => pains.some(d => d[k]!=null && String(d[k]).trim()!=='');
@@ -1161,7 +1441,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       h += '<div class="pf-box full"><h5>Problemas con los productos y servicios actuales</h5><div class="pf-tabla-wrap">'
          + '<table class="pf-tabla'+(sinEval?' slim':'')+'"><thead><tr>'+head+'</tr></thead><tbody>';
       pains.forEach((d,i) => {
-        h += '<tr><td class="num"><span>'+(d.n||i+1)+'</span></td>'
+        h += '<tr><td class="num"><span>'+esc(d.n||i+1)+'</span></td>'
            + '<td>'+esc(d.texto||'[no disponible]')+'</td>';
         if(cSol)   h += '<td>'+esc(d.solucion||'—')+'</td>';
         if(cCosto) h += '<td>'+esc(d.costo||'—')+'</td>';
@@ -1196,19 +1476,17 @@ window.REPORT_DATA = __REPORT_DATA__;
   function buildPSF(p){
     let h = '<div class="pf">';
 
-    // Solución evaluada + procedencia de la evidencia
     const meta = [];
     if(p.persona)   meta.push('Persona hipotética: '+esc(p.persona));
     if(p.base)      meta.push('Con base en: '+esc(p.base));
     if(p.n_muestra!=null) meta.push('Muestra: '+esc(p.n_muestra));
     if(p.solucion_propuesta || meta.length){
-      h += '<div class="pf-jtbd"><div class="lbl">SOLUCIÓN EVALUADA</div>'
+      h += '<div class="pf-jtbd"><div class="lbl">Solución evaluada</div>'
          + '<blockquote>'+esc(p.solucion_propuesta||'[no disponible]')+'</blockquote>'
          + (meta.length?'<div class="meta-linea"><span>'+meta.join('</span><span>')+'</span></div>':'')
          + '</div>';
     }
 
-    // Problemas priorizados: una fila por problema, columnas según el dato que exista.
     const probs = p.problemas || [];
     if(probs.length){
       const hayCol = k => probs.some(d => d[k]!=null && String(d[k]).trim()!=='');
@@ -1225,7 +1503,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       h += '<div class="pf-box full"><h5>Problemas priorizados</h5><div class="pf-tabla-wrap">'
          + '<table class="pf-tabla"><thead><tr>'+head+'</tr></thead><tbody>';
       probs.forEach((d,i) => {
-        h += '<tr><td class="num"><span>'+(d.n||i+1)+'</span></td>'
+        h += '<tr><td class="num"><span>'+esc(d.n||i+1)+'</span></td>'
            + '<td>'+esc(d.problema||d.texto||'[no disponible]')
            + (d.contexto?'<span class="ctx">'+esc(d.contexto)+'</span>':'')+'</td>';
         if(cFrec)  h += '<td>'+esc(d.frecuencia||'—')+'</td>';
@@ -1259,7 +1537,6 @@ window.REPORT_DATA = __REPORT_DATA__;
     const psf = it.psf && it.psf.problemas;
     const filas = psf && psf.length ? psf : ((it.persona && it.persona.pains) || []);
     const etiqueta = d => d.texto || d.problema || '';
-    // El número del punto es el de la fila en la tabla, no su posición en la matriz.
     const puntos = filas
       .map((d,i) => ({d: d, n: d.n || i+1}))
       .filter(x => typeof x.d.importancia==='number' && typeof x.d.satisfaccion==='number')
@@ -1289,9 +1566,9 @@ window.REPORT_DATA = __REPORT_DATA__;
       const mx = scales.x.getPixelForValue((scales.x.min+scales.x.max)/2);
       const my = scales.y.getPixelForValue((scales.y.min+scales.y.max)/2);
       ctx.save();
-      ctx.fillStyle = 'rgba(232,185,62,.10)';                 // oportunidad: arriba-izquierda
+      ctx.fillStyle = 'rgba(232,185,62,.10)';
       ctx.fillRect(a.left, a.top, mx-a.left, my-a.top);
-      ctx.fillStyle = 'rgba(90,58,140,.07)';                  // competencia: arriba-derecha
+      ctx.fillStyle = 'rgba(90,58,140,.07)';
       ctx.fillRect(mx, a.top, a.right-mx, my-a.top);
       ctx.strokeStyle = 'rgba(90,58,140,.28)';
       ctx.setLineDash([5,4]); ctx.lineWidth = 1;
@@ -1307,7 +1584,6 @@ window.REPORT_DATA = __REPORT_DATA__;
       ctx.restore();
     },
     afterDatasetsDraw(chart){
-      // Número del pain dentro de cada punto.
       const {ctx} = chart;
       chart.data.datasets.forEach((ds,di) => {
         if(!ds._etiquetas) return;
@@ -1321,7 +1597,12 @@ window.REPORT_DATA = __REPORT_DATA__;
     }
   };
 
-  const PALETTE = ['#5A3A8C','#D4A73E','#7A4E96','#3E8E5A','#C99A2E','#C97133','#3D2766','#E8B93E'];
+  const PALETTE = ['#3D2766','#D4A73E','#5A3A8C','#E8B93E','#7A4E96','#B8862F','#241B33','#D9CCEF'];
+  if(typeof Chart !== 'undefined'){
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    Chart.defaults.color = '#5C5468';
+    Chart.defaults.borderColor = 'rgba(228,220,239,.8)';
+  }
   function renderCharts(det, it, card){
     const c0 = chartDeItem(it);
     if(!c0) return;
@@ -1335,23 +1616,26 @@ window.REPORT_DATA = __REPORT_DATA__;
     if(c0.tipo === 'scatter'){ card._chart = renderScatter(canvas, c0); return; }
     const c = c0;
     const type = c.tipo==='horizontalBar' ? 'bar' : (c.tipo||'bar');
+    const circular = (type==='doughnut'||type==='pie');
     const datasets = (c.datasets||[{label:'',data:c.data||[]}]).map((ds,i)=>({
       label: ds.label||'',
       data: ds.data||[],
-      backgroundColor: ds.backgroundColor || PALETTE[i%PALETTE.length],
-      borderColor: ds.backgroundColor || PALETTE[i%PALETTE.length],
-      borderWidth:1
+      backgroundColor: ds.backgroundColor || (circular ? (ds.data||[]).map((_,j)=>PALETTE[j%PALETTE.length]) : PALETTE[i%PALETTE.length]),
+      borderColor: ds.backgroundColor || (circular ? '#fff' : PALETTE[i%PALETTE.length]),
+      borderWidth: circular ? 2 : 1,
+      borderRadius: type==='bar' ? 4 : 0
     }));
     const config = {
       type: type,
       data: { labels: c.labels||[], datasets: datasets },
       options: {
         responsive:true, maintainAspectRatio:false,
-        plugins:{ tooltip:{enabled:true}, legend:{display: datasets.length>1 || !!datasets[0].label} },
-        scales: (type==='doughnut'||type==='pie') ? {} : { x:{title:{display:!!c.eje_x,text:c.eje_x||''}}, y:{title:{display:!!c.eje_y,text:c.eje_y||''}} }
+        plugins:{ tooltip:{enabled:true}, legend:{display: circular || datasets.length>1 || !!datasets[0].label} },
+        scales: circular ? {} : { x:{title:{display:!!c.eje_x,text:c.eje_x||''}}, y:{title:{display:!!c.eje_y,text:c.eje_y||''}} }
       }
     };
     if(type==='bar' && c.tipo==='horizontalBar') config.options.indexAxis='y';
+    canvas.parentElement.style.height = '320px';
     card._chart = new Chart(canvas, config);
   }
 
@@ -1368,6 +1652,7 @@ window.REPORT_DATA = __REPORT_DATA__;
       pointHoverRadius: 13
     };
     ds._etiquetas = puntos.map(p => p.etiqueta || '');
+    canvas.parentElement.style.height = '360px';
     return new Chart(canvas, {
       type: 'scatter',
       data: { datasets: [ds] },
@@ -1385,36 +1670,31 @@ window.REPORT_DATA = __REPORT_DATA__;
         },
         scales:{
           x:{ min:min, max:max, ticks:{stepSize:0.5},
-              title:{display:!!c.eje_x, text:c.eje_x||'', font:{weight:'700',size:10}},
-              grid:{color:'rgba(228,220,239,.7)'} },
+              title:{display:!!c.eje_x, text:c.eje_x||'', font:{weight:'700',size:10}} },
           y:{ min:min, max:max, ticks:{stepSize:0.5},
-              title:{display:!!c.eje_y, text:c.eje_y||'', font:{weight:'700',size:10}},
-              grid:{color:'rgba(228,220,239,.7)'} }
+              title:{display:!!c.eje_y, text:c.eje_y||'', font:{weight:'700',size:10}} }
         }
       },
       plugins: [cuadrantesPlugin]
     });
   }
 
+  function decHtml(d){
+    return '<div class="dec">'+(d.veredicto ? '<div>'+capVeredicto(d.veredicto)+'</div>' : '')
+      + '<h4>'+esc(d.titulo)+'</h4><p>'+esc(d.texto)+'</p></div>';
+  }
   function renderDecisiones(){
     const wrap = document.getElementById('decisiones-wrap');
     const cont = document.getElementById('decisiones');
     const decs = DATA.decisiones||[];
     if(!decs.length){ wrap.style.display='none'; return; }
-    wrap.style.display='block'; cont.innerHTML='';
-    decs.forEach(d => {
-      const el = document.createElement('div'); el.className='dec';
-      let vh = d.veredicto ? '<span class="verdict '+(VERDICT_LABEL[d.veredicto]?d.veredicto:'')+'" title="'+esc(verdictTitle(d.veredicto))+'">'+esc(VERDICT_LABEL[d.veredicto]||d.veredicto)+'</span>' : '';
-      el.innerHTML = vh + '<h4>'+esc(d.titulo)+'</h4><p>'+esc(d.texto)+'</p>';
-      cont.appendChild(el);
-    });
+    wrap.style.display=''; cont.innerHTML = decs.map(decHtml).join('');
   }
 
   // ---------- Datos simulados ----------
   // La marca la enciende el flujo: `flujo.simulacion.activo` lo inyecta el generador a
   // partir de la decisión registrada en pasos.json, así que no depende de que la skill
-  // se acuerde de ponerla. `meta.simulado` es el escape para una skill que corre suelta,
-  // fuera de un proyecto del flujo.
+  // se acuerde de ponerla. `meta.simulado` es el escape para una skill que corre suelta.
   const NOTA_SIM_DEFECTO = 'Las entrevistas y encuestas de este reporte son SIMULADAS: '
     + 'las respuestas las generó un simulador a partir de prevalencias declaradas y no '
     + 'provienen de usuarios reales. Es un ensayo de cómo se leerían los resultados, no '
@@ -1425,36 +1705,108 @@ window.REPORT_DATA = __REPORT_DATA__;
     if(meta.simulado) return {activo:true, nota: meta.nota_simulacion || NOTA_SIM_DEFECTO};
     return null;
   }
+  function advertenciasTodas(){
+    const sim = simulacion();
+    const adv = (DATA.advertencias||[]).slice();
+    // Si el reporte es simulado y nadie lo declaró en las advertencias, se declara aquí.
+    if(sim && !adv.some(a => /simulad/i.test(String(a)))) adv.unshift(sim.nota || NOTA_SIM_DEFECTO);
+    return adv;
+  }
 
   function renderNotas(){
     const wrap = document.getElementById('notas-wrap');
-    const sim = simulacion();
-    const adv = (DATA.advertencias||[]).slice(), src = DATA.fuentes||[];
-    // Si el reporte es simulado y nadie lo declaró en las advertencias, se declara aquí.
-    if(sim && !adv.some(a => /simulad/i.test(String(a)))){
-      adv.unshift(sim.nota || NOTA_SIM_DEFECTO);
-    }
+    const adv = advertenciasTodas(), src = DATA.fuentes||[];
     const advBox = document.getElementById('advertencias-box');
     const srcBox = document.getElementById('fuentes-box');
-    if(adv.length || src.length){ wrap.style.display='block'; } else { wrap.style.display='none'; }
-    if(adv.length){ advBox.style.display='block'; document.getElementById('advertencias').innerHTML = adv.map(a=>'<li>'+esc(a)+'</li>').join(''); } else advBox.style.display='none';
-    if(src.length){ srcBox.style.display='block'; document.getElementById('fuentes').innerHTML = src.map(s=>'<li>'+esc(s)+'</li>').join(''); } else srcBox.style.display='none';
+    wrap.style.display = (adv.length || src.length) ? '' : 'none';
+    if(adv.length){ advBox.style.display=''; document.getElementById('advertencias').innerHTML = adv.map(a=>'<li>'+esc(a)+'</li>').join(''); } else advBox.style.display='none';
+    if(src.length){ srcBox.style.display=''; document.getElementById('fuentes').innerHTML = src.map(s=>'<li>'+esc(s)+'</li>').join(''); } else srcBox.style.display='none';
   }
+
+  // ---------- Ventana «Cómo se calculó» (capa 2 de la estadística) ----------
+  // Todo lo que la persona no necesita para decidir pero sí para verificar: cifras exactas,
+  // intervalos, pruebas, fórmulas y la metodología. Se abre desde cada tarjeta (solo ese
+  // resultado) o desde la barra superior (todo el reporte).
+  function calcItemHtml(it, conTitulo){
+    const bl = bloquesCalculo(it);
+    const tb = tablasDeItem(it).filter(t => t.calculo);
+    if(!bl.length && !tb.length) return '';
+    const s = sigDe(it);
+    let h = '<div class="calc-grupo">';
+    if(conTitulo){
+      h += '<h4>'+esc(it.titulo)+capVeredicto(it.veredicto)+capSig(it)+'</h4>';
+      if(it._paso) h += '<p class="calc-intro" style="padding:4px 10px">Del '+esc(it._paso)+'</p>';
+    }
+    if(s && s.lectura && !conTitulo) h += '<p class="calc-intro">'+capSig(it)+' '+esc(s.lectura)+'</p>';
+    bl.forEach(b => {
+      h += '<div class="calc-bloque"><div class="db-label">'+esc(b.label||'Detalle')+'</div><div class="db-text">'+esc(b.texto||'')+'</div></div>';
+    });
+    tb.forEach(t => { h += buildTabla(t).replace('pf-box full tabla-bloque','calc-bloque tabla-bloque'); });
+    return h + '</div>';
+  }
+  function metodologiaHtml(){
+    const m = meta.metodologia;
+    if(!m) return '';
+    return '<div class="calc-grupo"><h4>Metodología</h4><div class="calc-bloque metod"><div class="db-text">'+esc(m)+'</div></div></div>';
+  }
+  function calculoGlobalHtml(){
+    return metodologiaHtml() + allItems.map(it => calcItemHtml(it, true)).join('');
+  }
+  let ultimoFoco = null;
+  function openModal(title, sub, body, clase){
+    ultimoFoco = document.activeElement;
+    document.querySelector('#modal .modal-box').className = 'modal-box' + (clase ? ' ' + clase : '');
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-sub').textContent = sub || '';
+    document.getElementById('modal-body').innerHTML = body;
+    document.getElementById('modal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('modal-close').focus();
+  }
+  function closeModal(){
+    const m = document.getElementById('modal');
+    if(!m.classList.contains('open')) return;
+    m.classList.remove('open');
+    document.body.style.overflow = '';
+    document.getElementById('modal-body').innerHTML = '';   // descarga la landing del iframe
+    if(ultimoFoco && ultimoFoco.focus) ultimoFoco.focus();
+  }
+  function abrirCalculo(items){
+    if(items && items.length === 1){
+      openModal('Cómo se calculó', items[0].titulo, calcItemHtml(items[0], false));
+    } else {
+      openModal('Cómo se calculó', 'Cifras exactas, pruebas, fórmulas y metodología de este reporte', calculoGlobalHtml());
+    }
+  }
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); } });
+
+  const hayCalculo = !!meta.metodologia || allItems.some(tieneCalculo);
+  if(hayCalculo){
+    const b = document.getElementById('btn-calculo');
+    b.innerHTML = ico('calc') + 'Cómo se calculó';
+    b.style.display = '';
+    b.addEventListener('click', () => abrirCalculo(null));
+  }
+
+  // Al imprimir, lo que en pantalla vive en la ventana sale completo al final, y los
+  // pasos anteriores se abren: el PDF no esconde nada.
+  window.addEventListener('beforeprint', () => {
+    const anexo = document.getElementById('anexo-calculo');
+    const g = calculoGlobalHtml();
+    anexo.innerHTML = g ? '<div class="sec-t"><h2>Cómo se calculó</h2></div><div class="panel" style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">'+g+'</div>' : '';
+    document.querySelectorAll('details').forEach(d => { d.dataset.abierto = d.open ? '1' : ''; d.open = true; });
+  });
+  window.addEventListener('afterprint', () => {
+    document.querySelectorAll('details').forEach(d => { if(d.dataset.abierto !== undefined){ d.open = d.dataset.abierto === '1'; } });
+  });
 
   document.getElementById('search').addEventListener('input', render);
   document.getElementById('sort').addEventListener('change', render);
   document.getElementById('clear-filters').addEventListener('click', ()=>{
     activeVerdict=null; activeTags.clear(); document.getElementById('search').value=''; document.getElementById('sort').value='orig'; render();
   });
-
-  // Modal
-  function openModal(title, body){ document.getElementById('modal-title').textContent=title; document.getElementById('modal-body').innerHTML=body; document.getElementById('modal').classList.add('open'); }
-  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
-  document.getElementById('modal-close').addEventListener('click', closeModal);
-  document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ closeModal(); } });
-
-  if(meta.metodologia){ const b=document.createElement('span'); b.className='badge-skill'; b.style.cssText='cursor:pointer;margin-left:auto'; b.textContent='Metodología'; b.onclick=()=>openModal('Metodología', '<p>'+esc(meta.metodologia)+'</p>'); const top=document.querySelector('.header-top'); if(top){ top.appendChild(b);} }
 
   // Distintivo de la cabecera y marca en el pie: se encienden juntos con la simulación.
   if(simulacion()){
@@ -1464,11 +1816,44 @@ window.REPORT_DATA = __REPORT_DATA__;
     document.title = 'SIMULADO · ' + document.title;
   }
 
+  // ---------- Índice lateral (página larga) ----------
+  // Botones con `data-ir`, no anclas: misma razón que la ruta (pasarela de Claude).
+  function renderIndice(){
+    const nav = document.getElementById('indice');
+    const entradas = [];
+    const vis = id => { const el = document.getElementById(id); return el && el.style.display !== 'none'; };
+    entradas.push(['sec-ruta', 'Ruta del flujo', vis('sec-ruta')]);
+    entradas.push(['sec-resumen', 'En resumen', vis('sec-resumen')]);
+    entradas.push(['contexto-wrap', 'De dónde viene', vis('contexto-wrap')]);
+    entradas.push(['sec-resultados', 'Resultados', true]);
+    (DATA.secciones||[]).forEach((s, i) => entradas.push(['sec-s-'+i, s.titulo || ('Sección '+(i+1)), (DATA.secciones||[]).length > 1, 'sub']));
+    entradas.push(['decisiones-wrap', 'Decisiones', vis('decisiones-wrap')]);
+    const nAdv = advertenciasTodas().length;
+    entradas.push(['notas-wrap', 'Advertencias y fuentes', vis('notas-wrap'), '', nAdv]);
+    entradas.push(['historial-wrap', 'Pasos anteriores', vis('historial-wrap')]);
+    entradas.push(['siguiente-wrap', 'Siguiente paso', vis('siguiente-wrap')]);
+    nav.innerHTML = '<span class="ind-t">En este reporte</span>' + entradas.filter(e => e[2]).map(e =>
+      '<button type="button" data-ir="'+e[0]+'" class="'+(e[3]||'')+'">'+esc(e[1])
+      + (e[4] ? '<span class="cnt" title="Advertencias">'+e[4]+'</span>' : '') + '</button>').join('');
+    // Resalta la sección visible
+    if('IntersectionObserver' in window){
+      const botones = Array.from(nav.querySelectorAll('button[data-ir]'));
+      const obs = new IntersectionObserver(ents => {
+        ents.forEach(en => {
+          if(!en.isIntersecting) return;
+          botones.forEach(b => b.classList.toggle('on', b.getAttribute('data-ir') === en.target.id));
+        });
+      }, {rootMargin:'-20% 0px -70% 0px'});
+      botones.forEach(b => { const el = document.getElementById(b.getAttribute('data-ir')); if(el) obs.observe(el); });
+    }
+  }
+
   renderFlujo();
   renderHistorial();
+  render();
   renderResumen();
   renderSiguiente();
-  render();
+  renderIndice();
 })();
 </script>
 </body>

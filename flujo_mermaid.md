@@ -57,6 +57,8 @@ graph TD
         N25["Agente Simple Landing Page"]
         N30{"Selección de agente para validar"}
         N38{"Entrega de la landing page"}
+        N40{"Marca de la landing"}
+        N41{"Imágenes de la landing"}
         N39{"Origen de la página a analizar"}
     end
 
@@ -136,7 +138,9 @@ graph TD
     %% Dos sub-decisiones condicionales: solo aparecen si se eligió su agente.
     N2 --> N30
     N30 -->|"Simple Landing Page"| N38
-    N38 -->|"La landing como demo, con el contexto del flujo"| N25
+    N38 -->|"La landing como demo, con el contexto del flujo"| N40
+    N40 -->|"Marca real / nueva para la prueba / neutra"| N41
+    N41 -->|"Del usuario / IA / bancos libres / maquetas (mín. 1)"| N25
     N38 -->|"Solo los pasos para construirla en una herramienta externa"| N25
     N30 -->|"Landing Page UX Analyzer"| N39
     N39 -->|"Enlace público / archivo HTML / capturas / la landing recién generada"| N17
