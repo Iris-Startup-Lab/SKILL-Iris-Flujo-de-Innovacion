@@ -27,10 +27,12 @@ notación interna del proyecto.
 - **Cómo leer los reportes**: los pasos anteriores embebidos (del más reciente al más
   antiguo), la estadística en tres capas, el semáforo de veredictos y las marcas de
   integridad (`*`, `[REFERENCIA DE INDUSTRIA]`, `[no disponible]`, «Datos simulados»).
+- **¿Cómo funcionan los análisis o pruebas estadísticas?**: tamaños de muestra, lectura de resultados, validaciones automáticas y lo que aún no cubre, con ejemplos para principiantes.
 - **Al terminar el recorrido**: resumen ejecutivo, auditoría, tablero `index.html` y
   medición de tokens y costo.
-- **Puesta en marcha**: comandos del ciclo completo, de `init` al cierre.
-- **Preguntas frecuentes**.
+- **Puesta en marcha**: cómo empezar conversando con la skill y qué hay dentro de ella, sin comandos.
+- **Material propio**: qué entrevistas, benchmarks u otros insumos se pueden aportar y en qué paso.
+- **Preguntas frecuentes**, incluida la seguridad de subir datos sensibles.
 
 ## Animaciones
 
@@ -43,8 +45,7 @@ movimiento.
 ## Reglas de redacción
 
 - Toda la notación interna está traducida: se dice «Paso 4 de 11 — Persona Profile»,
-  nunca `html_4`, y «el agente Benchmark de Mercado», nunca la ruta de carpeta. La única
-  excepción es la sección de comandos, dirigida a quien opera el flujo desde la terminal.
+  nunca `html_4`, y «el agente Benchmark de Mercado», nunca la ruta de carpeta. 
 - Las marcas de integridad se explican con palabras la primera vez que aparecen.
 - Tono claro, conciso y positivo, sin «AI speak» (ver `AGENTS.md` §7).
 
