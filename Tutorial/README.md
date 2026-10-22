@@ -14,21 +14,37 @@ notación interna del proyecto.
 
 ## Qué cubre el tutorial
 
-- **Qué es IRIS** y para quién es (el pitch del producto).
-- **Cómo funciona**: trabajo paso a paso con human-in-the-loop y omisión declarada.
-- **Las dos rutas**: completa (11 pasos) y mínima (5 pasos), con tabla comparativa.
-- **Los 11 pasos, uno a uno**: tarjetas expandibles con qué hace, qué decisiones implica,
-  qué agentes lo ejecutan y qué entrega. Filtrables por etapa y con buscador.
-- **Modo simulación**: cómo probar el flujo sin usuarios reales, y su validez.
-- **Cómo leer los reportes**: semáforo de veredictos y leyenda de marcas
-  (`*`, `[REFERENCIA DE INDUSTRIA]`, `[no disponible]`, «Datos simulados»).
-- **Puesta en marcha**: activación del entorno y comandos del ciclo de un paso.
+- **Qué es IRIS** y para quién es.
+- **Cómo funciona**: el ciclo de seis tiempos de cada paso y qué archivos se pueden adjuntar
+  (texto e imágenes; audio y video todavía no).
+- **Las dos rutas**: comparador interactivo completa (11) / mínima (5), tabla comparativa y
+  arranque desde un paso intermedio.
+- **Los 11 pasos, uno a uno**: tarjetas expandibles con sus decisiones vigentes según
+  `pasos.json`, filtrables por etapa y con buscador. Incluye la landing de demo del paso 11
+  (marca e imágenes) y los anexos para otros perfiles.
+- **Omitir o pausar**: la diferencia entre declarar un hueco y dejar el paso pendiente.
+- **Modo simulación**: los cinco simuladores, la marca «Datos simulados» y su validez.
+- **Cómo leer los reportes**: los pasos anteriores embebidos (del más reciente al más
+  antiguo), la estadística en tres capas, el semáforo de veredictos y las marcas de
+  integridad (`*`, `[REFERENCIA DE INDUSTRIA]`, `[no disponible]`, «Datos simulados»).
+- **Al terminar el recorrido**: resumen ejecutivo, auditoría, tablero `index.html` y
+  medición de tokens y costo.
+- **Puesta en marcha**: comandos del ciclo completo, de `init` al cierre.
 - **Preguntas frecuentes**.
+
+## Animaciones
+
+Todas son CSS/SVG y JavaScript propio, sin librerías externas: el recorrido de 11 pasos en
+el encabezado, el ciclo de un paso, el comparador de rutas, las barras de omitir vs. pausar,
+el intervalo de confianza de la capa 2 y la lista de pasos anteriores. Con
+`prefers-reduced-motion` activo en el sistema, la página se muestra completa y sin
+movimiento.
 
 ## Reglas de redacción
 
 - Toda la notación interna está traducida: se dice «Paso 4 de 11 — Persona Profile»,
-  nunca `html_4`, y «el agente Benchmark de Mercado», nunca la ruta de carpeta.
+  nunca `html_4`, y «el agente Benchmark de Mercado», nunca la ruta de carpeta. La única
+  excepción es la sección de comandos, dirigida a quien opera el flujo desde la terminal.
 - Las marcas de integridad se explican con palabras la primera vez que aparecen.
 - Tono claro, conciso y positivo, sin «AI speak» (ver `AGENTS.md` §7).
 
