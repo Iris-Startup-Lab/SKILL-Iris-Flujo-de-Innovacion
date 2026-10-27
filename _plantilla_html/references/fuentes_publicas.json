@@ -1,0 +1,50 @@
+{
+  "_": "Catálogo de fuentes públicas y gratuitas que consulta `buscar_fuentes.py`. Solo fuentes sin llave y sin muro de pago. Probado el 2026-10-27; si un feed deja de responder, el script lo avisa y sigue con los demás.",
+  "medios_rss": {
+    "eleconomista":       { "nombre": "El Economista",          "pais": "MX", "url": "https://www.eleconomista.com.mx/rss/ultimas-noticias" },
+    "elfinanciero":       { "nombre": "El Financiero",          "pais": "MX", "url": "https://www.elfinanciero.com.mx/arc/outboundfeeds/rss/?outputType=xml" },
+    "expansion":          { "nombre": "Expansión",              "pais": "MX", "url": "https://expansion.mx/rss" },
+    "expansion_economia": { "nombre": "Expansión — Economía",   "pais": "MX", "url": "https://expansion.mx/rss/economia" },
+    "eluniversal":        { "nombre": "El Universal",           "pais": "MX", "url": "https://www.eluniversal.com.mx/arc/outboundfeeds/rss/?outputType=xml" },
+    "bbc_mundo":          { "nombre": "BBC News Mundo",         "pais": "INT", "url": "https://feeds.bbci.co.uk/mundo/rss.xml" },
+    "elpais_economia":    { "nombre": "El País — Economía",     "pais": "INT", "url": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada" }
+  },
+  "datos_gob": {
+    "api": "https://www.datos.gob.mx/api/3/action/package_search",
+    "organizaciones": {
+      "condusef": "CONDUSEF",
+      "imss": "IMSS",
+      "imss_bienestar": "IMSS-Bienestar",
+      "secretaria_economia": "Secretaría de Economía",
+      "secretaria_hacienda": "Secretaría de Hacienda"
+    }
+  },
+  "banco_mundial": {
+    "api": "https://api.worldbank.org/v2"
+  },
+  "descubrimiento_oficial": {
+    "_": "Google News RSS por sitio. Sus enlaces son redirecciones que no se pueden descargar: sirve para DESCUBRIR comunicados y reportes oficiales; la URL real se busca después con la búsqueda web y se registra con fuentes.py.",
+    "api": "https://news.google.com/rss/search",
+    "sitios": {
+      "gob.mx": "Gobierno de México (todas las dependencias)",
+      "cnbv.gob.mx": "CNBV",
+      "condusef.gob.mx": "CONDUSEF",
+      "imss.gob.mx": "IMSS",
+      "economia.gob.mx": "Secretaría de Economía",
+      "banxico.org.mx": "Banco de México",
+      "inegi.org.mx": "INEGI"
+    }
+  },
+  "sin_descarga_directa": {
+    "_": "Sitios que bloquean la descarga automática (captcha o API con llave). Sus reportes se buscan con la búsqueda web de la herramienta y se registran con `fuentes.py agregar`.",
+    "inegi.org.mx": "La web responde con un captcha anti-bots; la API pide llave.",
+    "banxico.org.mx": "El sistema SIE pide llave; las publicaciones en PDF se registran con el texto relevante.",
+    "cnbv.gob.mx": "No publica en datos.gob.mx; usar sus reportes vía búsqueda web."
+  },
+  "de_pago_excluidas": [
+    "reforma.com", "elnorte.com", "mural.com", "statista.com", "euromonitor.com", "iwsr.com",
+    "wsj.com", "ft.com", "bloomberg.com", "economist.com", "nytimes.com", "barrons.com",
+    "forbes.com", "forbes.com.mx", "gartner.com", "forrester.com", "emarketer.com", "ibisworld.com",
+    "mordorintelligence.com", "grandviewresearch.com", "marketsandmarkets.com"
+  ]
+}

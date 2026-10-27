@@ -50,7 +50,7 @@ python scripts/estado_flujo.py init --proyecto "Huertos urbanos MX" \
 
 Luego la macro-skill arranca con el nodo de decisión **«¿Cómo quieres iniciar?»**
 (Estado actual → Benchmark · Futuros → Foresight · Señales débiles → Señales débiles ·
-Opiniones → Discussion Forums) y avanza paso por paso con **human-in-the-loop**,
+Opiniones → Discussion Forums; se puede elegir más de una) y avanza paso por paso con **human-in-the-loop**,
 deteniéndose en cada decisión y registrando todo en el estado del flujo.
 
 ### Dos recorridos

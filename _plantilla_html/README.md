@@ -53,7 +53,12 @@ _plantilla_html/
 ├── scripts/
 │   ├── generar_html.py           # reporte.json + contexto + template + logo -> html
 │   ├── validar_report_data.py    # valida el esquema REPORT_DATA (usable por separado)
+│   ├── fuentes.py                # bitácora fuentes.json: descarga y registra fuentes (F1, F2…)
+│   ├── verificar_fuentes.py      # comprueba cifras y citas [Fn] contra el texto descargado
+│   ├── buscar_fuentes.py         # búsqueda propia: RSS de medios, datos.gob.mx, Banco Mundial
 │   └── logo_base64.py            # helper: PNG -> data URI base64
+├── references/
+│   └── fuentes_publicas.json     # catálogo de fuentes públicas y gratuitas (sin llave ni pago)
 └── README.md
 ```
 
@@ -372,6 +377,43 @@ Los rellena `estado_flujo.py completar` con `--resumen`, `--datos` y `--outputs`
 - `persona` y `psf` son opcionales y se validan con su esquema propio (ver arriba).
 - Todo texto del `body` se muestra con salto de línea preservado (`pre-wrap`).
 - Los valores con cifras **estimadas** se marcan `*` o `[REFERENCIA DE INDUSTRIA]` según las reglas de integridad del flujo.
+- Las cifras y citas **de fuentes externas** se citan con `[Fn]` (id de `fuentes.json`) y las
+  comprueba `verificar_fuentes.py` (ver «Fuentes verificables»).
+
+### Fuentes verificables (`fuentes.py` + `verificar_fuentes.py`)
+
+El seguro contra cifras inventadas. `fuentes.py` descarga cada fuente por su cuenta (solo
+stdlib), guarda su texto en `fuentes/Fn.txt` con su sha256 y la registra en `fuentes.json`
+con título, medio, tipo (`oficial`, `medio`, `consultora`…), fecha de publicación y de
+consulta. Si el sandbox no tiene red, `agregar` registra el texto que trajo la búsqueda web
+de la herramienta (queda marcado `herramienta_web`).
+
+```bash
+python _plantilla_html/scripts/fuentes.py probar                       # ¿hay red?
+python _plantilla_html/scripts/fuentes.py capturar --fuentes fuentes.json --url "https://..."
+python _plantilla_html/scripts/verificar_fuentes.py --reporte reporte.json \
+    --fuentes fuentes.json --escribir
+```
+
+`verificar_fuentes.py` revisa frase por frase: que cada `[Fn]` exista, que cada número de la
+frase esté en el texto de esa fuente (un número con `*` es cálculo propio y no se busca), que
+las citas entre «» sean literales, que el texto guardado no se haya alterado y que la fuente
+no tenga más de 3 años. Con `--escribir` deja en el reporte el veredicto (`VERIFICADO`,
+`PARCIAL`, `NO VERIFICADO`) como primera advertencia, los fallos y la lista `fuentes` con
+título, medio, fechas, tipo y URL; la plantilla convierte esas URL en enlaces externos.
+Salida: 0 · 2 · 3 según el veredicto.
+
+**Búsqueda propia (`buscar_fuentes.py`).** Busca sin depender del buscador de la herramienta,
+solo en fuentes públicas y gratuitas del catálogo `references/fuentes_publicas.json`:
+`medios` (RSS de El Economista, El Financiero, Expansión, El Universal, BBC Mundo y El País;
+solo traen las notas recientes), `datos-gob` (datos.gob.mx, filtrable por CONDUSEF, IMSS,
+Economía o Hacienda), `banco-mundial` (`--buscar` el código del indicador, en inglés, e
+`--indicador` para bajar la serie) y `oficiales` (Google News por sitio oficial: solo
+descubre, porque sus enlaces no llevan a la página original). Con `--registrar` cada
+resultado entra a `fuentes.json` con su URL real. INEGI, Banxico y CNBV no se descargan por
+script (captcha o API con llave): su reporte se encuentra con la búsqueda web y se registra
+con `fuentes.py agregar --tipo oficial`. Las fuentes de pago del catálogo
+(`de_pago_excluidas`) se descartan de los resultados.
 
 ## Componentes interactivos (ya incluidos en la plantilla)
 

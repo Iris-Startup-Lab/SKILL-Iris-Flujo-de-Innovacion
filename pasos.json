@@ -36,8 +36,10 @@
       "decisiones": [
         {
           "nodo": "¿Cómo quieres iniciar?",
-          "tipo": "unica",
-          "descripcion": "Primera pregunta del flujo, después de presentarte. Nombra el agente de cada opción y di en una línea qué entrega, porque el usuario no sabe todavía qué diferencia a uno de otro.",
+          "tipo": "multiple",
+          "minimo": 1,
+          "ofrecer_todos": true,
+          "descripcion": "Primera pregunta del flujo, después de presentarte. Nombra el agente de cada opción y di en una línea qué entrega, porque el usuario no sabe todavía qué diferencia a uno de otro. Puede elegir una o varias entradas: pregunta cuáles ANTES de ejecutar nada y nunca las ejecutes todas por tu cuenta. Si elige varias, cada agente trabaja por separado y todo se consolida en un solo reporte, con una sección por agente. Antes de preguntar, recomienda activar «Búsqueda web» e «Investigación» (SKILL.md § «Búsqueda web e Investigación»).",
           "opciones": [
             { "opcion": "Estado actual", "agente": "Benchmark de Mercado", "efecto": "Retrata el mercado tal como está hoy: tamaño, jugadores y su oferta.", "skills": ["1.Investigacion/benchmark-mercado"] },
             { "opcion": "Futuros", "agente": "Foresight", "efecto": "Proyecta escenarios y tendencias hacia dónde puede moverse el mercado.", "skills": ["1.Investigacion/foresight"] },
@@ -54,6 +56,7 @@
         "1.Investigacion/search-trend-analysis"
       ],
       "cadenas": [["1.Investigacion/discussion-forums", "1.Investigacion/search-trend-analysis"]],
+      "paralelo": true,
       "entrega": "html_1.html"
     },
     {

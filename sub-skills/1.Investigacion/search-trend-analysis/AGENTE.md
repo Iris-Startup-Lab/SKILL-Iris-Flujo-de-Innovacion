@@ -83,6 +83,30 @@ Además, cierra con el **contrato JSON** (ver la sección «Contrato JSON (salid
 3. El umbral de éxito se fija **relativo al tamaño del país/idioma** (ver `references/benchmarks-industria.md`), nunca absoluto.
 4. Datos reales por encima de síntesis: si el script o `webfetch` puede obtenerlo, no lo redactes de memoria.
 
+## Fuentes verificables (búsqueda web)
+
+Ninguna cifra ni cita externa se escribe de memoria. En este agente aplica a los volúmenes de búsqueda y benchmarks públicos que traigas de internet. Los datos de Google Trends ya los calcula `scripts/google_trends.py` y no necesitan `[Fn]`.
+
+1. **Búsqueda web activa.** En Claude, el usuario la enciende con el ícono **+** de la caja de
+   mensaje → **Búsqueda web** e **Investigación**; una skill no puede activarla. Comprueba
+   además si el entorno tiene red con `python _plantilla_html/scripts/fuentes.py probar`. Sin
+   red ni búsqueda web, dilo antes de empezar y marca las cifras como `*`.
+2. **Registra cada fuente** en `fuentes.json`: `fuentes.py capturar --url …` si hay red,
+   `fuentes.py agregar --url … --texto-archivo …` con el texto que trajo la búsqueda web si no
+   la hay, y `fuentes.py archivo --ruta … --tipo propia` para el material del usuario.
+   Prioriza fuentes oficiales, luego consultoras, luego medios; dos fuentes independientes por
+   cifra clave y, si no coinciden, el rango con ambas citas.
+   Además de la búsqueda web, busca por tu cuenta en fuentes públicas y gratuitas (medios por
+   RSS, datos.gob.mx, Banco Mundial) con `python _plantilla_html/scripts/buscar_fuentes.py
+   medios|datos-gob|banco-mundial --consulta … --registrar`; para INEGI, Banxico y CNBV,
+   `buscar_fuentes.py oficiales` descubre qué publicaron. Las fuentes de pago no se consultan.
+3. **Cita con el id** en la misma frase que la cifra: «… 64,745 millones de dólares [F3]». Un
+   cálculo propio lleva `*` junto al número; las citas textuales van literales entre «».
+4. **Verifica antes del HTML:** `python _plantilla_html/scripts/verificar_fuentes.py --reporte
+   reporte.json --fuentes fuentes.json --escribir`. El veredicto (`VERIFICADO`, `PARCIAL`,
+   `NO VERIFICADO`) y la lista de fuentes con su enlace real quedan en el reporte. Nunca
+   inventes un `[Fn]` ni escribas la lista de fuentes a mano.
+
 ## Contexto del flujo (entrada)
 
 Esta skill puede ejecutarse suelta o como paso del **flujo de innovación IRIS**. Si la

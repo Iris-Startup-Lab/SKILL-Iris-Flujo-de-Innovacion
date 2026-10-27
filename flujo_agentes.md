@@ -36,7 +36,7 @@ python scripts/estado_flujo.py mostrar --paso html_N
 
 ### Puntos de decisión
 
-- **Cómo quieres iniciar?**
+- **Cómo quieres iniciar?** (elige una o varias; mínimo una)
   - Estado actual → Agente Benchmark
   - Futuros → Agente Foresight
   - Señales débiles de usuarios actuales → Agente Señales débiles
@@ -502,7 +502,7 @@ significa cada campo de un nodo, en su bloque `convenciones_decisiones`.
 
 | Paso | Nodo | Tipo | Opciones |
 | --- | --- | --- | --- |
-| html_1 | ¿Cómo quieres iniciar? | única | Estado actual / Futuros / Señales débiles de usuarios actuales / Opiniones y comentarios |
+| html_1 | ¿Cómo quieres iniciar? | múltiple (mín. 1) | Estado actual / Futuros / Señales débiles de usuarios actuales / Opiniones y comentarios |
 | html_2 | ¿Ejecución de entrevistas? | única | Sí, reales / No, simulación (marca SIMULADO) / No, solo el guion |
 | html_3 | Selección de agentes de descubrimiento | múltiple, mín. 1 | A Day In The Life / Encuesta Kano / Discovery Survey / Expo Quest |
 | html_3 | Origen de las respuestas de descubrimiento | única, `auto_si` | Datos reales del usuario / Simular con los simuladores del flujo |

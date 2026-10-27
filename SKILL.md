@@ -116,6 +116,92 @@ Si `flujo_estado.json` ya existe, el script se detiene y muestra el proyecto en 
 
 ---
 
+## Búsqueda web e Investigación
+
+El paso 1 (y cualquier paso que necesite datos de mercado) depende de lo que encuentre en
+internet. Una skill **no puede encender** la búsqueda web ni el modo Investigación de Claude:
+son interruptores de la interfaz y solo los activa el usuario. Así que, **antes de la pregunta
+«¿Cómo quieres iniciar?»**, recomiéndalo en una línea:
+
+> Para que la investigación use datos reales y actuales, activa **Búsqueda web** e
+> **Investigación**: da clic en el ícono **+** de la caja de mensaje y enciende las dos.
+
+En Claude Code, AWS u otra herramienta no existe ese botón: la búsqueda es la que tenga
+configurada. Después comprueba si hay salida a internet desde el entorno de ejecución:
+
+```bash
+python _plantilla_html/scripts/fuentes.py probar
+```
+
+- **`"red": true`** → descarga cada fuente con el script, sin depender del buscador.
+- **`"red": false`** → usa la búsqueda web de la herramienta y registra cada página con
+  `fuentes.py agregar` (texto incluido).
+- **Ni red ni búsqueda web** → dilo claro antes de empezar: «Sin búsqueda web: las cifras
+  saldrán como referencia `*`, no como dato verificado. Activa Búsqueda web e Investigación y
+  vuelve a empezar este paso». Si sigue así, declara la limitación en `advertencias`.
+
+### Fuentes verificables: el seguro contra cifras inventadas
+
+Ninguna cifra de mercado se escribe de memoria. Toda cifra o cita que venga de afuera pasa por
+la bitácora `fuentes.json` (en la carpeta del proyecto) y se verifica antes del HTML:
+
+0. **Busca también por tu cuenta**, además de la búsqueda web, en las fuentes públicas y
+   gratuitas del catálogo `_plantilla_html/references/fuentes_publicas.json` (sin llave y sin
+   muro de pago; las de pago no se consultan). Con `--registrar` cada resultado entra directo
+   a la bitácora con su enlace real:
+
+   ```bash
+   S=_plantilla_html/scripts/buscar_fuentes.py
+   python $S medios --consulta "remesas México" --registrar --fuentes <dir>/fuentes.json
+   python $S datos-gob --consulta "quejas" --organizacion condusef --registrar --fuentes <dir>/fuentes.json
+   python $S banco-mundial --buscar "remittances"            # código del indicador (en inglés)
+   python $S banco-mundial --indicador BX.TRF.PWKR.CD.DT --registrar --fuentes <dir>/fuentes.json
+   python $S oficiales --consulta "remesas" [--sitio cnbv.gob.mx]   # descubrir, NO citable
+   ```
+
+   - **Medios:** El Economista, El Financiero, Expansión, El Universal, BBC Mundo y El País.
+     Sus RSS solo traen las notas recientes; para notas antiguas, la búsqueda web.
+   - **Datos abiertos:** datos.gob.mx (CONDUSEF, IMSS, Economía, Hacienda y el resto) y el
+     Banco Mundial.
+   - **INEGI, Banxico y CNBV** no se descargan por script (captcha o API con llave). Usa
+     `oficiales` para saber qué publicaron, encuentra el reporte con la búsqueda web y
+     regístralo con `fuentes.py agregar` como `--tipo oficial`.
+
+1. **Registra cada fuente** — el script le da un id `F1`, `F2`… y guarda su texto:
+
+   ```bash
+   python _plantilla_html/scripts/fuentes.py capturar --fuentes <dir>/fuentes.json \
+       --url "https://..." [--tipo oficial|medio|consultora|academica|empresa]
+   python _plantilla_html/scripts/fuentes.py archivo --fuentes <dir>/fuentes.json \
+       --ruta estudio_del_usuario.md --tipo propia      # material propio del usuario
+   ```
+
+   Prioridad: fuentes **oficiales** (INEGI, Banxico, CNBV, dependencias de gobierno,
+   organismos internacionales) → consultoras y estudios de industria → medios → el resto.
+   Busca en español y en inglés, y busca **dos fuentes independientes** para cada cifra clave.
+   Si no coinciden, reporta el rango con las dos citas; no promedies.
+2. **Cita en el `reporte.json` con el id entre corchetes**, en la misma frase que la cifra:
+   «Las remesas sumaron 64,745 millones de dólares en 2024 [F3].» Lo que calcules tú a partir
+   de una fuente lleva `*` pegado al número («un SOM de 1.2* mil millones [F3]»). Las citas
+   textuales van entre «» y copiadas literal.
+3. **Verifica y escribe el resultado en el reporte:**
+
+   ```bash
+   python _plantilla_html/scripts/verificar_fuentes.py --reporte reporte.json \
+       --fuentes <dir>/fuentes.json --escribir
+   ```
+
+   `VERIFICADO` → genera el HTML. `PARCIAL` → corrige la cifra o la cita contra la fuente, o
+   márcala `*`, y vuelve a verificar; si queda alguna, se entrega con su advertencia.
+   `NO VERIFICADO` → una cita apunta a una fuente que no existe: quítala o regístrala; **nunca**
+   inventes un `[Fn]`. El veredicto y la lista de fuentes con su enlace real salen solos en el
+   HTML: no los escribas a mano.
+
+Díselo al usuario al entregar: «Las 14 cifras del reporte están comprobadas contra 6 fuentes
+descargadas; los enlaces están en Fuentes, al final del reporte.»
+
+---
+
 ## Qué archivos puede adjuntar el usuario
 
 Dilo cuando arranca el proceso y cada vez que el usuario quiera aportar material: este
@@ -246,7 +332,7 @@ está en el catálogo, dos opciones en un nodo de elección única o menos opcio
 se rechazan con el mensaje de qué era válido. Si eso pasa, es que la pregunta se hizo mal:
 vuelve a `mostrar` y preséntala como está escrita.
 
-**Pregunta antes de ejecutar, siempre.** Los pasos 3, 8 y 11 tienen varios agentes y su primer
+**Pregunta antes de ejecutar, siempre.** Los pasos 1, 3, 8 y 11 tienen varios agentes y su primer
 nodo es justamente cuáles se ejecutan. Nunca los ejecutes todos «para ahorrar tiempo» ni elijas
 por el usuario: hay que preguntar si quiere todos o algunos, con un mínimo de uno, **antes** de
 invocar nada. Después de registrar la elección, `mostrar` marca cada sub-skill como
@@ -583,7 +669,9 @@ pasa si no la hay **en una frase completa**, no con un símbolo entre paréntesi
 Nunca inventes cifras. Estimado → `*` o `[REFERENCIA DE INDUSTRIA]`; sin dato →
 `[no disponible]`. Si un script puede calcularlo, lo calcula el script: tú redactas
 la interpretación, no las cifras. **Y explícale al usuario qué quiere decir cada marca**
-(ver «Cómo nombrar las cosas ante el usuario»).
+(ver «Cómo nombrar las cosas ante el usuario»). Una cifra que viene de internet o de un
+documento se cita con `[Fn]` y se comprueba con `verificar_fuentes.py` (ver «Fuentes
+verificables»).
 
 ### La estadística se explica, siempre
 

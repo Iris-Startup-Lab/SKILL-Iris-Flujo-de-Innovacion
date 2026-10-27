@@ -317,6 +317,7 @@
   .nota-box li{font-size:.85rem;color:var(--ink);padding-left:16px;position:relative;line-height:1.5}
   .nota-box li::before{content:"";position:absolute;left:0;top:.55em;width:6px;height:6px;border-radius:50%;background:var(--gold-500)}
   .nota-box.src li{color:var(--ink-soft)}
+  .nota-box.src a{color:var(--purple-700, #5b2a86);word-break:break-all}
 
   /* ---------- Historial: pasos anteriores embebidos ---------- */
   .paso-previo{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--e1);margin-bottom:12px;overflow:hidden;scroll-margin-top:calc(var(--topbar-h) + 16px)}
@@ -1026,7 +1027,7 @@ window.REPORT_DATA = __REPORT_DATA__;
   function notasHtml(adv, src){
     let s = '';
     if(adv.length) s += '<div class="panel nota-box adv"><h3>'+ico('alert')+'Advertencias y limitaciones</h3><ul>'+adv.map(a=>'<li>'+esc(a)+'</li>').join('')+'</ul></div>';
-    if(src.length) s += '<div class="panel nota-box src"><h3>Fuentes</h3><ul>'+src.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+    if(src.length) s += '<div class="panel nota-box src"><h3>Fuentes</h3><ul>'+src.map(x=>'<li>'+conEnlaces(x)+'</li>').join('')+'</ul></div>';
     return s ? '<div class="notas-grid">'+s+'</div>' : '';
   }
 
@@ -1129,6 +1130,12 @@ window.REPORT_DATA = __REPORT_DATA__;
   }
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  // Fuentes: la URL de cada referencia se vuelve enlace externo. Es la única excepción a
+  // «sin <a href>»: sale a internet, así que el aviso de salida de la pasarela es correcto.
+  function conEnlaces(s){
+    return esc(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:)»]/g,
+      u=>'<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+u+'</a>');
+  }
 
   // Aplana la ficha de persona para que el buscador la encuentre.
   function textoPersona(p){
@@ -1720,7 +1727,7 @@ window.REPORT_DATA = __REPORT_DATA__;
     const srcBox = document.getElementById('fuentes-box');
     wrap.style.display = (adv.length || src.length) ? '' : 'none';
     if(adv.length){ advBox.style.display=''; document.getElementById('advertencias').innerHTML = adv.map(a=>'<li>'+esc(a)+'</li>').join(''); } else advBox.style.display='none';
-    if(src.length){ srcBox.style.display=''; document.getElementById('fuentes').innerHTML = src.map(s=>'<li>'+esc(s)+'</li>').join(''); } else srcBox.style.display='none';
+    if(src.length){ srcBox.style.display=''; document.getElementById('fuentes').innerHTML = src.map(s=>'<li>'+conEnlaces(s)+'</li>').join(''); } else srcBox.style.display='none';
   }
 
   // ---------- Ventana «Cómo se calculó» (capa 2 de la estadística) ----------
